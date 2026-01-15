@@ -9,6 +9,8 @@ icon: 🏠
 # More about page options: https://getkirby.com/docs/reference/panel/blueprints/page#options
 options:
   changeStatus: false
+  read:
+    author: false
 
 # Here we define an info section and a pages section (`photography`)
 sections:

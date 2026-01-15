@@ -16,6 +16,8 @@ status:
 options:
   changeSlug: false
   delete: false
+  read:
+    author: false
 
 # We use tabs here to focus on the layout in one tab
 # and have the additional contact fields in a secondary

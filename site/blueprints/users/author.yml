@@ -1,0 +1,16 @@
+title: Author
+description: Can create and submit notes for review, but cannot publish them.
+permissions:
+  access:
+    panel: true
+    site: true
+    settings: false
+    users: false
+    languages: false
+    system: false
+  pages:
+    create: true
+    read: true
+    update: true
+    delete: false
+    changeStatus: true
