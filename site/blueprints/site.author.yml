@@ -4,4 +4,4 @@ columns:
     sections:
       notes:
         extends: sections/notes
-        status: listed
+

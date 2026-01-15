@@ -1,31 +1,44 @@
 <?php
 
-/**
- * Page models extend Kirby's default page object.
- *
- * In page models you can define methods that are then available
- * everywhere in Kirby where you call a page of the extended type.
- *
- * In this example, we define the cover method that either returns
- * an image selected in the cover field or the first image in the folder.
- *
- * You can see the method in use in the `note.php` snippet.
- * and in the `site/blueprints/sections/notes.yml` image query
- *
- * We also define a custom date handler here, which keeps date formatting
- * for the published date consistent in templates, snippets and blueprints.
- *
- * More about models: https://getkirby.com/docs/guide/templates/page-models
- */
 class NotePage extends Page
 {
-    public function cover()
+    public function isReadable(): bool
     {
-        return $this->content()->cover()->toFile() ?? $this->image();
+        // Admins can read everything
+        if ($this->kirby()->user() && $this->kirby()->user()->isAdmin()) {
+            return true;
+        }
+
+        // Notes are readable by their author
+        if ($this->author()->toUser()?->id() === $this->kirby()->user()?->id()) {
+            return true;
+        }
+
+        // Authors cannot read other people's notes in the panel
+        if ($this->kirby()->user() && $this->kirby()->user()->role()->name() === 'author') {
+            return false;
+        }
+
+        return parent::isReadable();
     }
 
-    public function published($format = null)
+    public function isDeletable(): bool
     {
-        return parent::date()->toDate($format ?? 'd M, Y');
+        // Admins can delete everything
+        if ($this->kirby()->user() && $this->kirby()->user()->isAdmin()) {
+            return true;
+        }
+
+        // Notes are deletable by their author
+        if ($this->author()->toUser()?->id() === $this->kirby()->user()?->id()) {
+            return true;
+        }
+
+        // Authors cannot delete other people's notes
+        if ($this->kirby()->user() && $this->kirby()->user()->role()->name() === 'author') {
+            return false;
+        }
+
+        return parent::isDeletable();
     }
 }
