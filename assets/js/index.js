@@ -1,7 +1,3 @@
-// Lightbox
-Array.from(document.querySelectorAll("[data-lightbox]")).forEach(element => {
-  element.onclick = (e) => {
-    e.preventDefault();
-    basicLightbox.create(`<img src="${element.href}">`).show();
-  };
-});
+// global site js
+// previously held lightbox logic — keeping lean for now
+// add interactions here as needed

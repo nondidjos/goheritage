@@ -1,59 +1,56 @@
 <?php
 /*
-  Templates render the content of your pages.
-
-  They contain the markup together with some control structures
-  like loops or if-statements. The `$page` variable always
-  refers to the currently active page.
-
-  To fetch the content from each field we call the field name as a
-  method on the `$page` object, e.g. `$page->title()`.
-
-  This note template renders a blog article. It uses the `$page->cover()`
-  method from the `note.php` page model (/site/models/page.php)
-
-  It also receives the `$tag` variable from its controller
-  (/site/controllers/note.php) if a tag filter is activated.
-
-  Snippets like the header and footer contain markup used in
-  multiple templates. They also help to keep templates clean.
-
-  More about templates: https://getkirby.com/docs/guide/templates/basics
+  single note / blog article template
+  title: DM Sans, body: IBM Plex Serif
+  tags from the note controller
 */
 ?>
 <?php snippet('header') ?>
 
-<?php if ($cover = $page->cover()): ?>
-<a href="<?= $cover->url() ?>" data-lightbox class="img" style="--w:2; --h:1">
-  <img src="<?= $cover->crop(1200, 600)->url() ?>" alt="<?= $cover->alt()->esc() ?>">
-</a>
-<?php endif ?>
+<div class="container">
 
-<article class="note">
-  <header class="note-header h1">
-    <h1 class="note-title"><?= $page->title()->esc() ?></h1>
-    <?php if ($page->subheading()->isNotEmpty()): ?>
-    <p class="note-subheading"><small><?= $page->subheading()->esc() ?></small></p>
-    <?php endif ?>
-  </header>
-  <div class="note text">
-    <?= $page->text()->toBlocks() ?>
+  <div class="article-header">
+    <div class="grid-7">
+      <div class="col-7">
+        <p class="article-date font-mono"><?= $page->date()->toDate('d F Y') ?></p>
+        <h1 class="article-title font-sans"><?= $page->title()->esc() ?></h1>
+        <?php if ($page->subheading()->isNotEmpty()): ?>
+          <p class="article-sub font-serif"><?= $page->subheading()->esc() ?></p>
+        <?php endif ?>
+      </div>
+    </div>
   </div>
-  <footer class="note-footer">
-    <?php if (!empty($tags)): ?>
-    <ul class="note-tags">
-      <?php foreach ($tags as $tag): ?>
-      <li>
-        <a href="<?= $page->parent()->url(['params' => ['tag' => $tag]]) ?>"><?= esc($tag) ?></a>
-      </li>
-      <?php endforeach ?>
-    </ul>
-    <?php endif ?>
 
-    <time class="note-date" datetime="<?= $page->date()->toDate('c') ?>">Published on <?= $page->date()->esc() ?></time>
-  </footer>
+  <?php if ($cover = $page->cover()): ?>
+    <div class="article-cover">
+      <img src="<?= $cover->crop(1600, 800)->url() ?>" alt="<?= $cover->alt()->esc() ?>">
+    </div>
+  <?php endif ?>
 
-  <?php snippet('prevnext') ?>
-</article>
+  <div class="article-body">
+    <div class="grid-7">
+      <div class="col-5">
+        <div class="text font-serif">
+          <?= $page->text()->toBlocks() ?>
+        </div>
+
+        <?php if (!empty($tags)): ?>
+          <ul class="article-tags" style="margin-top: var(--baseline-2x);">
+            <?php foreach ($tags as $tag): ?>
+              <li>
+                <a class="article-tag font-mono" href="<?= $page->parent()->url(['params' => ['tag' => $tag]]) ?>">
+                  <?= esc($tag) ?>
+                </a>
+              </li>
+            <?php endforeach ?>
+          </ul>
+        <?php endif ?>
+
+        <?php snippet('prevnext') ?>
+      </div>
+    </div>
+  </div>
+
+</div>
 
 <?php snippet('footer') ?>
