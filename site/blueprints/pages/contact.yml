@@ -1,0 +1,22 @@
+title: Contact
+icon: ✉️
+
+options:
+  changeStatus: false
+
+sections:
+  content:
+    type: fields
+    fields:
+      headline:
+        type: text
+        label: Page Headline
+      intro:
+        type: textarea
+        label: Intro Text
+      email:
+        type: email
+        label: Contact Email Address
+      address:
+        type: textarea
+        label: Address

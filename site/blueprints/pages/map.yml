@@ -1,0 +1,24 @@
+title: Map
+icon: 🗺️
+
+options:
+  changeStatus: false
+
+sections:
+  content:
+    type: fields
+    fields:
+      headline:
+        type: text
+        label: Page Headline
+      intro:
+        type: textarea
+        label: Introduction
+
+  projects:
+    type: pages
+    label: Heritage Projects
+    template: project
+    status: listed
+    sortBy: title asc
+    create: project
