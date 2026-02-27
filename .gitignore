@@ -57,3 +57,6 @@ Icon
 !/content/site.txt
 !/content/error/error.txt
 !/content/home/home.txt
+
+# node dependencies
+node_modules/
