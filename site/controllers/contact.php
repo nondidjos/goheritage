@@ -26,10 +26,11 @@ return function ($kirby, $page) {
             'message' => ['required', 'minLength' => 10, 'maxLength' => 3000],
         ];
 
+        // validation messages in french
         $messages = [
-            'name' => 'Please enter your name (at least 2 characters).',
-            'email' => 'Please enter a valid email address.',
-            'message' => 'Please enter a message between 10 and 3000 characters.',
+            'name' => 'Veuillez entrer votre nom (au moins 2 caractères).',
+            'email' => 'Veuillez entrer une adresse e-mail valide.',
+            'message' => 'Veuillez entrer un message entre 10 et 3000 caractères.',
         ];
 
         if ($invalid = invalid($data, $rules, $messages)) {
@@ -41,7 +42,7 @@ return function ($kirby, $page) {
                     'from' => 'noreply@goheritage.fr',
                     'replyTo' => $data['email'],
                     'to' => $page->email()->value() ?: 'contact@goheritage.fr',
-                    'subject' => esc($data['name']) . ' sent a message via GoHéritage',
+                    'subject' => esc($data['name']) . ' a envoyé un message via GoHéritage',
                     'data' => [
                         'sender' => esc($data['name']),
                         'email' => esc($data['email']),
@@ -50,9 +51,9 @@ return function ($kirby, $page) {
                 ]);
             } catch (Exception $error) {
                 if (option('debug')) {
-                    $alert['error'] = 'The message could not be sent: <strong>' . $error->getMessage() . '</strong>';
+                    $alert['error'] = 'Le message n\'a pas pu être envoyé : <strong>' . $error->getMessage() . '</strong>';
                 } else {
-                    $alert['error'] = 'The message could not be sent. Please try again later.';
+                    $alert['error'] = 'Le message n\'a pas pu être envoyé. Veuillez réessayer plus tard.';
                 }
             }
 

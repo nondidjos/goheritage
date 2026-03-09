@@ -12,6 +12,11 @@ use Kirby\Data\Data;
 return [
     'debug' => true,
     'yaml.handler' => 'symfony',
+    'auth' => [
+        'methods' => [
+            'password' => ['min' => 4]
+        ]
+    ],
     'blueprints' => [
         'site' => function ($kirby) {
             $user = $kirby->user();

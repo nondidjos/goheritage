@@ -31,7 +31,24 @@ columns:
           location:
             type: text
             label: Location Name
-            placeholder: "e.g. Les Andelys, Normandie"
+            placeholder: "e.g. Bruxelles, Belgique"
+          construction_date:
+            type: text
+            label: Date de construction
+            placeholder: "e.g. 15ème siècle"
+          dimensions:
+            type: text
+            label: Dimensions du bâtiment
+            placeholder: "e.g. 103x340x70m"
+          style:
+            type: text
+            label: Style architectural
+            placeholder: "e.g. Baroque, Gothique"
+          model_url:
+            type: url
+            label: 3D Model URL (.glb)
+            placeholder: "https://example.com/model.glb"
+            help: "URL to a .glb 3D model file for the viewer"
           lat:
             type: number
             label: Latitude
@@ -47,3 +64,10 @@ columns:
           tags:
             type: tags
             label: Tags
+
+      gallery:
+        type: files
+        label: Gallery Images
+        layout: cards
+        size: small
+        template: blocks/image
