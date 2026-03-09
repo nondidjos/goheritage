@@ -1,0 +1,25 @@
+Title: Contact
+
+----
+
+Headline: Contactez-nous
+
+----
+
+Intro: Vous avez un site patrimonial que vous aimeriez nous voir documenter ? Vous souhaitez collaborer ou en savoir plus sur notre méthodologie de numérisation ? N'hésitez pas à nous écrire.
+
+----
+
+Email: contact@goheritage.fr
+
+----
+
+Address:
+
+GoHéritage
+12 Rue du Patrimoine
+75004 Paris, France
+
+----
+
+Uuid: 43de36x122vyut0g

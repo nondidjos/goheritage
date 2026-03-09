@@ -1,0 +1,13 @@
+Title: Accueil
+
+----
+
+Headline: Préserver le passé, numériquement
+
+----
+
+Subheadline: GoHéritage utilise la photogrammétrie et le scan 3D LiDAR pour créer des archives numériques permanentes de sites patrimoniaux menacés à travers la France.
+
+----
+
+Uuid: am5khnnvwze5j6ai

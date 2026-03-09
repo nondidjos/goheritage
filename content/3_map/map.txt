@@ -1,0 +1,13 @@
+Title: Carte
+
+----
+
+Headline: Sites patrimoniaux
+
+----
+
+Intro: Explorez nos archives de sites patrimoniaux numérisés en 3D. Cliquez sur un site sur la carte ou dans la liste pour en savoir plus.
+
+----
+
+Uuid: hbvcqp5ppb2llapv

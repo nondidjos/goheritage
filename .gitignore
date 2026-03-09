@@ -50,13 +50,7 @@ Icon
 /site/config/.license
 /site/config/config.starterkit.test.php
 
-# Content
-# ---------------
 
-/content/*
-!/content/site.txt
-!/content/error/error.txt
-!/content/home/home.txt
 
 # node dependencies
 node_modules/

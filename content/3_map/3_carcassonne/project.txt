@@ -1,0 +1,33 @@
+Title: Cité de Carcassonne
+
+----
+
+Location: Carcassonne, Occitanie
+
+----
+
+Description: Europe's largest surviving medieval fortified city, featuring a double ring of defensive walls and towers dating from the Visigothic period to the 13th century.
+
+----
+
+Lat: 43.2028
+
+----
+
+Lng: 2.3641
+
+----
+
+Date: 2023-11-20
+
+----
+
+Tags: fortification, medieval, occitanie, unesco, city-walls
+
+----
+
+Text: [{"type":"heading","content":{"level":2,"text":"About the Site"}},{"type":"text","content":{"text":"The Cité de Carcassonne was designated a UNESCO World Heritage Site in 1997. The fortifications include 52 towers and were substantially restored in the 19th century by Eugène Viollet-le-Duc."}}]
+
+----
+
+Uuid: lrlv8ozunaqxnlzn

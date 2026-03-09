@@ -1,0 +1,33 @@
+Title: Château Gaillard
+
+----
+
+Location: Les Andelys, Normandie
+
+----
+
+Description: A ruined medieval castle perched above the Seine valley, built by Richard I of England in 1196. Our 2024 scan captures the remaining keep and curtain walls in detail.
+
+----
+
+Lat: 49.2417
+
+----
+
+Lng: 1.4108
+
+----
+
+Date: 2024-06-12
+
+----
+
+Tags: castle, medieval, normandie, ruins
+
+----
+
+Text: [{"type":"heading","content":{"level":2,"text":"About the Site"}},{"type":"text","content":{"text":"Château Gaillard is one of the finest examples of late 12th-century military architecture in Europe. It was considered impregnable at the time of its construction but fell to French forces in 1204 after an eight-month siege."}}]
+
+----
+
+Uuid: pbj3ievk89pfu2b0
