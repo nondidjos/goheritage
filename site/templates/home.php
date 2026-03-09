@@ -1,61 +1,84 @@
 <?php
-/*
-  Templates render the content of your pages.
-
-  They contain the markup together with some control structures
-  like loops or if-statements. The `$page` variable always
-  refers to the currently active page.
-
-  To fetch the content from each field we call the field name as a
-  method on the `$page` object, e.g. `$page->title()`.
-
-  This home template renders content from others pages, the children of
-  the `photography` page to display a nice gallery grid.
-
-  Snippets like the header and footer contain markup used in
-  multiple templates. They also help to keep templates clean.
-
-  More about templates: https://getkirby.com/docs/guide/templates/basics
-*/
-
+// home page — hero + recent scans + latest blog post
+snippet('header');
 ?>
-<?php snippet('header') ?>
-  <?php snippet('intro') ?>
-  <?php
-  /*
-    We always use an if-statement to check if a page exists to
-    prevent errors in case the page was deleted or renamed before
-    we call a method like `children()` in this case
-  */
-  ?>
-  <?php if ($photographyPage = page('photography')): ?>
-  <ul class="home-grid">
-    <?php foreach ($photographyPage->children()->listed() as $album): ?>
-    <li>
-      <a href="<?= $album->url() ?>">
-        <figure>
-          <?php
-          /*
-            The `cover()` method defined in the `album.php`
-            page model can be used everywhere across the site
-            for this type of page
 
-            We can automatically resize images to a useful
-            size with Kirby's built-in image manipulation API
-          */
-          ?>
-          <?php if ($cover = $album->cover()): ?>
-          <img src="<?= $cover->resize(1024, 1024)->url() ?>" alt="<?= $cover->alt()->esc() ?>">
-          <?php endif ?>
-          <figcaption>
-            <span>
-              <span class="example-name"><?= $album->title()->esc() ?></span>
-            </span>
-          </figcaption>
-        </figure>
-      </a>
-    </li>
-    <?php endforeach ?>
-  </ul>
-  <?php endif ?>
+<section class="hero">
+  <div class="container">
+    <p class="hero__label">Conservation du patrimoine</p>
+    <h1 class="hero__title">
+      <?= $page->headline()->or($site->title())->esc() ?>
+    </h1>
+    <p class="hero__sub">
+      <?= $page->subheadline()->esc() ?>
+    </p>
+    <div class="hero__actions">
+      <a href="<?= url('map') ?>" class="btn btn--filled">Explorer la carte</a>
+      <a href="<?= url('notes') ?>" class="btn">Lire le blog</a>
+    </div>
+  </div>
+</section>
+
+<?php
+$mapPage = page('map');
+$projects = $mapPage ? $mapPage->children()->listed()->sortBy('date', 'desc')->limit(2) : null;
+?>
+
+<?php if ($projects && $projects->count()): ?>
+  <section class="home-section">
+    <div class="container">
+      <div class="home-section__header">
+        <p class="section-label">Scans récents</p>
+        <a href="<?= url('map') ?>" class="section-link">Tous nos projets <span class="arrow">→</span></a>
+      </div>
+      <div class="grid-7">
+        <?php foreach ($projects as $project): ?>
+          <div class="col-3">
+            <?php snippet('project-card', ['project' => $project, 'lazy' => true]) ?>
+          </div>
+        <?php endforeach ?>
+        <div class="col-1"></div>
+      </div>
+    </div>
+  </section>
+<?php endif ?>
+
+<?php
+$blogPage = page('notes');
+$latestPost = $blogPage ? $blogPage->children()->listed()->sortBy('date', 'desc')->first() : null;
+?>
+
+<?php if ($latestPost): ?>
+  <section class="home-section">
+    <div class="container">
+      <p class="section-label">Dernières nouvelles</p>
+      <div class="grid-7">
+        <?php if ($cover = $latestPost->cover()): ?>
+          <div class="col-3">
+            <a href="<?= $latestPost->url() ?>" class="blog-card">
+              <div class="blog-card__thumb">
+                <img src="<?= $cover->resize(800, 450)->url() ?>" alt="<?= $cover->alt()->esc() ?>" loading="lazy">
+              </div>
+            </a>
+          </div>
+        <?php endif ?>
+        <div class="<?= $latestPost->cover() ? 'col-4' : 'col-7' ?>">
+          <p class="blog-card__date">
+            <?= $latestPost->date()->toDate('d F Y') ?>
+          </p>
+          <h2 class="blog-card__title--flagship">
+            <a href="<?= $latestPost->url() ?>"><?= $latestPost->title()->esc() ?></a>
+          </h2>
+          <p class="blog-card__excerpt" style="margin-top: 0.5rem;">
+            <?= $latestPost->text()->toBlocks()->excerpt(200) ?>
+          </p>
+          <div style="margin-top: 1rem;">
+            <a href="<?= $latestPost->url() ?>" class="btn">Lire l'article</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+<?php endif ?>
+
 <?php snippet('footer') ?>

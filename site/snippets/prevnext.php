@@ -1,27 +1,24 @@
 <?php
-/*
-  Snippets are a great way to store code snippets for reuse
-  or to keep your templates clean.
-
-  The prevnext snippet renders the nice "keep on reading"
-  section below each article in the blog, to jump between
-  articles. It reuses the note snippet to render a full
-  excerpt of the article.
-
-  More about snippets:
-  https://getkirby.com/docs/guide/templates/snippets
-*/
+// prev/next article links at the bottom of a note
 ?>
-<nav class="blog-prevnext">
-  <h2 class="h2">Keep on reading</h2>
-
-  <div class="autogrid" style="--gutter: 1.5rem">
+<nav class="blog-prevnext" style="margin-top: var(--baseline-4x);">
+  <h2 class="section-label font-mono">Continuer la lecture</h2>
+  <div class="grid-7" style="margin-top: var(--baseline);">
     <?php if ($prev = $page->prevListed()): ?>
-    <?php snippet('note', ['note' => $prev, 'excerpt' => false])  ?>
+      <div class="col-3">
+        <a href="<?= $prev->url() ?>" class="blog-card">
+          <p class="blog-card__date font-mono"><?= $prev->date()->toDate('d M Y') ?></p>
+          <h3 class="blog-card__title font-sans"><?= $prev->title()->esc() ?></h3>
+        </a>
+      </div>
     <?php endif ?>
-
     <?php if ($next = $page->nextListed()): ?>
-    <?php snippet('note', ['note' => $next, 'excerpt' => false])  ?>
+      <div class="col-3">
+        <a href="<?= $next->url() ?>" class="blog-card">
+          <p class="blog-card__date font-mono"><?= $next->date()->toDate('d M Y') ?></p>
+          <h3 class="blog-card__title font-sans"><?= $next->title()->esc() ?></h3>
+        </a>
+      </div>
     <?php endif ?>
   </div>
 </nav>
