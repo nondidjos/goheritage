@@ -2,6 +2,6 @@ title: Dashboard
 columns:
   - width: 1/1
     sections:
-      notes:
-        extends: sections/notes
+      blog:
+        extends: sections/blog
 

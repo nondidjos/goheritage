@@ -1,0 +1,20 @@
+name: Compare Slider
+icon: image
+preview: image
+
+fields:
+  before_image:
+    label: Image avant
+    type: files
+    max: 1
+    uploads:
+      template: blocks/image
+  after_image:
+    label: Image après
+    type: files
+    max: 1
+    uploads:
+      template: blocks/image
+  caption:
+    label: Légende
+    type: text

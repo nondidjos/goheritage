@@ -1,0 +1,33 @@
+Title: Chapelle Saint-Jérusalem
+
+----
+
+Location: Villandraut, Gironde
+
+----
+
+Description: Chapelle médiévale conservée et numérisée par photogrammétrie terrestre, révélant les détails architecturaux de la pierre calcaire et des voûtes intérieures.
+
+----
+
+Lat: 44.4700
+
+----
+
+Lng: -0.3400
+
+----
+
+Date: 2024-01-15
+
+----
+
+Tags: chapelle, médiéval, religieux, gironde
+
+----
+
+Text: 
+
+----
+
+Uuid: chapel-saint-jerusalem-001

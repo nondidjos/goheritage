@@ -1,5 +1,5 @@
 <?php
-// prev/next article links at the bottom of a note
+// prev/next article links at the bottom of a article
 ?>
 <nav class="blog-prevnext" style="margin-top: var(--baseline-4x);">
   <h2 class="section-label font-mono">Continuer la lecture</h2>

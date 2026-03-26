@@ -1,36 +1,108 @@
-# Each page blueprint must have a title, the title may be different from the file name
 title: Home
-
-# Each page can have an icon that is shown in page listings when no preview image is available.
 icon: 🏠
 
-# Page options allow you to control how users can interact with the page.
-# Here we prevent changing the page status (the home page cannot be renamed or deleted by default)
-# More about page options: https://getkirby.com/docs/reference/panel/blueprints/page#options
 options:
   changeStatus: false
-  read:
-    author: false
 
-# Here we define an info section and a pages section (`photography`)
-sections:
-  content:
-    type: fields
+tabs:
+  hero:
+    label: Hero
     fields:
-      headline:
+      heroHeading:
+        label: Titre Principal
         type: text
-        width: 1/2
-      gap:
-        width: 1/2
-      subheadline:
-        type: text
-        width: 1/2
+      heroImage:
+        label: Image Hero
+        type: files
+        max: 1
 
-  # The photography section extends a pages section defined in the `/site/blueprints/section/album.yml` blueprint
-  # More about reusing and extending sections: https://getkirby.com/docs/guide/blueprints/extending-blueprints#reusing-and-extending-sectionss
-  photography:
-    label: Photography
-    extends: sections/albums
-    status: listed
-    size: small
-    help: All projects for the homepage are being pulled from the photography page.
+  compare:
+    label: Jumeau Numérique
+    fields:
+      compareHeading:
+        label: Titre Jumeau Numérique
+        type: text
+      compareText:
+        label: Texte
+        type: textarea
+      compareImageBefore:
+        label: Image Avant (Photo)
+        type: files
+        max: 1
+      compareImageAfter:
+        label: Image Après (Modèle 3D)
+        type: files
+        max: 1
+
+  procede:
+    label: Procédé GOVR
+    fields:
+      procedeHeading:
+        label: Titre Section
+        type: text
+
+      step1Title:
+        label: Titre Étape 1
+        type: text
+        width: 1/2
+      step1Text:
+        label: Texte Étape 1
+        type: textarea
+        size: small
+        width: 1/2
+      step1Image:
+        label: Image Étape 1
+        type: files
+        max: 1
+
+      step2Title:
+        label: Titre Étape 2
+        type: text
+        width: 1/2
+      step2Text:
+        label: Texte Étape 2
+        type: textarea
+        size: small
+        width: 1/2
+      step2Image:
+        label: Image Étape 2
+        type: files
+        max: 1
+
+      step3Title:
+        label: Titre Étape 3
+        type: text
+        width: 1/2
+      step3Text:
+        label: Texte Étape 3
+        type: textarea
+        size: small
+        width: 1/2
+      step3Image:
+        label: Image Étape 3
+        type: files
+        max: 1
+
+  projects:
+    label: Projets
+    fields:
+      projectsHeading:
+        label: Titre Derniers Projets
+        type: text
+
+  impact:
+    label: Mission / Impact
+    fields:
+      impactTag:
+        label: Tag (ex. Notre Mission)
+        type: text
+      impactHeading:
+        label: Titre Mission
+        type: text
+      impactText:
+        label: Texte Mission
+        type: textarea
+      impactImage:
+        label: Image de Fond
+        type: files
+        max: 1
