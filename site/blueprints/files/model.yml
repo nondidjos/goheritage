@@ -1,0 +1,14 @@
+title: 3D Model
+accept:
+  extension: glb, gltf, obj
+
+columns:
+  - width: 1/1
+    sections:
+      meta:
+        type: fields
+        fields:
+          description:
+            label: Description du modèle
+            type: textarea
+            size: small

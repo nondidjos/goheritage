@@ -11,63 +11,153 @@ status:
     label: Published
     text: Visible on the map.
 
-columns:
-  - width: 2/3
-    fields:
-      description:
-        type: textarea
-        label: Short Description
-
-      text:
-        type: blocks
-        label: Full Content
-
-  - width: 1/3
-    sections:
-      meta:
-        type: fields
+tabs:
+  content:
+    label: Contenu & Méta
+    icon: text
+    columns:
+      - width: 2/3
         fields:
-          cover: fields/cover
-          location:
-            type: text
-            label: Location Name
-            placeholder: "e.g. Bruxelles, Belgique"
-          construction_date:
-            type: text
-            label: Date de construction
-            placeholder: "e.g. 15ème siècle"
-          dimensions:
-            type: text
-            label: Dimensions du bâtiment
-            placeholder: "e.g. 103x340x70m"
-          style:
-            type: text
-            label: Style architectural
-            placeholder: "e.g. Baroque, Gothique"
-          model_url:
-            type: url
-            label: 3D Model URL (.glb)
-            placeholder: "https://example.com/model.glb"
-            help: "URL to a .glb 3D model file for the viewer"
-          lat:
-            type: number
-            label: Latitude
-            step: 0.000001
-          lng:
-            type: number
-            label: Longitude
-            step: 0.000001
-          date:
-            type: date
-            label: Scan Date
-            default: now
-          tags:
-            type: tags
-            label: Tags
+          description:
+            type: textarea
+            label: Courte description
+            help: Un résumé affiché sous le titre et sur les cartes.
+            size: small
 
-      gallery:
-        type: files
-        label: Gallery Images
-        layout: cards
-        size: small
-        template: blocks/image
+          text:
+            type: blocks
+            label: Contenu détaillé
+
+          gallery:
+            type: files
+            label: Galerie d'images (droite)
+            layout: cards
+            size: small
+            help: Images affichées dans la grille de droite de la page.
+            uploads: image
+            query: page.images.template('image')
+
+          additional_images:
+            type: files
+            label: Images supplémentaires
+            layout: cards
+            size: small
+            help: Images complémentaires affichées sous la fiche technique (lightbox individuelle).
+            uploads: image
+            query: page.images.template('image')
+
+      - width: 1/3
+        sections:
+          meta:
+            type: fields
+            fields:
+              cover: fields/cover
+              
+              location:
+                type: text
+                label: Lieu
+                placeholder: "ex. Bruxelles, Belgique"
+              
+              construction_date:
+                type: text
+                label: Date de construction
+                placeholder: "ex. 15ème siècle, 1889"
+              
+              architect:
+                type: text
+                label: Architecte / Créateur
+                placeholder: "ex. Victor Horta"
+              
+              style:
+                type: text
+                label: Style architectural
+                placeholder: "ex. Article Nouveau, Gothique"
+              
+              dimensions:
+                type: text
+                label: Dimensions (L x l x H)
+                placeholder: "ex. 40x20x15m"
+
+              protection_status:
+                type: select
+                label: Statut de protection
+                options:
+                  - Classé Monument Historique
+                  - Inscrit au patrimoine mondial de l'UNESCO
+                  - Inventaire Régional
+                  - Non protégé
+              
+              condition:
+                type: select
+                label: État de conservation
+                options:
+                  - Excellent
+                  - Bon
+                  - En péril
+                  - Ruine
+                  - Disparu
+              
+              lat:
+                type: number
+                label: Latitude
+                step: 0.000001
+              
+              lng:
+                type: number
+                label: Longitude
+                step: 0.000001
+              
+              date:
+                type: date
+                label: Date du Scan/Mise en ligne
+                default: now
+              
+              tags:
+                type: tags
+                label: Tags (ex. architecture, abbaye)
+
+  viewer:
+    label: Modèle 3D
+    label: Modèle 3D
+    icon: box
+    columns:
+      - width: 1/1
+        fields:
+          model_obj:
+            type: files
+            label: Fichier OBJ (.obj)
+            multiple: false
+            accept:
+              extension: obj
+            help: "Le modèle photogrammétrique. Uploadez le fichier .obj ici."
+
+          model_texture:
+            type: files
+            label: Texture diffuse (.jpg ou .png)
+            multiple: false
+            accept:
+              extension: jpg, jpeg, png
+            help: "La texture à appliquer sur le modèle (ex. _diffuse.png). Doit être dans le même dossier que le .obj."
+
+          model_mtl:
+            type: files
+            label: Fichier matériaux (.mtl) — optionnel
+            multiple: false
+            accept:
+              extension: mtl
+            help: "Si votre export OBJ inclut un .mtl, uploadez-le ici."
+
+          viewer_url:
+            type: url
+            label: Ou, URL d'un viewer externe (Potree, Sketchfab…)
+            placeholder: "https://votre-serveur.com/potree/viewer.html"
+            help: "Alternative si le modèle est hébergé ailleurs. Ce lien sera chargé dans une iframe."
+
+          compress_textures:
+            type: toggle
+            label: Activer la compression des textures
+            text: 
+              - Non
+              - Oui (Convertir en JPEG optimisé)
+            default: true
+            help: "Si activé, les textures lourdes (PNG, JPG) uploadées seront converties en JPEG optimisés pour le web."
