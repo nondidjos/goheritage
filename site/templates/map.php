@@ -5,8 +5,6 @@
 snippet('header');
 ?>
 
-<script>window.HERITAGE_SITES = <?= $sitesJson ?>;</script>
-
 <!-- breadcrumb -->
 <?php snippet('breadcrumb', [
   'items' => [
@@ -14,10 +12,10 @@ snippet('header');
   ]
 ]) ?>
 
-<div class="map-layout">
+<div class="map-layout w-full pb-0 mt-0">
 
   <?php /* left panel */ ?>
-  <aside class="map-panel" id="map-panel">
+  <aside class="col-2 map-panel border-r border-border h-full" id="map-panel">
 
     <!-- search & filter bar -->
     <div class="map-panel__search">
@@ -27,7 +25,7 @@ snippet('header');
           <line x1="10.5" y1="10.5" x2="15" y2="15" stroke="currentColor" stroke-width="1.5" />
         </svg>
         <input type="search" class="map-search-bar__input font-serif" id="map-search"
-          placeholder="Rechercher sur GoHéritage..." aria-label="Rechercher">
+          placeholder="Rechercher..." aria-label="Rechercher">
       </div>
       <button class="map-filter-btn font-mono" id="map-filter-btn">
         Filtres
@@ -44,7 +42,7 @@ snippet('header');
           data-lat="<?= $project->lat()->value() ?>" data-lng="<?= $project->lng()->value() ?>">
           <div class="map-card__image">
             <?php if ($thumb = $project->cover()): ?>
-              <img src="<?= $thumb->crop(600, 400)->url() ?>" alt="<?= $thumb->alt()->html() ?>" loading="lazy">
+              <img src="<?= $thumb->crop(800, 350)->url() ?>" alt="<?= $thumb->alt()->html() ?>" loading="lazy">
             <?php else: ?>
               <div class="map-card__no-image">🏛</div>
             <?php endif ?>
@@ -74,8 +72,10 @@ snippet('header');
   </aside>
 
   <?php /* right map */ ?>
-  <div class="map-container">
-    <div id="heritage-map"></div>
+  <div class="col-5 map-container relative h-full">
+    <div id="heritage-map" class="absolute inset-0" 
+         data-sites="<?= htmlspecialchars($sitesJson, ENT_QUOTES, 'UTF-8') ?>"
+         data-key="<?= base64_encode(option('maptiler.key')) ?>"></div>
   </div>
 
 </div>

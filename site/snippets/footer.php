@@ -1,7 +1,6 @@
 <?php
 /*
   Global footer — dark design.
-  Loads MapLibre JS conditionally on the map page.
 */
 $isMapPage = $page->template()->name() === 'map';
 $jsFiles = ['assets/js/index.js'];
@@ -11,66 +10,70 @@ if ($isMapPage) {
 ?>
 </main>
 
-<footer class="site-footer">
-  <div class="site-footer__inner">
-    <div class="grid-7">
+<footer class="bg-[#1A1916] text-white pt-20 pb-10">
+  <div class="grid-7 mb-20">
 
-      <!-- brand column -->
-      <div class="col-2">
-        <div class="site-footer__brand">
-          <img src="<?= url('assets/icons/logo.svg') ?>" alt="" class="site-footer__logo-icon" width="40" height="40">
-          <span class="site-footer__logo-text">GO<br>VR</span>
-        </div>
-        <p class="site-footer__tagline font-serif">
-          <?= $site->footer_tagline()->or('Préservation du patrimoine en danger grâce à la photogrammétrie et au scan 3D.')->html() ?>
-        </p>
-      </div>
-
-      <!-- spacer -->
-      <div class="col-2"></div>
-
-      <!-- navigation links -->
-      <div class="col-1">
-        <h2 class="footer-col__heading font-mono">Naviguer</h2>
-        <ul class="footer-col__list font-serif">
-          <?php foreach ($site->children()->listed() as $item): ?>
-            <li><a href="<?= $item->url() ?>"><?= $item->title()->esc() ?></a></li>
-          <?php endforeach ?>
-        </ul>
-      </div>
-
-      <!-- about links -->
-      <div class="col-1">
-        <h2 class="footer-col__heading font-mono">À propos</h2>
-        <ul class="footer-col__list font-serif">
-          <li><a href="<?= url('map') ?>">Carte du patrimoine</a></li>
-          <li><a href="<?= url('notes') ?>">Blog</a></li>
-          <li><a href="<?= url('contact') ?>">Contact</a></li>
-        </ul>
-      </div>
-
-      <!-- social links -->
-      <div class="col-1">
-        <h2 class="footer-col__heading font-mono">Suivez-nous</h2>
-        <ul class="footer-col__list font-serif">
-          <li><a href="https://mastodon.social" target="_blank" rel="noopener">Mastodon</a></li>
-          <li><a href="https://instagram.com" target="_blank" rel="noopener">Instagram</a></li>
-        </ul>
-      </div>
-
+    <!-- brand column -->
+    <div class="col-3">
+      <img src="<?= url('assets/logos/govr.svg') ?>" alt="GOVR" class="h-16 w-auto mb-4 opacity-50">
     </div>
 
-    <!-- footer search -->
-    <div class="site-footer__search">
-      <input type="text" class="footer-search-input" placeholder="Rechercher sur GoHéritage..." aria-label="Rechercher">
+    <!-- spacer -->
+    <div class="col-1"></div>
+
+    <!-- navigation links -->
+    <div class="col-1">
+      <h2 class="font-mono text-xs uppercase tracking-wider text-[#6B6965] mb-4">Naviguer</h2>
+      <ul class="list-none flex flex-col gap-2">
+        <?php foreach ($site->children()->listed() as $item): ?>
+          <li><a href="<?= $item->url() ?>"
+              class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline"><?= $item->title()->esc() ?></a>
+          </li>
+        <?php endforeach ?>
+      </ul>
     </div>
 
-    <!-- bottom bar -->
-    <div class="site-footer__bottom">
-      <p class="footer-copy">&copy; <?= date('Y') ?> GoHéritage. Tous droits réservés.</p>
-      <div class="footer-bottom__links">
-        <a href="<?= url('contact') ?>">Mentions légales</a>
-        <a href="<?= url('contact') ?>">Politique de confidentialité</a>
+    <!-- explore links -->
+    <div class="col-1">
+      <h2 class="font-mono text-xs uppercase tracking-wider text-[#6B6965] mb-4">Explorer</h2>
+      <ul class="list-none flex flex-col gap-2">
+        <li><a href="<?= url('map') ?>"
+            class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline">Carte</a>
+        </li>
+        <li><a href="<?= url('blog') ?>"
+            class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline">Blog</a>
+        </li>
+        <li><a href="<?= url('contact') ?>"
+            class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline">Contact</a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- social links -->
+    <div class="col-1">
+      <h2 class="font-mono text-xs uppercase tracking-wider text-[#6B6965] mb-4">Suivre</h2>
+      <ul class="list-none flex flex-col gap-2">
+        <li><a href="https://mastodon.social" target="_blank" rel="noopener"
+            class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline">Mastodon</a>
+        </li>
+        <li><a href="https://instagram.com" target="_blank" rel="noopener"
+            class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline">Instagram</a>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- legal & copyright at absolute bottom -->
+  <div class="grid-7 pt-10 opacity-40">
+    <div class="col-7 flex items-center justify-between">
+      <p class="font-mono text-[10px] uppercase tracking-widest">&copy; <?= date('Y') ?> GoHéritage</p>
+      <div class="flex gap-8">
+        <a href="<?= url('contact') ?>"
+          class="font-mono text-[10px] uppercase tracking-widest no-underline hover:text-white hover:no-underline">Mentions
+          légales</a>
+        <a href="<?= url('contact') ?>"
+          class="font-mono text-[10px] uppercase tracking-widest no-underline hover:text-white hover:no-underline">Confidentialité</a>
       </div>
     </div>
   </div>

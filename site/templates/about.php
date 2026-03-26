@@ -8,8 +8,8 @@
 <?php snippet('intro') ?>
 <?php snippet('layouts', ['field' => $page->layout()]) ?>
 
-<aside class="container">
-  <div class="grid-7">
+<aside class="py-12 md:py-20">
+<?php /* removed redundant grid-7 since main > * is already a subgrid */ ?>
     <div class="col-7">
       <h2 class="contact-title font-gloucester">Nous contacter</h2>
     </div>
@@ -31,7 +31,6 @@
         <?php endforeach ?>
       </ul>
     </div>
-  </div>
 </aside>
 
 <?php snippet('footer') ?>

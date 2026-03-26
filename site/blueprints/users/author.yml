@@ -1,5 +1,5 @@
 title: Author
-description: Can create and submit notes for review, but cannot publish them.
+description: Can create and submit blog for review, but cannot publish them.
 permissions:
   access:
     panel: true

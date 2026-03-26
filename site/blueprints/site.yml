@@ -9,15 +9,15 @@ columns:
         templates:
           - home
           - map
-          - notes
+          - blog
           - contact
           - about
           - default
 
   - width: 1/2
     sections:
-      notes:
-        extends: sections/notes
+      blog:
+        extends: sections/blog
       footer_settings:
         type: fields
         fields:
