@@ -4,9 +4,14 @@
     "dev": "tailwindcss -i ./assets/css/input.css -o ./assets/css/app.css --watch"
   },
   "dependencies": {
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "three": "^0.183.2"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.1.18"
+    "@gltf-transform/cli": "^4.3.0",
+    "@gltf-transform/functions": "^4.3.0",
+    "@tailwindcss/cli": "^4.1.18",
+    "obj2gltf": "^3.2.0",
+    "sharp-cli": "^5.2.0"
   }
 }
