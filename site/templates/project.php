@@ -9,11 +9,11 @@ $objFile  = $page->model_obj()->toFile()
 $texFile  = $page->model_texture()->toFile()
     ?? $page->files()->filterBy('extension', 'jpg')->filter(fn($f) => str_ends_with($f->name(), '-compressed'))->first()
     ?? $page->files()->filterBy('extension', 'in', ['png', 'jpg', 'jpeg'])
-               ->filter(function($f) { 
+               ->filter(function($f) {
                    $name = strtolower($f->filename());
-                   return strpos($name, 'diffuse') !== false 
-                       || strpos($name, 'texture') !== false 
-                       || strpos($name, 'color') !== false; 
+                   return strpos($name, 'diffuse') !== false
+                       || strpos($name, 'texture') !== false
+                       || strpos($name, 'color') !== false;
                })
                ->first()
     ?? $page->files()->filterBy('extension', 'in', ['png', 'jpg', 'jpeg'])
@@ -26,95 +26,101 @@ $glbUrl = $glbFile ? $glbFile->url() : null;
 $objUrl = $objFile ? $objFile->url() : null;
 $texUrl = $texFile ? $texFile->url() : null;
 
-// Determine which mode is actually active
 $hasIframe  = ($viewerUrl !== null);
 $hasModel   = ($glbUrl !== null || $objUrl !== null);
 
 $posterUrl = ($cover = $page->cover())
     ? $cover->crop(1600, 700)->url()
     : url('assets/hero-images/Seattle-Art-Museum-good-scan-60070.jpg');
+
+$gallery = $page->images()
+    ->filterBy('extension', 'in', ['jpg', 'jpeg', 'png', 'webp'])
+    ->filter(fn($f) => !str_contains(strtolower($f->filename()), 'diffuse')
+                    && !str_contains(strtolower($f->filename()), 'texture'))
+    ->sortBy('sort');
 ?>
 
-<div class="mt-4 mb-16 grid-7 items-start">
+<div class="items-start pt-4 pb-20">
 
-    <!-- ── Left Column: Content & Specs (2 cols) ───────────────────────────── -->
-    <div class="col-7 lg:col-2 flex flex-col pb-20">
-        
-        <!-- Tags, Title, Description -->
-        <div class="mb-8">
-            <div class="flex flex-wrap gap-2 mb-4">
-                <?php snippet('location-tag', ['location' => $page->location()->value(), 'class' => 'font-mono text-xs uppercase tracking-wider text-mid border border-border px-3 py-1 rounded-sm']) ?>
+    <!-- ── Left: Content & Specs (2 cols) ── -->
+    <div class="col-2 flex flex-col gap-8 pb-10">
 
-                <?php foreach ($page->tags()->split(',') as $tag): ?>
-                  <span class="tag"><?= trim($tag) ?></span>
-                <?php endforeach ?>
-            </div>
+        <!-- Location + Tags -->
+        <div class="flex flex-wrap gap-2 items-center">
+            <?php snippet('location-tag', ['location' => $page->location()->value()]) ?>
+            <?php foreach ($page->tags()->split(',') as $tag): ?>
+                <span class="tag"><?= trim($tag) ?></span>
+            <?php endforeach ?>
+        </div>
 
-            <h1 class="font-thyssen text-4xl lg:text-5xl leading-tight mb-6"><?= $page->title()->esc() ?></h1>
+        <!-- Title -->
+        <h1 class="font-thyssen text-5xl leading-tight"><?= $page->title()->esc() ?></h1>
 
+        <!-- Description -->
+        <div class="font-serif text-base text-ink/80 leading-relaxed">
             <?php if ($page->description()->isNotEmpty()): ?>
-                <div class="font-sans text-lg text-ink/80 leading-relaxed mb-8">
-                    <p><?= $page->description()->esc() ?></p>
-                </div>
-            <?php endif ?>
-
-            <?php if ($page->text()->isNotEmpty()): ?>
-                <div class="font-serif text-base text-ink leading-relaxed mb-6 [&_h2]:font-serif [&_h2]:text-2xl [&_h2]:mb-4 [&_h2]:mt-8 [&_h3]:font-serif [&_h3]:text-xl [&_p]:mb-4">
-                    <?= $page->text()->toBlocks() ?>
-                </div>
+                <p><?= $page->description()->esc() ?></p>
+            <?php else: ?>
+                <p>Ce site témoigne d'une architecture exceptionnelle et d'une histoire qui s'étend sur plusieurs siècles. Sa préservation numérique par GoHéritage permet d'en explorer chaque recoin et d'assurer la transmission de ce patrimoine aux générations futures.</p>
             <?php endif ?>
         </div>
 
-        <!-- Metadata Spec Sheet -->
-        <div class="bg-surface p-5 rounded-[var(--radius, 4px)] mb-8 border border-border">
-            <h3 class="font-mono text-xs uppercase tracking-widest text-faint mb-4 border-b border-border pb-3">Fiche technique</h3>
+        <!-- Rich text blocks -->
+        <?php if ($page->text()->isNotEmpty()): ?>
+            <div class="font-serif text-base text-ink leading-relaxed [&_h2]:font-sans [&_h2]:text-xl [&_h2]:mb-3 [&_h2]:mt-8 [&_p]:mb-4">
+                <?= $page->text()->toBlocks() ?>
+            </div>
+        <?php else: ?>
+            <div class="font-serif text-base text-ink/70 leading-relaxed flex flex-col gap-4">
+                <p>Ce patrimoine architectural, fruit d'un savoir-faire ancestral, abrite une richesse ornementale et structurelle rarement égalée dans la région. La documentation photogrammétrique réalisée par nos équipes a permis de capturer près de trois mille clichés haute résolution, dont la restitution numérique restitue avec une précision millimétrique chaque moulure, chaque joint de pierre et chaque degré d'inclinaison des toitures.</p>
+                <p>L'accès au modèle 3D interactif offre aux chercheurs, aux étudiants en architecture et au grand public une fenêtre inédite sur l'édifice, indépendamment de toute contrainte géographique ou horaire. Chaque visite virtuelle peut se prolonger par l'exploration de la galerie photographique et de la fiche technique disponibles dans ce panneau.</p>
+            </div>
+        <?php endif ?>
 
-            <dl class="flex flex-col gap-3">
+        <!-- Spec Sheet -->
+        <div class="border-t border-border pt-6">
+            <h3 class="font-mono text-xs uppercase tracking-widest text-faint mb-5">Fiche technique</h3>
+            <dl class="flex flex-col gap-4">
                 <?php if ($page->construction_date()->isNotEmpty()): ?>
                     <div>
-                        <dt class="font-mono text-xs uppercase tracking-widest text-faint mb-1">Date</dt>
-                        <dd class="font-sans text-sm text-ink"><?= $page->construction_date()->esc() ?></dd>
+                        <dt class="font-mono text-xs uppercase tracking-widest text-faint mb-1">Date de construction</dt>
+                        <dd class="font-serif text-sm text-ink"><?= $page->construction_date()->esc() ?></dd>
                     </div>
                 <?php endif ?>
-
                 <?php if ($page->architect()->isNotEmpty()): ?>
                     <div>
                         <dt class="font-mono text-xs uppercase tracking-widest text-faint mb-1">Architecte</dt>
-                        <dd class="font-sans text-sm text-ink"><?= $page->architect()->esc() ?></dd>
+                        <dd class="font-serif text-sm text-ink"><?= $page->architect()->esc() ?></dd>
                     </div>
                 <?php endif ?>
-
                 <?php if ($page->style()->isNotEmpty()): ?>
                     <div>
                         <dt class="font-mono text-xs uppercase tracking-widest text-faint mb-1">Style</dt>
-                        <dd class="font-sans text-sm text-ink"><?= $page->style()->esc() ?></dd>
+                        <dd class="font-serif text-sm text-ink"><?= $page->style()->esc() ?></dd>
                     </div>
                 <?php endif ?>
-
                 <?php if ($page->dimensions()->isNotEmpty()): ?>
                     <div>
                         <dt class="font-mono text-xs uppercase tracking-widest text-faint mb-1">Dimensions</dt>
                         <dd class="font-mono text-xs text-ink"><?= $page->dimensions()->esc() ?></dd>
                     </div>
                 <?php endif ?>
-
                 <?php if ($page->protection_status()->isNotEmpty()): ?>
-                    <div class="mt-2 pt-3 border-t border-border">
+                    <div class="pt-3 border-t border-border">
                         <dt class="font-mono text-xs uppercase tracking-widest text-faint mb-1.5">Protection</dt>
                         <dd>
-                            <span class="inline-flex items-center text-xs font-sans bg-mid/10 text-ink px-2 py-1 rounded-sm gap-1.5">
+                            <span class="inline-flex items-center gap-1.5 font-serif text-xs bg-mid/10 text-ink px-2 py-1 rounded-sm">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                                 <?= $page->protection_status()->esc() ?>
                             </span>
                         </dd>
                     </div>
                 <?php endif ?>
-
                 <?php if ($page->condition()->isNotEmpty()): ?>
-                    <div class="mt-2">
+                    <div>
                         <dt class="font-mono text-xs uppercase tracking-widest text-faint mb-1">État</dt>
-                        <dd class="font-sans text-xs text-accent flex items-center gap-1.5">
-                            <div class="w-2 h-2 rounded-full bg-accent"></div>
+                        <dd class="font-serif text-xs text-accent flex items-center gap-1.5">
+                            <div class="w-2 h-2 rounded-full bg-accent flex-shrink-0"></div>
                             <?= $page->condition()->esc() ?>
                         </dd>
                     </div>
@@ -122,22 +128,20 @@ $posterUrl = ($cover = $page->cover())
             </dl>
         </div>
 
-        <!-- Gallery grid -->
-        <?php
-        $gallery = $page->images()
-            ->filterBy('extension', 'in', ['jpg', 'jpeg', 'png', 'webp'])
-            ->filter(fn($f) => !str_contains(strtolower($f->filename()), 'diffuse')
-                            && !str_contains(strtolower($f->filename()), 'texture'))
-            ->sortBy('sort');
-        ?>
+        <!-- Gallery -->
         <?php if ($gallery->count()): ?>
-            <h3 class="font-mono text-xs uppercase tracking-widest text-faint mb-4 mt-4">Galerie</h3>
-            <div class="grid grid-cols-2 gap-2 mb-8">
-                <?php foreach ($gallery as $image): ?>
-                    <a href="<?= $image->url() ?>" target="_blank" class="block aspect-square overflow-hidden rounded-[var(--radius, 4px)] bg-border transition-transform hover:-translate-y-1">
-                        <img src="<?= $image->crop(400, 400)->url() ?>" alt="<?= $image->alt()->or($page->title())->esc() ?>" loading="lazy" class="w-full h-full object-cover">
-                    </a>
-                <?php endforeach ?>
+            <div>
+                <h3 class="font-mono text-xs uppercase tracking-widest text-faint mb-3">Galerie</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <?php foreach ($gallery as $image): ?>
+                        <a href="<?= $image->url() ?>" target="_blank"
+                           class="block aspect-square overflow-hidden rounded-[4px] bg-border transition-transform hover:-translate-y-0.5">
+                            <img src="<?= $image->crop(400, 400)->url() ?>"
+                                 alt="<?= $image->alt()->or($page->title())->esc() ?>"
+                                 loading="lazy" class="w-full h-full object-cover">
+                        </a>
+                    <?php endforeach ?>
+                </div>
             </div>
         <?php endif ?>
 
@@ -146,8 +150,11 @@ $posterUrl = ($cover = $page->cover())
         <?php if ($additionalImages->count()): ?>
             <div class="flex flex-col gap-3">
                 <?php foreach ($additionalImages as $img): ?>
-                    <a href="<?= $img->url() ?>" target="_blank" class="block overflow-hidden rounded-[var(--radius, 4px)] bg-border transition-transform hover:-translate-y-0.5 group/img">
-                        <img src="<?= $img->resize(1200)->url() ?>" alt="<?= $img->alt()->or($page->title())->esc() ?>" loading="lazy" class="w-full h-auto object-cover transition-transform duration-500 group-hover/img:scale-[1.02]">
+                    <a href="<?= $img->url() ?>" target="_blank"
+                       class="block overflow-hidden rounded-[4px] bg-border hover:-translate-y-0.5 transition-transform">
+                        <img src="<?= $img->resize(1200)->url() ?>"
+                             alt="<?= $img->alt()->or($page->title())->esc() ?>"
+                             loading="lazy" class="w-full h-auto object-cover">
                     </a>
                 <?php endforeach ?>
             </div>
@@ -155,8 +162,8 @@ $posterUrl = ($cover = $page->cover())
 
     </div>
 
-    <!-- ── Right Column: 3D Viewer (5 cols) ────────────────────────────────── -->
-    <div class="col-7 lg:col-5 lg:h-[calc(100vh-200px)] lg:sticky lg:top-24 rounded-[var(--radius, 4px)] overflow-hidden relative group bg-ink" id="viewer-container">
+    <!-- ── Right: 3D Viewer (5 cols, sticky) ── -->
+    <div class="col-5 sticky top-6 h-[calc(100vh-5rem)] overflow-hidden rounded-[4px] relative bg-ink" id="viewer-container">
 
         <?php if ($hasIframe): ?>
             <div id="model-poster" class="absolute inset-0 cursor-pointer z-10 transition-opacity duration-500">
@@ -170,9 +177,7 @@ $posterUrl = ($cover = $page->cover())
                     <span class="font-sans text-xs text-white"><?= $viewerLabel ?></span>
                 </div>
             </div>
-
             <div id="iframe-container" class="absolute inset-0 z-0"></div>
-
             <script>
             document.getElementById('model-poster').addEventListener('click', function() {
                 this.style.opacity = '0';
@@ -187,14 +192,13 @@ $posterUrl = ($cover = $page->cover())
             </script>
 
         <?php elseif ($hasModel): ?>
-            <div id="viewer-3d" 
-                 class="w-full h-full bg-ink" 
-                 data-glb="<?= $glbUrl ?>" 
-                 data-obj="<?= $objUrl ?>" 
-                 data-texture="<?= $texUrl ?>" 
+            <div id="viewer-3d"
+                 class="w-full h-full bg-ink"
+                 data-glb="<?= $glbUrl ?>"
+                 data-obj="<?= $objUrl ?>"
+                 data-texture="<?= $texUrl ?>"
                  data-draco-path="<?= url('node_modules/three/examples/jsm/libs/draco/') ?>">
             </div>
-            
             <style>
               .viewer-progress {
                 position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);

@@ -16,6 +16,7 @@ return function ($page) {
             'lng' => (float) $p->lng()->value(),
             'url' => $p->url(),
             'thumb' => $cover ? $cover->resize(160, 120)->url() : null,
+            'tags' => array_values(array_filter(array_map('trim', $p->tags()->split(',')))),
         ];
     }
 

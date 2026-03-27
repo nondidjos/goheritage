@@ -6,16 +6,10 @@ $flagship = $featured ?? $allArticles->first();
 $remaining = $allArticles->not($flagship);
 $recent   = $remaining->limit(4);
 
-$mainList = $remaining->offset(4);
-$isFiltered = get('q') || param('tag');
-if ($isFiltered) {
-  $mainList = $allArticles;
-  if ($q = get('q')) {
-    $mainList = $mainList->search($q, 'title|text');
-  }
-  if ($tag = param('tag')) {
-    $mainList = $mainList->filterBy('tags', $tag, ',');
-  }
+// Always render all non-flagship articles; tags filtered client-side, search server-side
+$mainList = $remaining;
+if ($q = get('q')) {
+  $mainList = $remaining->search($q, 'title|text');
 }
 $allTags = $allArticles->pluck('tags', ',', true);
 ?>
@@ -115,43 +109,47 @@ $allTags = $allArticles->pluck('tags', ',', true);
     <!-- Main Article List -->
     <div class="border-t border-border pt-20 mb-20">
       
-      <!-- Left sidebar: 2 columns (Filters, Tags, Search) -->
+      <!-- Left sidebar: 2 columns (Search, Tags) -->
       <aside class="col-2 flex flex-col gap-10 pr-4 md:pr-8 mb-12 md:mb-0">
-        <div>
-          <h3 class="font-sans font-semibold text-lg mb-4 text-ink">Recherche</h3>
-          <form action="<?= $page->url() ?>" method="GET" class="flex w-full">
-            <input type="search" name="q" value="<?= esc(get('q', '') ?? '') ?>" placeholder="Chercher..." 
-                   class="w-full border border-border bg-surface px-4 py-2 font-sans text-sm outline-none focus:border-ink transition-colors">
-            <button type="submit" class="bg-ink text-white px-4 flex items-center justify-center hover:bg-mid transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+
+        <form action="<?= $page->url() ?>" method="GET">
+          <div class="blog-search-bar">
+            <svg class="blog-search-bar__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="search" name="q" value="<?= esc(get('q', '') ?? '') ?>" placeholder="Rechercher…"
+                   class="blog-search-bar__input">
+            <button type="submit" class="blog-search-bar__submit" aria-label="Rechercher">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
             </button>
-          </form>
-        </div>
+          </div>
+        </form>
 
         <div>
-          <h3 class="font-sans font-semibold text-lg mb-4 text-ink">Filtres (Tags)</h3>
-          <div class="flex flex-wrap gap-2">
-            <?php if (param('tag')): ?>
-              <a href="<?= $page->url() ?>" class="tag hover:bg-border transition-colors duration-150">
-                &times; Effacer le filtre
-              </a>
-            <?php endif ?>
+          <h3 class="font-sans font-semibold text-base text-ink mb-4">Thèmes</h3>
+          <div class="flex flex-wrap gap-2" id="blog-tag-filters">
             <?php foreach ($allTags as $tag): ?>
-              <a href="<?= $page->url(['params' => ['tag' => $tag]]) ?>" class="tag hover:bg-border transition-colors duration-150 <?= param('tag') === $tag ? 'border border-ink text-ink bg-transparent' : '' ?>">
+              <button class="tag" data-filter-tag="<?= esc($tag) ?>">
                 <?= esc($tag) ?>
-              </a>
+              </button>
             <?php endforeach ?>
+            <button id="blog-clear-tags" class="tag tag--clear hidden">× Effacer tout</button>
           </div>
         </div>
+
       </aside>
 
       <!-- Right content: 5 columns (Articles) -->
       <div class="col-5 flex flex-col">
+
         <?php foreach ($mainList as $item): ?>
-          <article class="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8 border-b border-border pb-12 mb-12 last:border-b-0 last:mb-0 last:pb-0 group">
+          <?php $itemTagsJson = htmlspecialchars(json_encode($item->tags()->split(',')), ENT_QUOTES, 'UTF-8') ?>
+          <article class="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8 border-b border-border pb-12 mb-12 last:border-b-0 last:mb-0 last:pb-0 group"
+                   data-article-tags="<?= $itemTagsJson ?>">
             
             <!-- 2 columns of 5 for image -->
             <div class="md:col-span-2">
@@ -174,7 +172,7 @@ $allTags = $allArticles->pluck('tags', ',', true);
               <h3 class="font-sans font-semibold text-2xl text-ink leading-tight mb-3 transition-colors tracking-tight">
                 <a href="<?= $item->url() ?>" class="hover:underline"><?= $item->title()->esc() ?></a>
               </h3>
-              <p class="font-sans text-mid text-base leading-relaxed line-clamp-5">
+              <p class="font-serif text-mid text-base leading-relaxed line-clamp-5">
                 <?php
                   $excerpt = $item->subheading()->isNotEmpty()
                     ? $item->subheading()->value()
@@ -193,6 +191,11 @@ $allTags = $allArticles->pluck('tags', ',', true);
         <?php if ($mainList->count() === 0): ?>
           <p class="font-sans text-faint text-lg text-center py-10 bg-surface rounded-[4px]">Aucun article ne correspond à votre recherche.</p>
         <?php endif ?>
+
+        <!-- no-results message for JS tag filtering -->
+        <p id="blog-no-results" class="hidden font-sans text-faint text-lg text-center py-10 bg-surface rounded-[4px]">
+          Aucun article ne correspond aux thèmes sélectionnés.
+        </p>
       </div>
     </div>
   <?php else: ?>

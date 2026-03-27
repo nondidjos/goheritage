@@ -1,7 +1,8 @@
 <?php snippet('header') ?>
 
 <div class="py-12">
-  <div class="col-7">
+  <div class="col-1"></div>
+  <div class="col-5">
     <p class="byline mb-3"><?= $page->date()->toDate('d F Y') ?></p>
     <h1 class="font-sans leading-tight mb-4 text-[clamp(2rem,4vw,3.5rem)]"><?= $page->title()->esc() ?></h1>
     <?php if ($page->subheading()->isNotEmpty()): ?>
@@ -11,18 +12,22 @@
 </div>
 
 <?php $cover = $page->cover(); ?>
-<div class="col-7 aspect-[16/7] overflow-hidden my-8">
-  <?php if ($cover): ?>
-    <img src="<?= $cover->crop(1600, 800)->url() ?>" alt="<?= $cover->alt()->esc() ?>"
-      class="w-full h-full object-cover">
-  <?php else: ?>
-    <img src="<?= url('assets/hero-images/Wien-Museum-Online-Sammlung-311154-1-4.jpeg') ?>" alt="<?= $page->title()->esc() ?>"
-      class="w-full h-full object-cover">
-  <?php endif ?>
+<div class="py-8">
+  <div class="col-1"></div>
+  <div class="col-5 aspect-[16/7] overflow-hidden">
+    <?php if ($cover): ?>
+      <img src="<?= $cover->crop(1200, 525)->url() ?>" alt="<?= $cover->alt()->esc() ?>"
+        class="w-full h-full object-cover">
+    <?php else: ?>
+      <img src="<?= url('assets/hero-images/Wien-Museum-Online-Sammlung-311154-1-4.jpeg') ?>" alt="<?= $page->title()->esc() ?>"
+        class="w-full h-full object-cover">
+    <?php endif ?>
+  </div>
 </div>
 
-<div class="py-16">
-  <div class="col-5">
+<div class="pt-12 pb-20">
+  <div class="col-2"></div>
+  <div class="col-3">
     <div class="text font-serif">
       <?= $page->text()->toBlocks() ?>
     </div>
@@ -39,7 +44,12 @@
         <?php endforeach ?>
       </ul>
     <?php endif ?>
+  </div>
+</div>
 
+<div class="pb-20">
+  <div class="col-1"></div>
+  <div class="col-5">
     <?php snippet('prevnext') ?>
   </div>
 </div>
