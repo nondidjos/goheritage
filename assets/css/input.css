@@ -277,7 +277,7 @@
     .breadcrumb {
         background-color: var(--color-surface);
         padding: 0.625rem 1.25rem;
-        margin-bottom: 2rem;
+        margin-bottom: 0.625rem;
     }
 
     .breadcrumb__inner {
@@ -303,13 +303,30 @@
 
     .breadcrumb__sep {
         color: var(--color-faint);
-        font-size: 0.75rem;
         margin-inline: 0.125rem;
     }
 
     .breadcrumb__current {
         color: var(--color-ink);
         font-weight: 500;
+    }
+
+    /* ── Location tag (pin + city, matches .tag visual) ───── */
+    .location-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--color-mid);
+        background-color: var(--color-surface);
+        padding: 0.25rem 0.75rem 0.25rem 0.5rem;
+        border-radius: 4px;
+        line-height: 1.5;
+        margin: 0;
     }
 
     /* ── Tags ─────────────────────────────────────────────── */
@@ -341,7 +358,7 @@
 
     /* ── Article excerpt ──────────────────────────────────── */
     .article-excerpt {
-        font-family: var(--font-sans);
+        font-family: var(--font-serif);
         font-size: 0.9375rem;
         color: var(--color-mid);
         line-height: 1.6;
@@ -378,7 +395,7 @@
 }
 
 .text a {
-    color: var(--color-accent);
+    color: var(--color-ink);
     text-decoration: underline;
 }
 
@@ -393,7 +410,7 @@
 }
 
 .text blockquote {
-    border-left: 4px solid var(--color-accent);
+    border-left: 4px solid var(--color-border);
     padding-left: 1.5rem;
     font-style: italic;
     color: var(--color-mid);
@@ -520,6 +537,117 @@
     padding: 4rem 1.25rem;
 }
 
+/* ── Blog search bar (map-style) ─────────────────────── */
+.blog-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    transition: border-color 0.15s;
+}
+
+.blog-search-bar:focus-within {
+    border-color: var(--color-ink);
+}
+
+.blog-search-bar__icon {
+    flex-shrink: 0;
+    color: var(--color-faint);
+    width: 15px;
+    height: 15px;
+}
+
+.blog-search-bar__input {
+    flex: 1;
+    border: none;
+    background: none;
+    outline: none;
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    color: var(--color-ink);
+    min-width: 0;
+}
+
+.blog-search-bar__input::placeholder {
+    color: var(--color-faint);
+    font-family: var(--font-sans);
+}
+
+.blog-search-bar__submit {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--color-faint);
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+    width: 14px;
+    height: 14px;
+}
+
+.blog-search-bar__submit svg {
+    width: 14px;
+    height: 14px;
+}
+
+.blog-search-bar__submit:hover {
+    color: var(--color-ink);
+}
+
+/* ── Tag active state ─────────────────────────────────── */
+.tag--active {
+    background-color: var(--color-ink);
+    color: var(--color-bg);
+}
+
+/* ── Tag clear button (white bg + gray outline) ────────── */
+.tag--clear {
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.tag--clear:hover {
+    border-color: var(--color-ink);
+    color: var(--color-ink);
+}
+
+/* ── Blog filter clear link ───────────────────────────── */
+.blog-filter-clear {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-faint);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.blog-filter-clear:hover {
+    color: var(--color-ink);
+    text-decoration: none;
+}
+
+/* ── Prev/next article navigation ─────────────────────── */
+.prevnext-link {
+    display: block;
+    text-decoration: none;
+}
+
+.prevnext-link:hover {
+    text-decoration: none;
+}
+
+.prevnext-link:hover .prevnext-link__title {
+    text-decoration: underline;
+}
+
 /* ── Blog card hover effects ──────────────────────────── */
 .blog-card__cover img {
     transition: transform 0.4s;
@@ -563,7 +691,7 @@
 
 /* ── 3D Model Viewer ──────────────────────────────────── */
 model-viewer {
-    --progress-bar-color: var(--color-accent);
+    --progress-bar-color: var(--color-ink);
     --progress-bar-height: 4px;
     outline: none; /* remove ugly focus ring */
 }
@@ -591,7 +719,7 @@ model-viewer .progress-bar.hide {
 }
 
 model-viewer .update-bar {
-    background-color: var(--color-accent);
+    background-color: var(--color-ink);
     width: 0%;
     height: 100%;
     border-radius: 4px;

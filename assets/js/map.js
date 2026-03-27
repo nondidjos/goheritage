@@ -1,23 +1,36 @@
 /**
  * GoHéritage — Map Page
  * MapLibre GL with MapTiler Backdrop style.
- * Reads window.HERITAGE_SITES (injected by map.php).
- * Includes search filtering for the project list.
  */
 
 (function () {
     'use strict';
 
-    const MAPTILER_KEY = 'YOUR_MAPTILER_KEY';
-    const STYLE_URL = `https://api.maptiler.com/maps/backdrop/style.json?key=${MAPTILER_KEY}`;
-    const SITES = window.HERITAGE_SITES || [];
+    // ── Fit map layout to remaining viewport height ──────────────────────────
+    // Gets the top position of the layout element and fills from there to the
+    // bottom of the viewport. Runs on load and on resize. Reliable regardless
+    // of header/breadcrumb height.
+    var layout = document.getElementById('map-layout');
 
-    // default centre: metropolitan france / belgium
-    const DEFAULT_CENTER = [2.3, 46.5];
-    const DEFAULT_ZOOM = 5;
+    function fitMapToScreen() {
+        if (!layout) return;
+        var top = layout.getBoundingClientRect().top;
+        layout.style.height = (window.innerHeight - top) + 'px';
+    }
 
-    // ── init map ──
-    const map = new maplibregl.Map({
+    fitMapToScreen();
+    window.addEventListener('resize', fitMapToScreen);
+
+    // ── Init MapLibre ────────────────────────────────────────────────────────
+    var mapEl = document.getElementById('heritage-map');
+    var MAPTILER_KEY = atob(mapEl.dataset.key || '');
+    var STYLE_URL = 'https://api.maptiler.com/maps/backdrop/style.json?key=' + MAPTILER_KEY;
+    var SITES = JSON.parse(mapEl.dataset.sites || '[]');
+
+    var DEFAULT_CENTER = [2.3, 46.5];
+    var DEFAULT_ZOOM = 5;
+
+    var map = new maplibregl.Map({
         container: 'heritage-map',
         style: STYLE_URL,
         center: DEFAULT_CENTER,
@@ -28,96 +41,162 @@
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: 'metric' }), 'bottom-right');
 
-    // ── state ──
-    const markers = {};
-    const popups = {};
-    let activeId = null;
+    // ── State ────────────────────────────────────────────────────────────────
+    var markers = {};
+    var activeId = null;
+    var selectedTags = new Set();
 
-    // ── build markers ──
-    SITES.forEach(site => {
+    // ── Build markers ────────────────────────────────────────────────────────
+    SITES.forEach(function (site) {
         if (!site.lat || !site.lng) return;
 
-        const el = document.createElement('div');
+        var el = document.createElement('div');
         el.className = 'map-marker';
         el.title = site.title;
         el.setAttribute('role', 'button');
         el.setAttribute('aria-label', site.title);
 
-        const popup = new maplibregl.Popup({
-            closeButton: true,
-            closeOnClick: false,
-            offset: 30,
-            maxWidth: '240px',
-        }).setHTML(`
-      <p class="popup-location">${escHtml(site.location)}</p>
-      <p class="popup-title">${escHtml(site.title)}</p>
-      <p class="popup-desc">${escHtml(site.desc)}</p>
-      <a class="popup-link" href="${escHtml(site.url)}">Voir le projet →</a>
-    `);
-
-        const marker = new maplibregl.Marker({ element: el })
+        var marker = new maplibregl.Marker({ element: el })
             .setLngLat([site.lng, site.lat])
-            .setPopup(popup)
             .addTo(map);
 
-        el.addEventListener('click', (e) => {
+        el.addEventListener('click', function (e) {
             e.stopPropagation();
             activateSite(site.id, false);
         });
 
         markers[site.id] = marker;
-        popups[site.id] = popup;
     });
 
-    // ── list item interaction ──
-    const listItems = document.querySelectorAll('.map-card');
+    // ── List card interaction ─────────────────────────────────────────────────
+    var listItems = document.querySelectorAll('.map-card');
 
-    listItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const id = item.dataset.id;
+    listItems.forEach(function (item) {
+        item.addEventListener('click', function (e) {
+            // let the "Voir le projet" link navigate normally
+            if (e.target.closest('.map-card__visit')) return;
+            var id = item.dataset.id;
             activateSite(id, true);
         });
     });
 
-    // ── search functionality ──
-    const searchInput = document.getElementById('map-search');
-    if (searchInput) {
-        searchInput.addEventListener('input', () => {
-            const query = searchInput.value.toLowerCase().trim();
-            listItems.forEach(item => {
-                const title = (item.querySelector('.map-card__title')?.textContent || '').toLowerCase();
-                const location = (item.querySelector('.map-card__location')?.textContent || '').toLowerCase();
-                const desc = (item.querySelector('.map-card__desc')?.textContent || '').toLowerCase();
-                const matches = !query || title.includes(query) || location.includes(query) || desc.includes(query);
-                item.style.display = matches ? '' : 'none';
-            });
+    // ── Search + tag filter ──────────────────────────────────────────────────
+    var searchInput = document.getElementById('map-search');
+
+    function applyFilters() {
+        var query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        var hasTags = selectedTags.size > 0;
+
+        listItems.forEach(function (item) {
+            var title = (item.querySelector('.map-card__title') || {}).textContent || '';
+            var location = (item.querySelector('.map-card__location') || {}).textContent || '';
+            var desc = (item.querySelector('.map-card__desc') || {}).textContent || '';
+            var itemTags = JSON.parse(item.dataset.tags || '[]');
+
+            var matchesQuery = !query ||
+                title.toLowerCase().includes(query) ||
+                location.toLowerCase().includes(query) ||
+                desc.toLowerCase().includes(query);
+
+            var matchesTags = !hasTags || itemTags.some(function (t) { return selectedTags.has(t); });
+
+            item.style.display = (matchesQuery && matchesTags) ? '' : 'none';
         });
     }
 
-    // ── activate site ──
-    function activateSite(id, fly) {
-        if (activeId && activeId !== id) {
-            deactivate(activeId);
-        }
+    if (searchInput) {
+        searchInput.addEventListener('input', applyFilters);
+    }
 
+    // ── Tag filter panel ──────────────────────────────────────────────────────
+    var filterBtn = document.getElementById('map-filter-btn');
+    var filterPanel = document.getElementById('map-filter-panel');
+
+    if (filterBtn && filterPanel) {
+        var allTags = [];
+        var seen = {};
+        SITES.forEach(function (s) {
+            (s.tags || []).forEach(function (t) {
+                if (t && !seen[t]) { seen[t] = true; allTags.push(t); }
+            });
+        });
+        allTags.sort();
+
+        if (allTags.length > 0) {
+            allTags.forEach(function (tag) {
+                var btn = document.createElement('button');
+                btn.className = 'tag';
+                btn.textContent = tag;
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    if (selectedTags.has(tag)) {
+                        selectedTags.delete(tag);
+                        btn.classList.remove('tag--active');
+                    } else {
+                        selectedTags.add(tag);
+                        btn.classList.add('tag--active');
+                    }
+                    updateFilterBtnState();
+                    applyFilters();
+                });
+                filterPanel.appendChild(btn);
+            });
+
+            // clear button — same tag style, white bg + gray outline
+            var clearBtn = document.createElement('button');
+            clearBtn.className = 'tag tag--clear';
+            clearBtn.textContent = '× Effacer tout';
+            clearBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                selectedTags.clear();
+                filterPanel.querySelectorAll('.tag:not(.tag--clear)').forEach(function (b) {
+                    b.classList.remove('tag--active');
+                });
+                updateFilterBtnState();
+                applyFilters();
+                // deliberately do NOT close the panel
+            });
+            filterPanel.appendChild(clearBtn);
+
+            filterBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                filterPanel.classList.toggle('is-open');
+                filterBtn.classList.toggle('is-open');
+            });
+
+            document.addEventListener('click', function () {
+                filterPanel.classList.remove('is-open');
+                filterBtn.classList.remove('is-open');
+            });
+
+            filterPanel.addEventListener('click', function (e) { e.stopPropagation(); });
+        } else {
+            filterBtn.style.display = 'none';
+        }
+    }
+
+    function updateFilterBtnState() {
+        if (filterBtn) filterBtn.classList.toggle('has-active', selectedTags.size > 0);
+    }
+
+    // ── Activate site ─────────────────────────────────────────────────────────
+    function activateSite(id, fly) {
+        if (activeId && activeId !== id) deactivate(activeId);
         activeId = id;
 
-        const site = SITES.find(s => s.id === id);
+        var site = SITES.find(function (s) { return s.id === id; });
         if (!site) return;
 
-        // highlight list item
-        const listItem = document.querySelector(`.map-card[data-id="${id}"]`);
+        // highlight list card
+        listItems.forEach(function (el) { el.classList.remove('is-active'); });
+        var listItem = document.querySelector('.map-card[data-id="' + id + '"]');
         if (listItem) {
-            document.querySelectorAll('.map-card').forEach(el => el.classList.remove('is-active'));
             listItem.classList.add('is-active');
             listItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         // activate marker
-        if (markers[id]) {
-            markers[id].getElement().classList.add('is-active');
-        }
+        if (markers[id]) markers[id].getElement().classList.add('is-active');
 
         // fly to location
         if (fly && site.lat && site.lng) {
@@ -128,45 +207,26 @@
                 curve: 1.4,
             });
         }
-
-        // open popup after brief delay
-        setTimeout(() => {
-            if (popups[id]) {
-                popups[id].addTo(map);
-            }
-        }, fly ? 300 : 0);
     }
 
     function deactivate(id) {
-        const listItem = document.querySelector(`.map-card[data-id="${id}"]`);
+        var listItem = document.querySelector('.map-card[data-id="' + id + '"]');
         if (listItem) listItem.classList.remove('is-active');
         if (markers[id]) markers[id].getElement().classList.remove('is-active');
-        if (popups[id]) popups[id].remove();
     }
 
-    // close active on map click
-    map.on('click', () => {
+    map.on('click', function () {
         if (activeId) deactivate(activeId);
         activeId = null;
     });
 
-    // ── mobile: toggle panel ──
-    const panel = document.getElementById('map-panel');
-    const closeBtn = document.getElementById('map-panel-close');
+    // ── Mobile panel toggle ───────────────────────────────────────────────────
+    var panel = document.getElementById('map-panel');
+    var closeBtn = document.getElementById('map-panel-close');
     if (closeBtn && panel) {
-        closeBtn.addEventListener('click', () => {
+        closeBtn.addEventListener('click', function () {
             panel.classList.toggle('is-collapsed');
         });
-    }
-
-    // ── utility ──
-    function escHtml(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/"/g, '&quot;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
     }
 
 })();

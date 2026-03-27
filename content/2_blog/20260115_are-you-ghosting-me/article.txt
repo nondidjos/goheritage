@@ -6,7 +6,7 @@ Text:
 
 ----
 
-Cover: []
+Cover: - 'file://sAm60070KgHeSttl'
 
 ----
 

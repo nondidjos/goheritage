@@ -1,28 +1,41 @@
 /* ── Map page: split-panel layout & MapLibre overrides ── */
-/* figma: white bg, clean card list, search bar at top     */
 
+/* Prevent the page from scrolling behind the map */
+body:has(#map-main) {
+    overflow: hidden;
+}
+
+/* Hide the footer so the map can fill the remaining screen */
+body:has(#map-main) footer {
+    display: none;
+}
+
+/* Map layout height: primarily set by JS fitMapToScreen().
+   This calc() is a reliable CSS fallback (header ≈ 60px, breadcrumb ≈ 48px). */
 .map-layout {
-    height: calc(100vh - 53px);
+    height: calc(100dvh - 108px);
+    /* grid-template-rows: 100% makes the single row fill the layout so the panel can scroll */
+    grid-template-rows: 100%;
 }
 
 /* ── Left panel ── */
 .map-panel {
-    overflow-y: auto;
+    overflow: hidden;           /* panel itself does NOT scroll */
     border-right: 1px solid var(--color-border);
     background: var(--color-bg);
     display: flex;
     flex-direction: column;
     position: relative;
+    min-height: 0;
 }
 
-/* search & filter bar */
+/* search & filter bar — fixed at top, never scrolls away */
 .map-panel__search {
     padding: 0.625rem 0.75rem;
     border-bottom: 1px solid var(--color-border);
     display: flex;
     gap: 0.5rem;
-    position: sticky;
-    top: 0;
+    flex-shrink: 0;
     background: var(--color-bg);
     z-index: 10;
 }
@@ -32,7 +45,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.375rem 0.625rem;
+    padding: 0.625rem 0.75rem;
     border: 1px solid var(--color-border);
     background: var(--color-bg);
     transition: border-color 0.15s;
@@ -55,7 +68,7 @@
     outline: none;
     width: 100%;
     font-family: var(--font-sans);
-    font-size: 0.8125rem;
+    font-size: 0.9375rem;
     color: var(--color-ink);
 }
 
@@ -67,27 +80,62 @@
 .map-filter-btn {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.375rem 0.625rem;
+    gap: 0.375rem;
+    padding: 0.625rem 0.75rem;
     border: 1px solid var(--color-border);
     background: var(--color-bg);
     font-family: var(--font-sans);
-    font-size: 0.6875rem;
+    font-size: 0.8125rem;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--color-mid);
     cursor: pointer;
     white-space: nowrap;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, color 0.15s;
 }
 
-.map-filter-btn:hover {
+.map-filter-btn:hover,
+.map-filter-btn.is-open {
     border-color: var(--color-ink);
+    color: var(--color-ink);
+}
+
+.map-filter-btn.has-active {
+    border-color: var(--color-ink);
+    color: var(--color-ink);
+    background: var(--color-surface);
 }
 
 .map-filter-btn svg {
     color: var(--color-faint);
+}
+
+/* ── Filter tag panel — slides down with animation ── */
+@keyframes map-filter-open {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.map-filter-panel {
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.625rem 0.75rem;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.map-filter-panel.is-open {
+    display: flex;
+    animation: map-filter-open 0.2s ease forwards;
 }
 
 /* mobile close button */
@@ -106,35 +154,35 @@
     z-index: 20;
 }
 
-/* ── Card-style project list — matching figma exactly ── */
-/* figma: image full-width, title below in gloucester,     */
-/* location pin right-aligned, serif description            */
+/* ── Card list — this is the only scroll container ── */
 .map-list {
     flex: 1;
-    padding: 0.5rem;
+    min-height: 0;      /* essential: allows overflow-y to engage in flex */
+    overflow-y: auto;
+    padding: 0.375rem;
 }
 
+/* ── Card ── */
 .map-card {
     display: block;
-    margin-bottom: 0.75rem;
+    cursor: pointer;
     text-decoration: none;
     color: inherit;
-}
-
-.map-card:hover {
-    text-decoration: none;
+    /* use padding-bottom (not margin-bottom) so active background fills the full card area */
+    padding-bottom: 0;
+    border-radius: 4px;
+    transition: background 0.12s;
 }
 
 .map-card.is-active {
-    outline: 2px solid var(--color-accent);
-    outline-offset: -2px;
+    background: var(--color-surface);
 }
 
 .map-card__image {
     aspect-ratio: 16/7;
     overflow: hidden;
     background: var(--color-surface);
-    border-radius: 6px;
+    border-radius: 4px 4px 0 0;
 }
 
 .map-card__image img {
@@ -158,21 +206,23 @@
     font-size: 2rem;
     background: var(--color-surface);
     min-height: 120px;
-    border-radius: 6px;
+    border-radius: 4px 4px 0 0;
 }
 
 .map-card__body {
-    padding: 0.375rem 0;
+    padding: 0.375rem 1.125rem 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 0.375rem;
 }
 
-/* location — figma: right-aligned, small sans text with pin icon */
+/* location */
 .map-card__location {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 0.2rem;
     font-family: var(--font-sans);
-    font-size: 0.6rem;
+    font-size: 0.75rem;
     color: var(--color-faint);
     margin-bottom: 0.125rem;
 }
@@ -181,30 +231,58 @@
     flex-shrink: 0;
 }
 
-/* title — gloucester, centered per Figma */
+/* title */
 .map-card__title {
-    font-family: var(--font-gloucester);
-    font-size: 1.125rem;
-    line-height: 1.1;
+    font-family: var(--font-thyssen);
+    font-size: 2rem;
+    line-height: 1.05;
     text-align: center;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.4rem;
 }
 
-/* description — serif */
+/* description */
 .map-card__desc {
     font-family: var(--font-serif);
-    font-size: 0.6875rem;
+    font-size: 0.875rem;
     color: var(--color-mid);
     line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    padding: 0 0.25rem;
+    margin-bottom: 0.75rem;
+}
+
+/* visit project link — always accessible in the list */
+.map-card__visit {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-ink);
+    text-decoration: none;
+    padding: 0.375rem 0;
+    transition: opacity 0.15s;
+}
+
+.map-card__visit:hover {
+    opacity: 0.6;
+    text-decoration: underline;
+}
+
+/* last card gets no bottom border / margin */
+.map-card:last-child .map-card__body {
+    border-bottom: none;
+    margin-bottom: 0;
 }
 
 /* ── Right: Map container ── */
 .map-container {
     position: relative;
+    min-height: 0;
 }
 
 #heritage-map {
@@ -212,7 +290,7 @@
     height: 100%;
 }
 
-/* ── Custom MapLibre marker — figma: orange oval ── */
+/* ── Custom MapLibre marker ── */
 .map-marker {
     width: 24px;
     height: 24px;
@@ -257,18 +335,10 @@
 }
 
 .popup-title {
-    font-family: var(--font-gloucester);
+    font-family: var(--font-thyssen);
     font-size: 1rem;
     line-height: 1.1;
     margin-bottom: 0.375rem;
-}
-
-.popup-desc {
-    font-family: var(--font-serif);
-    font-size: 0.75rem;
-    color: var(--color-mid);
-    line-height: 1.4;
-    margin-bottom: 0.5rem;
 }
 
 .popup-link {
@@ -277,7 +347,7 @@
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--color-accent);
+    color: var(--color-ink);
     text-decoration: underline;
 }
 
@@ -285,9 +355,9 @@
 @media (max-width: 60rem) {
     .map-layout {
         grid-template-columns: 1fr;
-        grid-template-rows: 60vh 1fr;
+        grid-template-rows: 60vh auto;
         height: auto;
-        min-height: calc(100vh - 57px);
+        min-height: calc(100dvh - 108px);
     }
 
     .map-panel {
