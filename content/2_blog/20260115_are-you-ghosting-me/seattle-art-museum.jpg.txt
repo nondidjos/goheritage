@@ -1,0 +1,25 @@
+Caption:
+
+----
+
+Alt: A large painting displayed in a museum gallery, depicting figures in a classical scene.
+
+----
+
+Photographer:
+
+----
+
+License:
+
+----
+
+Link:
+
+----
+
+Template: blog-article-image
+
+----
+
+Uuid: sAm60070KgHeSttl

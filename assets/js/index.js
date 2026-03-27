@@ -136,17 +136,74 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
-        // Pause on hover
+        // Pause only when hovering the step cards
         function pause() { isPaused = true; }
         function play() { isPaused = false; lastTime = performance.now(); }
 
-        imageContainer.addEventListener('mouseenter', pause);
-        imageContainer.addEventListener('mouseleave', play);
         stepsContainer.addEventListener('mouseenter', pause);
         stepsContainer.addEventListener('mouseleave', play);
 
         // Initialize first step and animation loop
         renderStep(0);
         autoPlayReq = requestAnimationFrame(tick);
+    }
+
+    // ── Blog: client-side tag filtering ──
+    var tagBtns = document.querySelectorAll('[data-filter-tag]');
+    var blogArticles = document.querySelectorAll('[data-article-tags]');
+    var clearBtn = document.getElementById('blog-clear-tags');
+    var noResults = document.getElementById('blog-no-results');
+
+    if (tagBtns.length && blogArticles.length) {
+        var selectedBlogTags = new Set();
+
+        tagBtns.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var tag = btn.dataset.filterTag;
+                if (selectedBlogTags.has(tag)) {
+                    selectedBlogTags.delete(tag);
+                    btn.classList.remove('tag--active');
+                } else {
+                    selectedBlogTags.add(tag);
+                    btn.classList.add('tag--active');
+                }
+                applyBlogFilters();
+            });
+        });
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function () {
+                selectedBlogTags.clear();
+                tagBtns.forEach(function (b) { b.classList.remove('tag--active'); });
+                applyBlogFilters();
+            });
+        }
+
+        function applyBlogFilters() {
+            var hasTags = selectedBlogTags.size > 0;
+            var visibleCount = 0;
+
+            blogArticles.forEach(function (article) {
+                if (!hasTags) {
+                    article.style.display = '';
+                    visibleCount++;
+                    return;
+                }
+                var tags = JSON.parse(article.dataset.articleTags || '[]');
+                var matches = tags.some(function (t) { return selectedBlogTags.has(t.trim()); });
+                article.style.display = matches ? '' : 'none';
+                if (matches) visibleCount++;
+            });
+
+            // show/hide the "× Effacer tout" tag button
+            if (clearBtn) {
+                clearBtn.classList.toggle('hidden', !hasTags);
+            }
+
+            // no-results message
+            if (noResults) {
+                noResults.classList.toggle('hidden', !hasTags || visibleCount > 0);
+            }
+        }
     }
 });
