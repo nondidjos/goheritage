@@ -168,14 +168,7 @@ body:has(#map-main) footer {
     cursor: pointer;
     text-decoration: none;
     color: inherit;
-    /* use padding-bottom (not margin-bottom) so active background fills the full card area */
-    padding-bottom: 0;
     border-radius: 4px;
-    transition: background 0.12s;
-}
-
-.map-card.is-active {
-    background: var(--color-surface);
 }
 
 .map-card__image {
@@ -210,9 +203,7 @@ body:has(#map-main) footer {
 }
 
 .map-card__body {
-    padding: 0.375rem 1.125rem 0.5rem;
-    border-bottom: 1px solid var(--color-border);
-    margin-bottom: 0.375rem;
+    padding: 0.375rem 1.125rem 0.625rem;
 }
 
 /* location */
@@ -234,7 +225,7 @@ body:has(#map-main) footer {
 /* title */
 .map-card__title {
     font-family: var(--font-thyssen);
-    font-size: 2rem;
+    font-size: 2.25rem;
     line-height: 1.05;
     text-align: center;
     margin-bottom: 0.4rem;
@@ -251,32 +242,65 @@ body:has(#map-main) footer {
     -webkit-box-orient: vertical;
     overflow: hidden;
     padding: 0 0.25rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0;
 }
 
-/* visit project link — always accessible in the list */
-.map-card__visit {
-    display: block;
+/* separator line + space between desc and action buttons */
+.map-card__divider {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: 0.875rem 0 0;
+}
+
+/* action buttons row */
+.map-card__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--color-border);
+    margin-top: 0.875rem;
+}
+
+.map-card__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.5rem 0.25rem;
     font-family: var(--font-sans);
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--color-ink);
+    letter-spacing: 0.05em;
+    color: var(--color-mid);
+    background: none;
+    border: none;
+    cursor: pointer;
     text-decoration: none;
-    padding: 0.375rem 0;
-    transition: opacity 0.15s;
+    transition: color 0.15s, background 0.15s;
+    white-space: nowrap;
 }
 
-.map-card__visit:hover {
-    opacity: 0.6;
-    text-decoration: underline;
+.map-card__btn:hover {
+    color: var(--color-ink);
+    background: var(--color-surface);
 }
 
-/* last card gets no bottom border / margin */
-.map-card:last-child .map-card__body {
-    border-bottom: none;
-    margin-bottom: 0;
+/* "Voir le modèle" is primary — has a left border separator */
+.map-card__btn--visit {
+    border-left: 1px solid var(--color-border);
+    color: var(--color-ink);
+}
+
+.map-card__btn--visit:hover {
+    background: var(--color-ink);
+    color: var(--color-bg);
+}
+
+/* separator between cards */
+.map-card + .map-card {
+    border-top: 1px solid var(--color-border);
+    margin-top: 0.25rem;
+    padding-top: 0.375rem;
 }
 
 /* ── Right: Map container ── */
@@ -308,47 +332,71 @@ body:has(#map-main) footer {
     transform: scale(1.25);
 }
 
-/* ── MapLibre popup ── */
+/* ── MapLibre popup — card anchored to marker ── */
 .maplibregl-popup-content {
-    font-family: var(--font-serif);
+    font-family: var(--font-sans);
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: 0;
-    padding: 0.75rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
-    max-width: 200px;
+    padding: 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .13);
+    min-width: 200px;
+    max-width: 260px;
+    overflow: hidden;
 }
 
 .maplibregl-popup-close-button {
     font-family: var(--font-sans);
-    font-size: 0.875rem;
+    font-size: 1rem;
     color: var(--color-faint);
+    padding: 0.25rem 0.5rem;
+    line-height: 1;
+    top: 0.25rem;
+    right: 0.25rem;
+}
+
+/* remove the default tip/arrow background flash */
+.maplibregl-popup-tip {
+    border-top-color: var(--color-border) !important;
+}
+
+.popup-inner {
+    padding: 0.875rem 1rem 0;
 }
 
 .popup-location {
     font-family: var(--font-sans);
-    font-size: 0.6rem;
+    font-size: 0.625rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--color-faint);
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.2rem;
 }
 
 .popup-title {
     font-family: var(--font-thyssen);
-    font-size: 1rem;
-    line-height: 1.1;
-    margin-bottom: 0.375rem;
+    font-size: 1.375rem;
+    line-height: 1.05;
+    margin-bottom: 0.625rem;
+    padding-right: 1.25rem; /* make room for close button */
 }
 
 .popup-link {
+    display: block;
     font-family: var(--font-sans);
-    font-size: 0.6rem;
+    font-size: 0.6875rem;
     font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     color: var(--color-ink);
-    text-decoration: underline;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-top: 1px solid var(--color-border);
+    transition: background 0.15s;
+}
+
+.popup-link:hover {
+    background: var(--color-surface);
 }
 
 /* ── Responsive ── */
