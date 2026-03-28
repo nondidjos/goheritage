@@ -2,7 +2,7 @@
 // global header — included in all templates
 $isMapPage     = $page->template()->name() === 'map';
 $isProjectPage = $page->template()->name() === 'project';
-$cssFiles      = ['assets/css/app.css'];
+$cssFiles      = ['assets/css/app.css', 'assets/css/custom.css'];
 if ($isMapPage) {
     $cssFiles[] = 'assets/css/map.css';
 }
