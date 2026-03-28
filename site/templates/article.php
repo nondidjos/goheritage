@@ -1,20 +1,26 @@
 <?php snippet('header') ?>
 
 <div class="py-12">
-  <div class="col-1"></div>
-  <div class="col-5">
-    <p class="byline mb-3"><?= $page->date()->toDate('d F Y') ?></p>
-    <h1 class="font-sans leading-tight mb-4 text-[clamp(2rem,4vw,3.5rem)]"><?= $page->title()->esc() ?></h1>
+  <div class="col-2"></div>
+  <div class="col-3">
+    <div class="text-center">
+      <?php if ($author = $page->author()->toUser()): ?>
+        <p class="byline mb-3"><?= $page->date()->toDate('d F Y') ?> by <span class="underline"><?= $author->name()->esc() ?></span></p>
+      <?php else: ?>
+        <p class="byline mb-3"><?= $page->date()->toDate('d F Y') ?></p>
+      <?php endif ?>
+      <h1 class="font-sans leading-tight mb-4 text-[clamp(2rem,4vw,3.5rem)]"><?= $page->title()->esc() ?></h1>
+    </div>
     <?php if ($page->subheading()->isNotEmpty()): ?>
-      <p class="font-serif text-xl text-mid"><?= $page->subheading()->esc() ?></p>
+      <p class="font-sans text-[15px] text-mid"><?= $page->subheading()->esc() ?></p>
     <?php endif ?>
   </div>
 </div>
 
-<?php $cover = $page->cover(); ?>
+<?php $cover = $page->cover()->toFile(); ?>
 <div class="py-8">
   <div class="col-1"></div>
-  <div class="col-5 aspect-[16/7] overflow-hidden">
+  <div class="col-5 aspect-16/7 overflow-hidden">
     <?php if ($cover): ?>
       <img src="<?= $cover->crop(1200, 525)->url() ?>" alt="<?= $cover->alt()->esc() ?>"
         class="w-full h-full object-cover">
