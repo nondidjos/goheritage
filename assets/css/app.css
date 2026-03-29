@@ -400,6 +400,9 @@
   .inline-flex {
     display: inline-flex;
   }
+  .aspect-16\/7 {
+    aspect-ratio: 16/7;
+  }
   .aspect-\[3\/1\] {
     aspect-ratio: 3/1;
   }
@@ -916,6 +919,9 @@
   }
   .text-\[11px\] {
     font-size: 11px;
+  }
+  .text-\[15px\] {
+    font-size: 15px;
   }
   .text-\[120px\] {
     font-size: 120px;
