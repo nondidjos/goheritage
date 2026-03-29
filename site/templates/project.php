@@ -22,6 +22,19 @@ $texFile  = $page->model_texture()->toFile()
 $viewerUrl = $page->viewer_url()->isNotEmpty() ? $page->viewer_url()->esc() : null;
 $viewerLabel = $page->viewer_label()->isNotEmpty() ? $page->viewer_label()->esc() : 'Explorer le Modèle 3D';
 
+// build annotation data from CMS structure field
+$annotationsData = [];
+if ($page->annotations()->isNotEmpty()) {
+    foreach ($page->annotations()->toStructure() as $i => $ann) {
+        $annotationsData[] = [
+            'id'          => $ann->hotspot_id()->value(),
+            'title'       => $ann->title()->value(),
+            'description' => $ann->description()->value(),
+        ];
+    }
+}
+$annotationsJson = json_encode($annotationsData, JSON_UNESCAPED_UNICODE);
+
 $glbUrl = $glbFile ? $glbFile->url() : null;
 $objUrl = $objFile ? $objFile->url() : null;
 $texUrl = $texFile ? $texFile->url() : null;
@@ -64,6 +77,26 @@ $gallery = $page->images()
                 <p>Ce site témoigne d'une architecture exceptionnelle et d'une histoire qui s'étend sur plusieurs siècles. Sa préservation numérique par GoHéritage permet d'en explorer chaque recoin et d'assurer la transmission de ce patrimoine aux générations futures.</p>
             <?php endif ?>
         </div>
+
+        <!-- Annotation panel (points of interest) -->
+        <?php if (count($annotationsData) > 0): ?>
+            <div class="annotation-panel">
+                <h3 class="annotation-panel__heading">Points d'intérêt</h3>
+                <div class="annotation-list">
+                    <?php foreach ($annotationsData as $i => $ann): ?>
+                        <button class="annotation-entry" data-hotspot="<?= htmlspecialchars($ann['id']) ?>">
+                            <span class="annotation-entry__number"><?= str_pad($i + 1, 2, '0', STR_PAD_LEFT) ?></span>
+                            <div class="annotation-entry__body">
+                                <p class="annotation-entry__title"><?= htmlspecialchars($ann['title']) ?></p>
+                                <?php if (!empty($ann['description'])): ?>
+                                    <div class="annotation-entry__desc"><?= $ann['description'] ?></div>
+                                <?php endif ?>
+                            </div>
+                        </button>
+                    <?php endforeach ?>
+                </div>
+            </div>
+        <?php endif ?>
 
         <!-- Rich text blocks -->
         <?php if ($page->text()->isNotEmpty()): ?>
@@ -197,7 +230,8 @@ $gallery = $page->images()
                  data-glb="<?= $glbUrl ?>"
                  data-obj="<?= $objUrl ?>"
                  data-texture="<?= $texUrl ?>"
-                 data-draco-path="<?= url('node_modules/three/examples/jsm/libs/draco/') ?>">
+                 data-draco-path="<?= url('node_modules/three/examples/jsm/libs/draco/') ?>"
+                 data-annotations="<?= htmlspecialchars($annotationsJson) ?>">
             </div>
             <style>
               .viewer-progress {

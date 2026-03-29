@@ -1,59 +1,75 @@
-// three.js viewer for photogrammetry models (glb/gltf with draco, or obj+mtl fallback)
-// loaded as an es module via import map defined in the page header
+/**
+ * GoHéritage — Three.js Viewer with annotation hotspot system
+ *
+ * Features:
+ *   - GLB (DRACO) / OBJ+MTL model loading
+ *   - CSS2DRenderer labels anchored to 3D hotspot positions
+ *   - Smooth camera fly-to animation
+ *   - Blender Empty objects with userData are read as hotspots
+ *   - CMS annotation data (JSON) merged with hotspot positions
+ *   - Adaptive pixel-ratio for performance on weak GPUs
+ *   - Left-panel ↔ 3D label two-way interaction
+ */
 
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
+import { GLTFLoader }   from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader }  from 'three/addons/loaders/DRACOLoader.js';
+import { OBJLoader }    from 'three/addons/loaders/OBJLoader.js';
+import { MTLLoader }    from 'three/addons/loaders/MTLLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+// ── Main init ────────────────────────────────────────────────────────────────
 
 function initViewer(container) {
-  // read model urls from data attributes — glb takes priority over obj
-  const glbUrl = container.dataset.glb || null;
-  const objUrl = container.dataset.obj || null;
-  const mtlUrl = container.dataset.mtl || null;
-  const texUrl = container.dataset.texture || null;
+  const glbUrl    = container.dataset.glb || null;
+  const objUrl    = container.dataset.obj || null;
+  const mtlUrl    = container.dataset.mtl || null;
+  const texUrl    = container.dataset.texture || null;
   const dracoPath = container.dataset.dracoPath || null;
+
+  // CMS annotations passed as JSON data attribute
+  let cmsAnnotations = [];
+  try { cmsAnnotations = JSON.parse(container.dataset.annotations || '[]'); } catch (_) {}
 
   if (!glbUrl && !objUrl) return;
 
-  // renderer
+  // ── Renderer ─────────────────────────────────────────────────────────────
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);
 
-  // scene
+  // ── CSS2D Renderer (label overlay) ───────────────────────────────────────
+  const labelRenderer = new CSS2DRenderer();
+  labelRenderer.setSize(container.clientWidth, container.clientHeight);
+  labelRenderer.domElement.id = 'viewer-labels';
+  container.appendChild(labelRenderer.domElement);
+
+  // ── Scene ────────────────────────────────────────────────────────────────
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1a1a1a);
-
-  // flat ambient light — pre-baked photogrammetry textures don't need shading
   scene.add(new THREE.AmbientLight(0xffffff, 1.0));
 
-  // camera
+  // ── Camera ───────────────────────────────────────────────────────────────
   const camera = new THREE.PerspectiveCamera(
-    50,
-    container.clientWidth / container.clientHeight,
-    0.1,
-    10000
+    50, container.clientWidth / container.clientHeight, 0.1, 10000
   );
 
-  // orbit controls
-  const controls = new OrbitControls(camera, renderer.domElement);
+  // ── Controls ─────────────────────────────────────────────────────────────
+  const controls = new OrbitControls(camera, labelRenderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.screenSpacePanning = true;
   controls.maxDistance = 5000;
 
-  // progress overlay
+  // ── Progress overlay ─────────────────────────────────────────────────────
   const progress = document.createElement('div');
   progress.className = 'viewer-progress';
-  progress.innerHTML = `
-    <div class="viewer-progress-bar"><div class="viewer-progress-fill"></div></div>
-    <span class="viewer-progress-text">chargement du modèle…</span>
-  `;
+  progress.innerHTML =
+    '<div class="viewer-progress-bar"><div class="viewer-progress-fill"></div></div>' +
+    '<span class="viewer-progress-text">chargement du modèle\u2026</span>';
   container.appendChild(progress);
 
   const progressFill = progress.querySelector('.viewer-progress-fill');
@@ -63,148 +79,330 @@ function initViewer(container) {
     if (total > 0) {
       const pct = Math.round((loaded / total) * 100);
       progressFill.style.width = pct + '%';
-      progressText.textContent = `chargement… ${pct}%`;
+      progressText.textContent = 'chargement\u2026 ' + pct + '%';
     }
   }
 
   function hideProgress() {
     progress.style.opacity = '0';
-    setTimeout(() => progress.remove(), 400);
+    setTimeout(function () { progress.remove(); }, 400);
   }
 
-  // frame the camera to fit the model
+  // ── State ────────────────────────────────────────────────────────────────
+  var hotspots = [];       // { id, title, position: Vector3, cameraPos?: Vector3, labelObj, el }
+  var activeHotspotId = null;
+  var modelCenter = new THREE.Vector3();
+  var modelRadius = 1;
+  var flyAnimation = null; // active fly-to RAF id
+
+  // ── Frame camera to fit model ────────────────────────────────────────────
   function frameModel(object) {
-    const box = new THREE.Box3().setFromObject(object);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
+    var box = new THREE.Box3().setFromObject(object);
+    var size = box.getSize(new THREE.Vector3());
+    var center = box.getCenter(new THREE.Vector3());
+
+    modelCenter.copy(center);
+    modelRadius = size.length() / 2;
 
     controls.target.copy(center);
 
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const fov = camera.fov * (Math.PI / 180);
-    const dist = (maxDim / 2) / Math.tan(fov / 2) * 1.4;
+    var maxDim = Math.max(size.x, size.y, size.z);
+    var fov = camera.fov * (Math.PI / 180);
+    var dist = (maxDim / 2) / Math.tan(fov / 2) * 1.4;
 
     camera.position.copy(center);
     camera.position.z += dist;
     camera.near = maxDim * 0.001;
     camera.far = maxDim * 10;
     camera.updateProjectionMatrix();
-
     controls.update();
   }
 
-  // after loading, fix material settings for photogrammetry viewing
+  // ── Prepare model materials ──────────────────────────────────────────────
   function prepareModel(object) {
-    object.traverse((child) => {
+    object.traverse(function (child) {
       if (child.isMesh && child.material) {
-        const mats = Array.isArray(child.material) ? child.material : [child.material];
-        mats.forEach((m) => {
-          // let users see inside (chapel is scanned from the interior)
-          m.side = THREE.FrontSide;
-        });
+        var mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach(function (m) { m.side = THREE.FrontSide; });
       }
     });
 
     scene.add(object);
     frameModel(object);
     hideProgress();
+
+    // extract hotspots from the scene graph
+    extractHotspots(object);
+    buildLabels();
+    wireAnnotationPanel();
   }
 
-  // -- glb/gltf path (preferred — smaller, draco support) --
-  if (glbUrl) {
-    const gltfLoader = new GLTFLoader();
+  // ── Extract hotspots from Blender Empties ────────────────────────────────
+  function extractHotspots(root) {
+    root.traverse(function (node) {
+      // detect hotspot Empties: either has "hotspot" userData or name starts with "hotspot_"
+      var isHotspot = node.userData && (
+        node.userData.hotspot === true ||
+        node.userData.hotspot === 1 ||
+        (typeof node.name === 'string' && node.name.toLowerCase().startsWith('hotspot_'))
+      );
+      if (!isHotspot) return;
+      // skip meshes — we only want Empty objects (Object3D without geometry)
+      if (node.isMesh) return;
 
-    // set up draco decoder if a decoder path was provided
+      var id = node.userData.hotspot_id || node.name;
+      var pos = new THREE.Vector3();
+      node.getWorldPosition(pos);
+
+      var entry = {
+        id: id,
+        title: node.userData.title || id,
+        position: pos,
+        cameraPos: null,
+        labelObj: null,
+        el: null,
+      };
+
+      // optional stored camera position from Blender
+      if (node.userData.camera_x !== undefined) {
+        entry.cameraPos = new THREE.Vector3(
+          node.userData.camera_x,
+          node.userData.camera_y,
+          node.userData.camera_z
+        );
+      }
+
+      hotspots.push(entry);
+    });
+
+    // also create hotspots for CMS annotations that have no matching Blender Empty
+    // (in case user entered manual coordinates in the future)
+    cmsAnnotations.forEach(function (ann) {
+      var existing = hotspots.find(function (h) { return h.id === ann.id; });
+      if (!existing && ann.x !== undefined && ann.y !== undefined && ann.z !== undefined) {
+        hotspots.push({
+          id: ann.id,
+          title: ann.title || ann.id,
+          position: new THREE.Vector3(ann.x, ann.y, ann.z),
+          cameraPos: null,
+          labelObj: null,
+          el: null,
+        });
+      }
+    });
+
+    // merge CMS titles into hotspot data (CMS title takes priority)
+    hotspots.forEach(function (hs) {
+      var cms = cmsAnnotations.find(function (a) { return a.id === hs.id; });
+      if (cms && cms.title) hs.title = cms.title;
+    });
+  }
+
+  // ── Build CSS2D labels ───────────────────────────────────────────────────
+  function buildLabels() {
+    hotspots.forEach(function (hs, i) {
+      var el = document.createElement('div');
+      el.className = 'viewer-label';
+      el.dataset.hotspot = hs.id;
+      el.innerHTML =
+        '<span class="viewer-label__dot"></span>' +
+        '<span class="viewer-label__text">' + escHtml(hs.title) + '</span>';
+
+      el.addEventListener('click', function (e) {
+        e.stopPropagation();
+        activateHotspot(hs.id);
+      });
+
+      var labelObj = new CSS2DObject(el);
+      labelObj.position.copy(hs.position);
+      // offset label slightly upward so it doesn't sit right on the surface
+      labelObj.position.y += modelRadius * 0.01;
+      labelObj.layers.set(0);
+      scene.add(labelObj);
+
+      hs.labelObj = labelObj;
+      hs.el = el;
+    });
+  }
+
+  // ── Wire annotation panel entries (left side, rendered by PHP) ───────────
+  function wireAnnotationPanel() {
+    var entries = document.querySelectorAll('.annotation-entry[data-hotspot]');
+    entries.forEach(function (entry) {
+      entry.addEventListener('click', function () {
+        activateHotspot(entry.dataset.hotspot);
+      });
+    });
+  }
+
+  // ── Activate a hotspot ───────────────────────────────────────────────────
+  function activateHotspot(id) {
+    var hs = hotspots.find(function (h) { return h.id === id; });
+    if (!hs) return;
+
+    // deactivate previous
+    if (activeHotspotId) deactivateHotspot(activeHotspotId);
+    activeHotspotId = id;
+
+    // highlight 3D label
+    if (hs.el) hs.el.classList.add('is-active');
+
+    // highlight panel entry
+    var panelEntry = document.querySelector('.annotation-entry[data-hotspot="' + id + '"]');
+    if (panelEntry) {
+      panelEntry.classList.add('is-active');
+      panelEntry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // fly camera
+    var targetPos = hs.position.clone();
+    var cameraTarget;
+
+    if (hs.cameraPos) {
+      // use stored camera position from Blender
+      cameraTarget = hs.cameraPos.clone();
+    } else {
+      // compute: back away from hotspot along direction from model center
+      var dir = targetPos.clone().sub(modelCenter).normalize();
+      if (dir.length() < 0.01) dir.set(0, 0, 1);
+      cameraTarget = targetPos.clone().add(dir.multiplyScalar(modelRadius * 0.6));
+    }
+
+    flyTo(cameraTarget, targetPos, 1.2);
+  }
+
+  function deactivateHotspot(id) {
+    var hs = hotspots.find(function (h) { return h.id === id; });
+    if (hs && hs.el) hs.el.classList.remove('is-active');
+
+    var panelEntry = document.querySelector('.annotation-entry[data-hotspot="' + id + '"]');
+    if (panelEntry) panelEntry.classList.remove('is-active');
+  }
+
+  // ── Smooth camera fly-to ─────────────────────────────────────────────────
+  function flyTo(targetCamPos, targetLookAt, duration) {
+    // cancel any existing fly animation
+    if (flyAnimation) cancelAnimationFrame(flyAnimation);
+
+    var startPos = camera.position.clone();
+    var startTarget = controls.target.clone();
+    var startTime = performance.now();
+    var dur = (duration || 1.2) * 1000;
+
+    controls.enabled = false;
+
+    function tick(now) {
+      var elapsed = now - startTime;
+      var t = Math.min(elapsed / dur, 1);
+      // easeInOutCubic
+      var ease = t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+      camera.position.lerpVectors(startPos, targetCamPos, ease);
+      controls.target.lerpVectors(startTarget, targetLookAt, ease);
+      controls.update();
+
+      if (t < 1) {
+        flyAnimation = requestAnimationFrame(tick);
+      } else {
+        flyAnimation = null;
+        controls.enabled = true;
+      }
+    }
+
+    flyAnimation = requestAnimationFrame(tick);
+  }
+
+  // ── Load model ───────────────────────────────────────────────────────────
+  if (glbUrl) {
+    var gltfLoader = new GLTFLoader();
+
     if (dracoPath) {
-      const dracoLoader = new DRACOLoader();
+      var dracoLoader = new DRACOLoader();
       dracoLoader.setDecoderPath(dracoPath);
       gltfLoader.setDRACOLoader(dracoLoader);
     }
 
     gltfLoader.load(
       glbUrl,
-      (gltf) => {
-        const model = gltf.scene;
+      function (gltf) {
+        var model = gltf.scene;
 
-        // if there's an explicit texture override, apply it
         if (texUrl) {
-          const tex = new THREE.TextureLoader().load(texUrl);
+          var tex = new THREE.TextureLoader().load(texUrl);
           tex.colorSpace = THREE.SRGBColorSpace;
-          tex.flipY = false; // glTF requires flipped UVs compared to standard WebGL/OBJ
-          const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
-          model.traverse((child) => {
+          tex.flipY = false;
+          var mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
+          model.traverse(function (child) {
             if (child.isMesh) child.material = mat;
           });
         }
 
         prepareModel(model);
       },
-      (xhr) => updateProgress(xhr.loaded, xhr.total),
-      (err) => {
+      function (xhr) { updateProgress(xhr.loaded, xhr.total); },
+      function (err) {
         console.error('glb load error:', err);
         progressText.textContent = 'erreur de chargement';
       }
     );
 
-  // -- obj+mtl fallback path --
   } else if (objUrl) {
-    const manager = new THREE.LoadingManager();
+    var manager = new THREE.LoadingManager();
     manager.onLoad = hideProgress;
-    manager.onError = (url) => {
+    manager.onError = function (url) {
       progressText.textContent = 'erreur de chargement';
       console.error('failed to load:', url);
     };
 
     function loadObj(materials) {
-      const objLoader = new OBJLoader(manager);
+      var objLoader = new OBJLoader(manager);
       if (materials) {
         materials.preload();
         objLoader.setMaterials(materials);
       }
 
-      const basePath = objUrl.substring(0, objUrl.lastIndexOf('/') + 1);
+      var basePath = objUrl.substring(0, objUrl.lastIndexOf('/') + 1);
+      var objFilename = objUrl.substring(objUrl.lastIndexOf('/') + 1);
       objLoader.setPath(basePath);
-      const objFilename = objUrl.substring(objUrl.lastIndexOf('/') + 1);
 
       objLoader.load(
         objFilename,
-        (object) => {
-          // explicit texture always wins over mtl references
+        function (object) {
           if (texUrl) {
-            const tex = new THREE.TextureLoader().load(texUrl);
+            var tex = new THREE.TextureLoader().load(texUrl);
             tex.colorSpace = THREE.SRGBColorSpace;
-            const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
-            object.traverse((child) => {
+            var mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
+            object.traverse(function (child) {
               if (child.isMesh) child.material = mat;
             });
           } else if (!materials) {
-            const fallback = new THREE.MeshBasicMaterial({
-              color: 0x888888,
-              side: THREE.FrontSide
+            var fallback = new THREE.MeshBasicMaterial({
+              color: 0x888888, side: THREE.FrontSide
             });
-            object.traverse((child) => {
+            object.traverse(function (child) {
               if (child.isMesh) child.material = fallback;
             });
           }
-
           prepareModel(object);
         },
-        (xhr) => updateProgress(xhr.loaded, xhr.total),
-        (err) => console.error('obj load error:', err)
+        function (xhr) { updateProgress(xhr.loaded, xhr.total); },
+        function (err) { console.error('obj load error:', err); }
       );
     }
 
     if (mtlUrl && !texUrl) {
-      const mtlLoader = new MTLLoader(manager);
-      const mtlBase = mtlUrl.substring(0, mtlUrl.lastIndexOf('/') + 1);
+      var mtlLoader = new MTLLoader(manager);
+      var mtlBase = mtlUrl.substring(0, mtlUrl.lastIndexOf('/') + 1);
+      var mtlFilename = mtlUrl.substring(mtlUrl.lastIndexOf('/') + 1);
       mtlLoader.setPath(mtlBase);
-      const mtlFilename = mtlUrl.substring(mtlUrl.lastIndexOf('/') + 1);
 
       mtlLoader.load(
         mtlFilename,
-        (materials) => loadObj(materials),
+        function (materials) { loadObj(materials); },
         undefined,
-        (err) => {
+        function (err) {
           console.warn('mtl load failed, falling back to obj-only:', err);
           loadObj(null);
         }
@@ -214,27 +412,75 @@ function initViewer(container) {
     }
   }
 
-  // render loop
+  // ── Adaptive pixel ratio (performance) ───────────────────────────────────
+  var frameCount = 0;
+  var lastFpsCheck = performance.now();
+  var currentPixelRatio = Math.min(window.devicePixelRatio, 2);
+
+  function checkPerformance() {
+    frameCount++;
+    var now = performance.now();
+    var delta = now - lastFpsCheck;
+    if (delta >= 2000) {
+      var fps = (frameCount / delta) * 1000;
+      frameCount = 0;
+      lastFpsCheck = now;
+
+      // drop pixel ratio if FPS is too low
+      if (fps < 25 && currentPixelRatio > 1) {
+        currentPixelRatio = 1;
+        renderer.setPixelRatio(1);
+      }
+    }
+  }
+
+  // ── Render loop ──────────────────────────────────────────────────────────
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
     renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
+    checkPerformance();
   }
   animate();
 
-  // handle container resize
-  const observer = new ResizeObserver(() => {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
+  // ── Handle resize ────────────────────────────────────────────────────────
+  var observer = new ResizeObserver(function () {
+    var w = container.clientWidth;
+    var h = container.clientHeight;
     renderer.setSize(w, h);
+    labelRenderer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   });
   observer.observe(container);
+
+  // ── Click on empty space deactivates ─────────────────────────────────────
+  labelRenderer.domElement.addEventListener('click', function (e) {
+    // only deactivate if click was on the container itself, not a label
+    if (e.target === labelRenderer.domElement || e.target === renderer.domElement) {
+      if (activeHotspotId) {
+        deactivateHotspot(activeHotspotId);
+        activeHotspotId = null;
+      }
+    }
+  });
 }
 
-// auto-init on dom ready
-document.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('viewer-3d');
+// ── Utility ──────────────────────────────────────────────────────────────────
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// ── Auto-init ────────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', function () {
+  var container = document.getElementById('viewer-3d');
   if (container) initViewer(container);
 });

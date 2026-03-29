@@ -156,8 +156,51 @@ tabs:
           compress_textures:
             type: toggle
             label: Activer la compression des textures
-            text: 
+            text:
               - Non
               - Oui (Convertir en JPEG optimisé)
             default: true
             help: "Si activé, les textures lourdes (PNG, JPG) uploadées seront converties en JPEG optimisés pour le web."
+
+  annotations:
+    label: Points d'intérêt
+    icon: pin
+    columns:
+      - width: 1/1
+        fields:
+          annotations_info:
+            type: info
+            text: >
+              Ajoutez des points d'intérêt qui apparaissent sur le modèle 3D.
+              L'**identifiant** doit correspondre au nom de l'Empty placé dans Blender
+              (ex. `hotspot_01`). Exportez le GLB avec « Custom Properties » activé.
+
+          annotations:
+            type: structure
+            label: Annotations
+            columns:
+              hotspot_id:
+                width: 1/5
+                label: ID
+              title:
+                width: 1/4
+                label: Titre
+              description:
+                width: 1/2
+                label: Description
+            fields:
+              hotspot_id:
+                type: text
+                label: Identifiant
+                placeholder: "hotspot_01"
+                required: true
+                help: "Doit correspondre au nom de l'Empty dans Blender."
+              title:
+                type: text
+                label: Titre
+                required: true
+                placeholder: "ex. Voûte principale"
+              description:
+                type: writer
+                label: Description
+                help: "Texte affiché dans le panneau de gauche quand ce point est sélectionné."

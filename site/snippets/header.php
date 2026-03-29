@@ -19,6 +19,7 @@ if ($isMapPage) {
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.16.0/dist/maplibre-gl.css">
   <?php endif ?>
   <?php if ($isProjectPage): ?>
+  <?= css('assets/css/viewer.css') ?>
   <script type="importmap">
   {
     "imports": {
