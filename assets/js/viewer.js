@@ -12,25 +12,25 @@
  */
 
 import * as THREE from 'three';
-import { GLTFLoader }   from 'three/addons/loaders/GLTFLoader.js';
-import { DRACOLoader }  from 'three/addons/loaders/DRACOLoader.js';
-import { OBJLoader }    from 'three/addons/loaders/OBJLoader.js';
-import { MTLLoader }    from 'three/addons/loaders/MTLLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
 // ── Main init ────────────────────────────────────────────────────────────────
 
 function initViewer(container) {
-  const glbUrl    = container.dataset.glb || null;
-  const objUrl    = container.dataset.obj || null;
-  const mtlUrl    = container.dataset.mtl || null;
-  const texUrl    = container.dataset.texture || null;
+  const glbUrl = container.dataset.glb || null;
+  const objUrl = container.dataset.obj || null;
+  const mtlUrl = container.dataset.mtl || null;
+  const texUrl = container.dataset.texture || null;
   const dracoPath = container.dataset.dracoPath || null;
 
   // CMS annotations passed as JSON data attribute
   let cmsAnnotations = [];
-  try { cmsAnnotations = JSON.parse(container.dataset.annotations || '[]'); } catch (_) {}
+  try { cmsAnnotations = JSON.parse(container.dataset.annotations || '[]'); } catch (_) { }
 
   if (!glbUrl && !objUrl) return;
 
@@ -58,7 +58,9 @@ function initViewer(container) {
   );
 
   // ── Controls ─────────────────────────────────────────────────────────────
-  const controls = new OrbitControls(camera, labelRenderer.domElement);
+  // IMPORTANT: attach to the WebGL canvas, not the CSS2D overlay
+  // the overlay has pointer-events:none so it passes events to the canvas
+  const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.screenSpacePanning = true;
@@ -212,6 +214,13 @@ function initViewer(container) {
         e.stopPropagation();
         activateHotspot(hs.id);
       });
+
+      // mobile: touchend fires before click; prevent ghost click and orbit theft
+      el.addEventListener('touchend', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        activateHotspot(hs.id);
+      }, { passive: false });
 
       var labelObj = new CSS2DObject(el);
       labelObj.position.copy(hs.position);
@@ -455,14 +464,23 @@ function initViewer(container) {
   });
   observer.observe(container);
 
-  // ── Click on empty space deactivates ─────────────────────────────────────
-  labelRenderer.domElement.addEventListener('click', function (e) {
-    // only deactivate if click was on the container itself, not a label
-    if (e.target === labelRenderer.domElement || e.target === renderer.domElement) {
-      if (activeHotspotId) {
-        deactivateHotspot(activeHotspotId);
-        activeHotspotId = null;
-      }
+  // ── tap on empty canvas deactivates active hotspot ───────────────────────
+  // use pointerdown/pointerup so we can distinguish a tap from an orbit drag
+  // orbitControls consumes pointermove, but we track displacement ourselves
+  var _pdX = 0, _pdY = 0;
+
+  renderer.domElement.addEventListener('pointerdown', function (e) {
+    _pdX = e.clientX;
+    _pdY = e.clientY;
+  });
+
+  renderer.domElement.addEventListener('pointerup', function (e) {
+    var dx = e.clientX - _pdX;
+    var dy = e.clientY - _pdY;
+    // treat as tap only if the pointer barely moved (< 6 px — not an orbit drag)
+    if (Math.sqrt(dx * dx + dy * dy) < 6 && activeHotspotId) {
+      deactivateHotspot(activeHotspotId);
+      activeHotspotId = null;
     }
   });
 }
