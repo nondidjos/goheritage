@@ -26,6 +26,14 @@ tabs:
       text:
         type: blocks
         label: Contenu détaillé
+        fieldsets:
+          - heading
+          - text
+          - image
+          - gallery
+          - video
+          - quote
+          - hotspot
 
       gallery:
         type: files
@@ -129,39 +137,28 @@ tabs:
     label: Modèle 3D
     icon: box
     columns:
-      - width: 1/2
+      # ── Workflow principal : GLB (Blender) ──────────────────────────────────
+      - width: 1/1
         fields:
-          model_obj:
-            type: files
-            label: Fichier OBJ
-            multiple: false
-            accept:
-              extension: obj
-            help: Modèle photogrammétrique au format Wavefront OBJ.
+          glb_workflow_info:
+            type: info
+            theme: info
+            text: >
+              **Workflow recommandé — Blender → GLB**
 
-          model_texture:
-            type: files
-            label: Texture diffuse
-            multiple: false
-            accept:
-              extension: jpg, jpeg, png
-            help: Texture à appliquer sur le modèle (ex. _diffuse.png).
-
-          model_mtl:
-            type: files
-            label: Fichier matériaux (.mtl)
-            multiple: false
-            accept:
-              extension: mtl
-            help: Optionnel. Matériaux exportés avec le fichier OBJ.
+              Utilisez l'addon Blender *GoHéritage Hotspots* pour placer vos points d'intérêt,
+              puis exportez le fichier via **Fichier → Exporter → glTF 2.0 (.glb/.gltf)**.
+              Déposez le fichier `.glb` ci-dessous. Les points d'intérêt et positions de caméra
+              sont lus automatiquement depuis le fichier.
 
       - width: 1/2
         fields:
-          viewer_url:
-            type: url
-            label: Viewer externe
-            placeholder: "https://…"
-            help: URL d'un viewer tiers (Potree, Sketchfab…). Chargé en iframe si renseigné.
+          model_glb:
+            type: upload-overwrite
+            label: Fichier GLB
+            accept: ".glb"
+            template: model
+            help: Modèle 3D au format glTF binaire, exporté depuis Blender. Remplace le workflow OBJ.
 
           compress_textures:
             type: toggle
@@ -170,7 +167,57 @@ tabs:
               - Désactivée
               - Activée (JPEG optimisé)
             default: true
-            help: Convertit les textures lourdes en JPEG web-ready à l'upload.
+            help: Compresse les textures uploadées en JPEG web-ready (max 8192 px, qualité 80).
+
+      - width: 1/2
+        fields:
+          viewer_url:
+            type: url
+            label: Viewer externe
+            placeholder: "https://…"
+            help: >
+              URL d'un viewer tiers (Potree, Sketchfab…). Si renseigné, charge un iframe
+              à la place du viewer Three.js — le champ GLB est ignoré.
+
+      # ── Workflow alternatif : OBJ (héritage) ────────────────────────────────
+      - width: 1/1
+        fields:
+          obj_workflow_info:
+            type: info
+            theme: warning
+            text: >
+              **Workflow alternatif — OBJ (héritage)**
+
+              Les champs ci-dessous permettent de charger un modèle OBJ sans Blender.
+              Ce format ne supporte pas les points d'intérêt ni les positions de caméra.
+              Préférez l'export GLB dès que possible.
+
+      - width: 1/2
+        fields:
+          model_obj:
+            type: files
+            label: Fichier OBJ
+            multiple: false
+            accept:
+              extension: obj
+            help: Modèle au format Wavefront OBJ. Ignoré si un fichier GLB est présent.
+
+          model_texture:
+            type: upload-overwrite
+            label: Texture diffuse
+            accept: ".jpg,.jpeg,.png"
+            template: image
+            help: Texture à appliquer sur le modèle OBJ.
+
+      - width: 1/2
+        fields:
+          model_mtl:
+            type: files
+            label: Fichier matériaux (.mtl)
+            multiple: false
+            accept:
+              extension: mtl
+            help: Optionnel. Matériaux exportés avec le fichier OBJ.
 
   # ── Tab 4 : Points d'intérêt ──────────────────────────────────────────────
   annotations:

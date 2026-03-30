@@ -2,13 +2,98 @@
 
 /**
  * model-converter plugin
- * automatically converts uploaded .obj files to draco-compressed .glb
- * requires obj2gltf and @gltf-transform/cli (installed via npm)
+ * - converts uploaded .obj files to draco-compressed .glb
+ * - compresses textures via sharp-cli
+ * - provides a custom API route for overwrite-safe file uploads
+ * - registers the `upload-overwrite` panel field type
  */
 
 use Kirby\Cms\App as Kirby;
+use Kirby\Http\Response;
 
 Kirby::plugin('goheritage/model-converter', [
+
+    // ── Panel field ──────────────────────────────────────────────────────────
+    'fields' => [
+        'upload-overwrite' => [
+            'computed' => [
+                'pageId' => function () {
+                    return $this->model()->id();
+                },
+                'files' => function () {
+                    return $this->model()->files()->values(fn($f) => [
+                        'filename' => $f->filename(),
+                        'url'      => $f->url(),
+                        'id'       => $f->id(),
+                    ]);
+                },
+            ],
+        ],
+    ],
+
+    // ── Custom API routes ─────────────────────────────────────────────────────
+    'api' => [
+        'routes' => [
+            [
+                'pattern' => 'goheritage/upload-overwrite',
+                'method'  => 'POST',
+                'action'  => function () {
+                    $kirby   = kirby();
+                    $request = $kirby->request();
+
+                    $pageId   = $request->get('pageId');
+                    $template = $request->get('template', 'default');
+
+                    if (!$pageId) {
+                        return Response::json(['error' => 'pageId required'], 400);
+                    }
+
+                    $page = $kirby->page($pageId);
+                    if (!$page) {
+                        return Response::json(['error' => 'Page not found: ' . $pageId], 404);
+                    }
+
+                    // Grab the uploaded file from $_FILES
+                    $uploaded = $_FILES['file'] ?? null;
+                    if (!$uploaded || $uploaded['error'] !== UPLOAD_ERR_OK) {
+                        $code = $uploaded['error'] ?? -1;
+                        return Response::json(['error' => 'Upload error code: ' . $code], 400);
+                    }
+
+                    $tmpPath  = $uploaded['tmp_name'];
+                    $filename = basename($uploaded['name']);
+
+                    try {
+                        $kirby->impersonate('kirby');
+                        $existing = $page->file($filename);
+
+                        if ($existing) {
+                            // Overwrite — bypasses FileRules::notExistingFile()
+                            $newFile = $existing->replace($tmpPath);
+                        } else {
+                            // First upload
+                            $newFile = $page->createFile([
+                                'source'   => $tmpPath,
+                                'filename' => $filename,
+                                'template' => $template,
+                            ]);
+                        }
+
+                        return Response::json([
+                            'status'   => $existing ? 'replaced' : 'created',
+                            'filename' => $newFile->filename(),
+                            'url'      => $newFile->url(),
+                        ]);
+
+                    } catch (\Throwable $e) {
+                        return Response::json(['error' => $e->getMessage()], 500);
+                    }
+                },
+            ],
+        ],
+    ],
+
+    // ── File hooks ────────────────────────────────────────────────────────────
     'hooks' => [
         // fires after a file has been created (uploaded) in the panel
         'file.create:after' => function ($file) {
@@ -22,7 +107,7 @@ Kirby::plugin('goheritage/model-converter', [
             }
         },
 
-        // fires after a file has been replaced (re-uploaded)
+        // fires after a file has been replaced (re-uploaded via panel default)
         'file.replace:after' => function ($newFile, $oldFile) {
             if ($newFile->extension() === 'obj') {
                 convertObjToGlb($newFile);
@@ -32,34 +117,30 @@ Kirby::plugin('goheritage/model-converter', [
                     compressTexture($newFile);
                 }
             }
-        }
-    ]
+        },
+    ],
 ]);
 
 /**
  * convert an obj file to draco-compressed glb using node cli tools
  */
 function convertObjToGlb($file) {
-    $root = kirby()->root('index');
     $npx = 'npx';
 
-    // paths
-    $objPath = $file->root();
-    $dir = dirname($objPath);
+    $objPath  = $file->root();
+    $dir      = dirname($objPath);
     $basename = pathinfo($objPath, PATHINFO_FILENAME);
-    $tmpGlb = $dir . '/' . $basename . '-tmp.glb';
+    $tmpGlb   = $dir . '/' . $basename . '-tmp.glb';
     $finalGlb = $dir . '/' . $basename . '.glb';
 
-    // step 1: obj → glb (binary gltf with embedded textures)
+    // step 1: obj → glb
     $cmd1 = sprintf(
         '%s obj2gltf -i %s -o %s --binary --unlit 2>&1',
         $npx,
         escapeshellarg($objPath),
         escapeshellarg($tmpGlb)
     );
-
-    $output1 = [];
-    $code1 = 0;
+    $output1 = []; $code1 = 0;
     exec($cmd1, $output1, $code1);
 
     if ($code1 !== 0 || !file_exists($tmpGlb)) {
@@ -67,66 +148,60 @@ function convertObjToGlb($file) {
         return;
     }
 
-    // step 2: apply draco compression
+    // step 2: draco compression
     $cmd2 = sprintf(
         '%s gltf-transform draco %s %s 2>&1',
         $npx,
         escapeshellarg($tmpGlb),
         escapeshellarg($finalGlb)
     );
-
-    $output2 = [];
-    $code2 = 0;
+    $output2 = []; $code2 = 0;
     exec($cmd2, $output2, $code2);
 
-    // clean up the intermediate file
-    if (file_exists($tmpGlb)) {
-        unlink($tmpGlb);
-    }
+    if (file_exists($tmpGlb)) unlink($tmpGlb);
 
     if ($code2 !== 0 || !file_exists($finalGlb)) {
         error_log('[model-converter] gltf-transform draco failed: ' . implode("\n", $output2));
         return;
     }
 
-    // register the new glb file with kirby so it appears in the panel
     try {
         $page = $file->parent();
         if ($page) {
-            $page->createFile([
-                'source'   => $finalGlb,
-                'filename' => $basename . '.glb',
-                'template' => 'model'
-            ]);
+            kirby()->impersonate('kirby');
+            $existing = $page->file($basename . '.glb');
+            if ($existing) {
+                $existing->replace($finalGlb);
+            } else {
+                $page->createFile([
+                    'source'   => $finalGlb,
+                    'filename' => $basename . '.glb',
+                    'template' => 'model',
+                ]);
+            }
         }
     } catch (\Exception $e) {
-        // glb might already be registered — that's fine
         error_log('[model-converter] glb registration: ' . $e->getMessage());
     }
 }
 
 /**
- * convert a large texture to optimized jpeg using sharp-cli
+ * convert a large texture to optimised jpeg using sharp-cli
  */
 function compressTexture($file) {
-    $npx = 'npx';
-    $srcPath = $file->root();
-    $dir = dirname($srcPath);
+    $npx      = 'npx';
+    $srcPath  = $file->root();
+    $dir      = dirname($srcPath);
     $basename = pathinfo($srcPath, PATHINFO_FILENAME);
     $destPath = $dir . '/' . $basename . '-compressed.jpg';
 
-    // use sharp-cli to convert to jpeg and compress
-    // limits max dimension to 8192 if it's absurdly large, 
-    // applies mozjpeg compression at quality 80
     $cmd = sprintf(
         '%s sharp -i %s -o %s format jpeg --quality 80 resize 8192 8192 --fit inside --withoutEnlargement 2>&1',
         $npx,
         escapeshellarg($srcPath),
         escapeshellarg($destPath)
     );
-
-    $output = [];
-    $code = 0;
+    $output = []; $code = 0;
     exec($cmd, $output, $code);
 
     if ($code !== 0 || !file_exists($destPath)) {
@@ -137,12 +212,18 @@ function compressTexture($file) {
     try {
         $page = $file->parent();
         if ($page) {
-            // register the new compressed texture with kirby
-            $page->createFile([
-                'source'   => $destPath,
-                'filename' => $basename . '-compressed.jpg',
-                'template' => 'image'
-            ]);
+            kirby()->impersonate('kirby');
+            $destFilename = $basename . '-compressed.jpg';
+            $existing = $page->file($destFilename);
+            if ($existing) {
+                $existing->replace($destPath);
+            } else {
+                $page->createFile([
+                    'source'   => $destPath,
+                    'filename' => $destFilename,
+                    'template' => 'image',
+                ]);
+            }
         }
     } catch (\Exception $e) {
         error_log('[model-converter] compressed texture registration: ' . $e->getMessage());
