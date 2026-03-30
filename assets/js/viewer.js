@@ -161,6 +161,7 @@ function initViewer(container) {
         title: node.userData.title || id,
         position: pos,
         cameraPos: null,
+        cameraMode: node.userData.camera_mode || 'fly', // "fly" or "orbit"
         labelObj: null,
         el: null,
       };
@@ -193,10 +194,12 @@ function initViewer(container) {
       }
     });
 
-    // merge CMS titles into hotspot data (CMS title takes priority)
+    // merge CMS data into hotspot entries (CMS values take priority)
     hotspots.forEach(function (hs) {
       var cms = cmsAnnotations.find(function (a) { return a.id === hs.id; });
-      if (cms && cms.title) hs.title = cms.title;
+      if (!cms) return;
+      if (cms.title)       hs.title      = cms.title;
+      if (cms.camera_mode) hs.cameraMode = cms.camera_mode;
     });
   }
 
@@ -263,21 +266,25 @@ function initViewer(container) {
       panelEntry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    // fly camera
+    // camera behaviour depends on mode
     var targetPos = hs.position.clone();
-    var cameraTarget;
 
-    if (hs.cameraPos) {
-      // use stored camera position from Blender
-      cameraTarget = hs.cameraPos.clone();
+    if (hs.cameraMode === 'orbit') {
+      // just re-center the orbit target on the hotspot, no camera movement
+      controls.target.copy(targetPos);
+      controls.update();
     } else {
-      // compute: back away from hotspot along direction from model center
-      var dir = targetPos.clone().sub(modelCenter).normalize();
-      if (dir.length() < 0.01) dir.set(0, 0, 1);
-      cameraTarget = targetPos.clone().add(dir.multiplyScalar(modelRadius * 0.6));
+      // "fly" (default): animate camera to stored or computed position
+      var cameraTarget;
+      if (hs.cameraPos) {
+        cameraTarget = hs.cameraPos.clone();
+      } else {
+        var dir = targetPos.clone().sub(modelCenter).normalize();
+        if (dir.length() < 0.01) dir.set(0, 0, 1);
+        cameraTarget = targetPos.clone().add(dir.multiplyScalar(modelRadius * 0.6));
+      }
+      flyTo(cameraTarget, targetPos, 1.2);
     }
-
-    flyTo(cameraTarget, targetPos, 1.2);
   }
 
   function deactivateHotspot(id) {
