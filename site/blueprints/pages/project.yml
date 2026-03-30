@@ -172,8 +172,14 @@ tabs:
             type: info
             text: >
               Ajoutez des points d'intérêt qui apparaissent sur le modèle 3D.
+              Les hotspots sont **détectés automatiquement** lors de l'upload d'un GLB.
+              Cliquez sur le bouton ci-dessous pour relancer la détection manuellement.
               L'**identifiant** doit correspondre au nom de l'Empty placé dans Blender
               (ex. `hotspot_01`). Exportez le GLB avec « Custom Properties » activé.
+
+          hotspot_detect:
+            type: hotspot-detect
+            label: Détection automatique
 
           annotations:
             type: structure
