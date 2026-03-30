@@ -56,9 +56,13 @@ Icon
 *.obj
 *.mtl
 *_diffuse.png
+blender/
 
 # Local Vendor scripts
 assets/js/vendor/
+assets/fonts/*.woff
+assets/fonts/*.woff2
+assets/fonts/*.ttf
 
 # Node.js
 node_modules/
@@ -68,9 +72,7 @@ yarn-error.log*
 
 # Composer dependencies
 vendor/
-!kirby/
-kirby/dependencies/
-kirby/composer.lock
+kirby/
 
 # Environment files
 .env
