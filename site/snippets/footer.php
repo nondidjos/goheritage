@@ -16,10 +16,16 @@ if ($isMapPage) {
     <!-- brand column -->
     <div class="col-3">
       <img src="<?= url('assets/logos/govr.svg') ?>" alt="GOVR" class="h-16 w-auto mb-4 opacity-50">
+      <?php if ($site->footer_tagline()->isNotEmpty()): ?>
+        <p class="font-sans text-sm text-[#9A9894] max-w-sm mb-4 leading-relaxed"><?= $site->footer_tagline()->nl2br() ?></p>
+      <?php endif ?>
+      <?php if ($site->footer_email()->isNotEmpty()): ?>
+        <a href="mailto:<?= $site->footer_email()->esc() ?>" class="font-mono text-xs text-white hover:underline block"><?= $site->footer_email()->esc() ?></a>
+      <?php endif ?>
     </div>
 
     <!-- spacer -->
-    <div class="col-1"></div>
+    <div class="col-2"></div>
 
     <!-- navigation links -->
     <div class="col-1">
@@ -33,41 +39,31 @@ if ($isMapPage) {
       </ul>
     </div>
 
-    <!-- explore links -->
-    <div class="col-1">
-      <h2 class="font-mono text-xs uppercase tracking-wider text-[#6B6965] mb-4">Explorer</h2>
-      <ul class="list-none flex flex-col gap-2">
-        <li><a href="<?= url('map') ?>"
-            class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline">Carte</a>
-        </li>
-        <li><a href="<?= url('blog') ?>"
-            class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline">Blog</a>
-        </li>
-        <li><a href="<?= url('contact') ?>"
-            class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline">Contact</a>
-        </li>
-      </ul>
-    </div>
+
 
     <!-- social links -->
     <div class="col-1">
       <h2 class="font-mono text-xs uppercase tracking-wider text-[#6B6965] mb-4">Suivre</h2>
       <ul class="list-none flex flex-col gap-2">
+      <?php if ($site->social()->isNotEmpty()): ?>
+        <?php foreach ($site->social()->toStructure() as $social): ?>
+          <li><a href="<?= $social->url() ?>" target="_blank" rel="noopener"
+              class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline"><?= $social->platform()->esc() ?></a>
+          </li>
+        <?php endforeach ?>
+      <?php else: ?>
         <li><a href="https://mastodon.social" target="_blank" rel="noopener"
             class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline">Mastodon</a>
         </li>
-        <li><a href="https://instagram.com" target="_blank" rel="noopener"
-            class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline">Instagram</a>
-        </li>
+      <?php endif ?>
       </ul>
     </div>
 
   </div>
 
-  <!-- legal & copyright at absolute bottom -->
+  <!-- legal at absolute bottom -->
   <div class="grid-7 pt-10 opacity-40">
-    <div class="col-7 flex items-center justify-between">
-      <p class="font-mono text-[10px] uppercase tracking-widest">&copy; <?= date('Y') ?> GoHéritage</p>
+    <div class="col-7 flex items-center justify-start">
       <div class="flex gap-8">
         <a href="<?= url('contact') ?>"
           class="font-mono text-[10px] uppercase tracking-widest no-underline hover:text-white hover:no-underline">Mentions

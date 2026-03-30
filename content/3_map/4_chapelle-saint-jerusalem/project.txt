@@ -10,11 +10,11 @@ Text:
 
 ----
 
-Gallery: []
+Gallery: - 'file://xs9cuwe7txkyj7bo'
 
 ----
 
-Additional-images: []
+Additional-images: - 'file://v3nwobsdnh1w6esr'
 
 ----
 

@@ -1,7 +1,10 @@
 <?php
 $allArticles = $page->children()->listed()->sortBy('date', 'desc');
 
-$featured = $allArticles->filterBy('featured', 'true')->first();
+$featured = $site->featured_article()->toPage();
+if (!$featured || !$featured->isListed()) {
+    $featured = $allArticles->filterBy('featured', 'true')->first();
+}
 $flagship = $featured ?? $allArticles->first();
 $remaining = $allArticles->not($flagship);
 $recent   = $remaining->limit(4);
@@ -137,7 +140,7 @@ $allTags = $allArticles->pluck('tags', ',', true);
                 <?= esc($tag) ?>
               </button>
             <?php endforeach ?>
-            <button id="blog-clear-tags" class="tag tag--clear hidden">× Effacer tout</button>
+            <button id="blog-clear-tags" class="tag tag--clear hidden!">× Effacer tout</button>
           </div>
         </div>
 

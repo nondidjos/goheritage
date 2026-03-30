@@ -1,6 +1,6 @@
 title: Article
 num: date
-icon: 📖
+icon: document
 
 status:
   draft:
@@ -39,12 +39,23 @@ columns:
               - Oui
             default: false
           author:
-            type: users
+            type: tags
             label: Auteur
+            max: 1
+            options: query
+            query: kirby.users
+            text: "{{ user.name }}"
+            value: "{{ user.name }}"
+            help: "Sélectionnez un utilisateur du CMS ou tapez un nouveau nom."
           tags:
             type: tags
             label: Tags
+            options: query
+            query: site.index.pluck("tags", ",", true)
+            help: "Sélectionnez un tag existant ou tapez-en un nouveau."
       files:
         type: files
         label: Fichiers
+        layout: cards
+        size: medium
         template: blocks/image

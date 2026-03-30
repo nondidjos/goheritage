@@ -18,7 +18,12 @@ if ($isMapPage) {
   <?php if ($isMapPage): ?>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.16.0/dist/maplibre-gl.css">
   <?php endif ?>
-  <?php if ($isProjectPage): ?>
+  <?php
+  // Only load the Three.js viewer when there is no external viewer URL set.
+  // If viewer_url is filled in, the project page renders an iframe instead —
+  // loading Three.js would be wasteful and serves no purpose.
+  $needsThreeJs = $isProjectPage && $page->viewer_url()->isEmpty();
+  if ($needsThreeJs): ?>
   <?= css('assets/css/viewer.css') ?>
   <script type="importmap">
   {

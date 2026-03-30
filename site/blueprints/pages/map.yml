@@ -4,11 +4,23 @@ icon: map
 options:
   changeStatus: false
 
-sections:
-  projects:
-    type: pages
-    label: Projets patrimoniaux
-    template: project
-    status: listed
-    sortBy: title asc
-    create: project
+columns:
+  - width: 1/3
+    sections:
+      drafts:
+        type: pages
+        label: Brouillons
+        template: project
+        status: draft
+        create: project
+
+  - width: 2/3
+    sections:
+      listed:
+        type: pages
+        label: Projets patrimoniaux
+        template: project
+        status: listed
+        sortBy: title asc
+        layout: cards
+        create: project

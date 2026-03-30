@@ -1,1 +1,28 @@
 Title: GoHéritage
+
+----
+
+Featured-project: - 'page://chapel-saint-jerusalem-001'
+
+----
+
+Featured-article: - 'page://r67stD5AUZwqCIlL'
+
+----
+
+Footer-tagline: Découvrez notre patrimoine numérisé en 3D.
+
+----
+
+Footer-email: 
+
+----
+
+Social:
+
+-
+  platform: ''
+  url: ''
+-
+  platform: ''
+  url: ''

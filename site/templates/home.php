@@ -34,6 +34,45 @@ snippet('header');
 
 </section>
 
+<?php if ($featured_project = $site->featured_project()->toPage()): ?>
+<section class="py-16 bg-surface -mx-4 px-4 md:px-12 mb-20 rounded-[4px] mt-10">
+  <div class="flex flex-col md:flex-row gap-10 lg:gap-16 items-center">
+    <!-- Featured Project Image -->
+    <div class="w-full md:w-3/5">
+      <a href="<?= $featured_project->url() ?>" class="block rounded-[4px] overflow-hidden aspect-[16/9] group">
+        <?php if ($cover = $featured_project->cover()->toFile()): ?>
+          <img src="<?= $cover->crop(1200, 675)->url() ?>" alt="<?= $cover->alt()->esc() ?>" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+        <?php else: ?>
+          <div class="w-full h-full bg-ink/10 flex items-center justify-center">
+             <span class="text-faint">Pas d'image</span>
+          </div>
+        <?php endif ?>
+      </a>
+    </div>
+    <!-- Featured Project Text -->
+    <div class="w-full md:w-2/5 flex flex-col justify-center">
+      <p class="font-mono text-xs uppercase tracking-wider text-accent mb-4">Projet à la une</p>
+      <h3 class="font-thyssen text-4xl lg:text-5xl text-ink leading-snug mb-4">
+        <a href="<?= $featured_project->url() ?>" class="hover:underline"><?= $featured_project->title()->esc() ?></a>
+      </h3>
+      <?php if ($featured_project->location()->isNotEmpty()): ?>
+        <p class="font-mono text-xs uppercase text-faint mb-5 flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <?= $featured_project->location()->esc() ?>
+        </p>
+      <?php endif ?>
+      <p class="font-sans text-base text-mid leading-relaxed mb-8">
+        <?= $featured_project->description()->isNotEmpty() ? $featured_project->description()->clean() : $featured_project->text()->toBlocks()->excerpt(150) ?>
+      </p>
+      <a href="<?= $featured_project->url() ?>" class="btn self-start">Découvrir le projet</a>
+    </div>
+  </div>
+</section>
+<?php endif ?>
+
 <section class="py-20">
 
   <div class="col-4">
