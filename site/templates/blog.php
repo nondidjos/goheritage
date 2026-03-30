@@ -58,7 +58,7 @@ $allTags = $allArticles->pluck('tags', ',', true);
               $excerpt = $flagship->subheading()->isNotEmpty()
                 ? $flagship->subheading()->value()
                 : $flagship->text()->toBlocks()->excerpt(300);
-              echo esc($excerpt ?: 'Découvrez notre dernier article sur le patrimoine numérisé, la photogrammétrie et la modélisation 3D au service de la préservation culturelle. Nous explorons les nouvelles méthodes de pointe employées pour archiver nos sites historiques majeurs.');
+              echo esc($excerpt ?: 'Contenu détaillé prochainement disponible.');
             ?>
           </p>
         </div>
@@ -88,7 +88,7 @@ $allTags = $allArticles->pluck('tags', ',', true);
                   $excerpt = $article->subheading()->isNotEmpty()
                     ? $article->subheading()->value()
                     : $article->text()->toBlocks()->excerpt(300);
-                  echo esc($excerpt ?: 'Un article sur la numérisation du patrimoine culturel, la préservation par la modélisation 3D et l\'accessibilité des collections pour le grand public. Ces avancées ouvrent des opportunités inédites pour les chercheurs et le grand public à travers le monde.');
+                  echo esc($excerpt ?: 'Contenu détaillé prochainement disponible.');
                 ?>
               </p>
             </article>
@@ -180,7 +180,7 @@ $allTags = $allArticles->pluck('tags', ',', true);
                   $excerpt = $item->subheading()->isNotEmpty()
                     ? $item->subheading()->value()
                     : $item->text()->toBlocks()->excerpt(450);
-                  echo esc($excerpt ?: 'Un article sur la numérisation du patrimoine culturel, la préservation par la modélisation 3D et l\'accessibilité des collections pour le grand public. Ces avancées ouvrent des opportunités inédites pour les chercheurs et le grand public à travers le monde.');
+                  echo esc($excerpt ?: 'Contenu détaillé prochainement disponible.');
                 ?>
               </p>
               <div class="mt-5 flex items-center justify-between">

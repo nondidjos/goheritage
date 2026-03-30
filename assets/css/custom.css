@@ -123,8 +123,9 @@
 }
 
 .btn:hover {
-    background-color: var(--color-surface);
-    border-color: var(--color-mid);
+    background-color: var(--color-border);
+    border-color: var(--color-border);
+    color: var(--color-ink);
     text-decoration: none;
 }
 
@@ -585,4 +586,47 @@ model-viewer .update-bar {
     border-radius: 4px;
     float: left;
     transition: width 0.3s;
+}
+
+/* ── Hotspot block button ──────────────────────────────── */
+.hotspot-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.3em 0.8em 0.3em 0.6em;
+    font-size: 0.875em;
+    font-family: inherit;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--color-ink, #1a1a1a);
+    background: transparent;
+    border: 1.5px solid currentColor;
+    border-radius: 2em;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    vertical-align: middle;
+}
+
+.hotspot-link svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+}
+
+.hotspot-link:hover,
+.hotspot-link:focus-visible {
+    background: var(--color-ink, #1a1a1a);
+    color: #fff;
+    border-color: var(--color-ink, #1a1a1a);
+    outline: none;
+}
+
+.hotspot-link:hover svg,
+.hotspot-link:focus-visible svg {
+    opacity: 1;
+}
+
+.hotspot-link:active {
+    transform: scale(0.97);
 }

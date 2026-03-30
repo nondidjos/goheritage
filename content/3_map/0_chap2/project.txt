@@ -18,7 +18,7 @@ Additional-images: []
 
 ----
 
-Cover: []
+Cover: - 'file://jewjmv4wfouok7cj'
 
 ----
 

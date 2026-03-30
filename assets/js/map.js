@@ -65,7 +65,7 @@
                 '<p class="popup-location">' + escHtml(site.location) + '</p>' +
                 '<p class="popup-title">' + escHtml(site.title) + '</p>' +
             '</div>' +
-            '<a class="popup-link" href="' + escHtml(site.url) + '">Voir le modèle →</a>'
+            '<a class="btn popup-link" href="' + escHtml(site.url) + '">Voir le modèle →</a>'
         );
 
         // close popup when its own close button is clicked — also deactivate

@@ -38,10 +38,14 @@ snippet('header');
           data-lat="<?= $project->lat()->value() ?>" data-lng="<?= $project->lng()->value() ?>"
           data-tags="<?= htmlspecialchars(json_encode(array_values(array_filter(array_map('trim', $project->tags()->split(','))))), ENT_QUOTES, 'UTF-8') ?>">
           <div class="map-card__image">
-            <?php if ($thumb = $project->cover()): ?>
+            <?php if ($thumb = $project->cover()->toFile()): ?>
               <img src="<?= $thumb->crop(800, 350)->url() ?>" alt="<?= $thumb->alt()->html() ?>" loading="lazy">
             <?php else: ?>
-              <div class="map-card__no-image">🏛</div>
+              <div class="map-card__no-image">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-landmark">
+                  <line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/>
+                </svg>
+              </div>
             <?php endif ?>
           </div>
           <div class="map-card__body">
@@ -58,9 +62,9 @@ snippet('header');
               <p class="map-card__desc font-serif"><?= $project->description()->html() ?></p>
             <?php endif ?>
           </div>
-          <div class="map-card__actions">
-            <button class="map-card__btn map-card__btn--center" data-action="center">
-              <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+          <div class="map-card__actions flex gap-3 mt-4">
+            <button class="btn px-4! py-3! bg-transparent border-border hover:bg-border justify-center" data-action="center" title="Centrer" aria-label="Centrer">
+              <svg width="14" height="14" viewBox="0 0 11 11" fill="none">
                 <circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" stroke-width="1.1"/>
                 <circle cx="5.5" cy="5.5" r="1.25" fill="currentColor"/>
                 <line x1="5.5" y1="0" x2="5.5" y2="2" stroke="currentColor" stroke-width="1.1"/>
@@ -68,9 +72,8 @@ snippet('header');
                 <line x1="0" y1="5.5" x2="2" y2="5.5" stroke="currentColor" stroke-width="1.1"/>
                 <line x1="9" y1="5.5" x2="11" y2="5.5" stroke="currentColor" stroke-width="1.1"/>
               </svg>
-              Centrer
             </button>
-            <a class="map-card__btn map-card__btn--visit" href="<?= $project->url() ?>">
+            <a class="btn flex-1 justify-center bg-ink border-ink text-white hover:bg-ink hover:text-white" href="<?= $project->url() ?>">
               Voir le modèle →
             </a>
           </div>
