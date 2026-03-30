@@ -45,8 +45,59 @@ return [
             return Data::read($kirby->root('blueprints') . '/site.yml');
         }
     ],
+    'panel' => [
+        'menu' => [
+            'site' => [
+                'icon' => 'home',
+                'label' => 'Site',
+                'link' => 'site',
+                'current' => function () {
+                    $path = \kirby()->request()->path()->toString();
+                    $isOtherPage = str_contains($path, 'pages') && !str_contains($path, 'pages/map') && !str_contains($path, 'pages/blog');
+                    return str_contains($path, 'site') || $isOtherPage;
+                }
+            ],
+            'projects' => [
+                'icon'  => 'box',
+                'label' => 'Projets',
+                'link'  => 'pages/map',
+                'current' => function () {
+                    return str_contains(\kirby()->request()->path()->toString(), 'pages/map');
+                }
+            ],
+            'blog' => [
+                'icon'  => 'book',
+                'label' => 'Articles',
+                'link'  => 'pages/blog',
+                'current' => function () {
+                    return str_contains(\kirby()->request()->path()->toString(), 'pages/blog');
+                }
+            ],
+            '-',
+            'users',
+            'system'
+        ]
+    ],
     'maptiler.key' => 'ooEH2b8Xfch0mEM4zarL',
     'hooks' => [
+        // Allow re-uploading a file with the same name (overwrite).
+        // Kirby blocks duplicate filenames by default; this hook deletes the
+        // existing file first so the new upload proceeds cleanly.
+        'file.create:before' => function ($file, $upload) {
+            $parent = $file->parent();
+            if (!$parent) return;
+            $existing = $parent->file($file->filename());
+            if ($existing) {
+                try {
+                    kirby()->impersonate('kirby');
+                    $existing->delete();
+                } catch (\Throwable $e) {
+                    // log but don't block the upload
+                    error_log('[goheritage] file overwrite cleanup failed: ' . $e->getMessage());
+                }
+            }
+        },
+
         'page.create:after' => function ($page) {
             $user = $this->user();
             // Automatically assign the current user as author for new blog

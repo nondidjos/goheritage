@@ -1,0 +1,93 @@
+Title: chap2
+
+----
+
+Description: 
+
+----
+
+Text: 
+
+----
+
+Gallery: []
+
+----
+
+Additional-images: []
+
+----
+
+Cover: []
+
+----
+
+Location: 
+
+----
+
+Construction-date: 
+
+----
+
+Architect: 
+
+----
+
+Style: 
+
+----
+
+Dimensions: 
+
+----
+
+Protection-status: 
+
+----
+
+Condition: 
+
+----
+
+Lat: 
+
+----
+
+Lng: 
+
+----
+
+Date: 2026-03-31
+
+----
+
+Tags: 
+
+----
+
+Model-obj: []
+
+----
+
+Model-texture: []
+
+----
+
+Model-mtl: []
+
+----
+
+Viewer-url: 
+
+----
+
+Compress-textures: true
+
+----
+
+Annotations: []
+
+----
+
+Uuid: vn9mkte7gve32myk
