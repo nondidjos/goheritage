@@ -30,6 +30,7 @@ if ($page->annotations()->isNotEmpty()) {
             'id'          => $ann->hotspot_id()->value(),
             'title'       => $ann->title()->value(),
             'description' => $ann->description()->value(),
+            'camera_mode' => $ann->camera_mode()->or('fly')->value(),
         ];
     }
 }
