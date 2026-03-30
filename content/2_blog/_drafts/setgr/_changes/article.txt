@@ -1,0 +1,33 @@
+Title: setgr
+
+----
+
+Text: 
+
+----
+
+Cover: []
+
+----
+
+Date: 2026-01-15 16:30:00
+
+----
+
+Featured: false
+
+----
+
+Author: - fgLMm6MM
+
+----
+
+Tags: 
+
+----
+
+Uuid: e8cpklgerfopf5uk
+
+----
+
+Lock: fgLMm6MM

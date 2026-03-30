@@ -1,5 +1,5 @@
 title: Projet Patrimonial
-icon: 🏛️
+icon: box
 
 num: 0
 
@@ -31,7 +31,7 @@ tabs:
         type: files
         label: Galerie
         layout: cards
-        size: small
+        size: medium
         help: Images affichées dans la grille de droite de la page projet.
         uploads: image
         query: page.images.template('image')
@@ -40,7 +40,7 @@ tabs:
         type: files
         label: Images supplémentaires
         layout: cards
-        size: small
+        size: medium
         help: Images complémentaires affichées sous la fiche technique.
         uploads: image
         query: page.images.template('image')
@@ -120,7 +120,9 @@ tabs:
           tags:
             type: tags
             label: Tags
-            help: "ex. architecture, abbaye, gothique"
+            options: query
+            query: site.index.pluck("tags", ",", true)
+            help: "Commencez à taper pour réutiliser un tag existant ou appuyez sur Entrée pour en créer un nouveau."
 
   # ── Tab 3 : Modèle 3D ─────────────────────────────────────────────────────
   viewer:
