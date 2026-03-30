@@ -8,15 +8,9 @@ sections:
   content:
     type: fields
     fields:
-      headline:
-        type: text
-        label: Page Headline
-      intro:
-        type: textarea
-        label: Intro Text
       email:
         type: email
-        label: Contact Email Address
+        label: Adresse email de contact
       address:
         type: textarea
-        label: Address
+        label: Adresse postale

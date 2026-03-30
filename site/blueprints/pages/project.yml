@@ -1,167 +1,176 @@
-title: Heritage Project
+title: Projet Patrimonial
 icon: 🏛️
 
 num: 0
 
 status:
   draft:
-    label: Draft
-    text: Not visible on the map yet.
+    label: Brouillon
+    text: Pas encore visible sur la carte.
   listed:
-    label: Published
-    text: Visible on the map.
+    label: Publié
+    text: Visible sur la carte et le site.
 
 tabs:
+  # ── Tab 1 : Contenu ────────────────────────────────────────────────────────
   content:
-    label: Contenu & Méta
+    label: Contenu
     icon: text
+    fields:
+      description:
+        type: textarea
+        label: Description courte
+        help: Résumé affiché sous le titre et sur les cartes du site.
+        size: small
+
+      text:
+        type: blocks
+        label: Contenu détaillé
+
+      gallery:
+        type: files
+        label: Galerie
+        layout: cards
+        size: small
+        help: Images affichées dans la grille de droite de la page projet.
+        uploads: image
+        query: page.images.template('image')
+
+      additional_images:
+        type: files
+        label: Images supplémentaires
+        layout: cards
+        size: small
+        help: Images complémentaires affichées sous la fiche technique.
+        uploads: image
+        query: page.images.template('image')
+
+  # ── Tab 2 : Fiche technique ────────────────────────────────────────────────
+  info:
+    label: Fiche technique
+    icon: list
     columns:
-      - width: 2/3
+      - width: 1/2
         fields:
-          description:
-            type: textarea
-            label: Courte description
-            help: Un résumé affiché sous le titre et sur les cartes.
-            size: small
+          cover: fields/cover
 
-          text:
-            type: blocks
-            label: Contenu détaillé
+          location:
+            type: text
+            label: Lieu
+            placeholder: "ex. Bruxelles, Belgique"
 
-          gallery:
-            type: files
-            label: Galerie d'images (droite)
-            layout: cards
-            size: small
-            help: Images affichées dans la grille de droite de la page.
-            uploads: image
-            query: page.images.template('image')
+          construction_date:
+            type: text
+            label: Date de construction
+            placeholder: "ex. XVe siècle, 1889"
 
-          additional_images:
-            type: files
-            label: Images supplémentaires
-            layout: cards
-            size: small
-            help: Images complémentaires affichées sous la fiche technique (lightbox individuelle).
-            uploads: image
-            query: page.images.template('image')
+          architect:
+            type: text
+            label: Architecte / Créateur
+            placeholder: "ex. Victor Horta"
 
-      - width: 1/3
-        sections:
-          meta:
-            type: fields
-            fields:
-              cover: fields/cover
-              
-              location:
-                type: text
-                label: Lieu
-                placeholder: "ex. Bruxelles, Belgique"
-              
-              construction_date:
-                type: text
-                label: Date de construction
-                placeholder: "ex. 15ème siècle, 1889"
-              
-              architect:
-                type: text
-                label: Architecte / Créateur
-                placeholder: "ex. Victor Horta"
-              
-              style:
-                type: text
-                label: Style architectural
-                placeholder: "ex. Article Nouveau, Gothique"
-              
-              dimensions:
-                type: text
-                label: Dimensions (L x l x H)
-                placeholder: "ex. 40x20x15m"
+          style:
+            type: text
+            label: Style architectural
+            placeholder: "ex. Art Nouveau, Gothique"
 
-              protection_status:
-                type: select
-                label: Statut de protection
-                options:
-                  - Classé Monument Historique
-                  - Inscrit au patrimoine mondial de l'UNESCO
-                  - Inventaire Régional
-                  - Non protégé
-              
-              condition:
-                type: select
-                label: État de conservation
-                options:
-                  - Excellent
-                  - Bon
-                  - En péril
-                  - Ruine
-                  - Disparu
-              
-              lat:
-                type: number
-                label: Latitude
-                step: 0.000001
-              
-              lng:
-                type: number
-                label: Longitude
-                step: 0.000001
-              
-              date:
-                type: date
-                label: Date du Scan/Mise en ligne
-                default: now
-              
-              tags:
-                type: tags
-                label: Tags (ex. architecture, abbaye)
+          dimensions:
+            type: text
+            label: Dimensions (L × l × H)
+            placeholder: "ex. 40 × 20 × 15 m"
 
+      - width: 1/2
+        fields:
+          protection_status:
+            type: select
+            label: Statut de protection
+            options:
+              classé: Classé Monument Historique
+              unesco: Inscrit au patrimoine mondial de l'UNESCO
+              regional: Inventaire Régional
+              none: Non protégé
+
+          condition:
+            type: select
+            label: État de conservation
+            options:
+              excellent: Excellent
+              bon: Bon
+              peril: En péril
+              ruine: Ruine
+              disparu: Disparu
+
+          lat:
+            type: number
+            label: Latitude
+            step: 0.000001
+            placeholder: "ex. 50.8503"
+
+          lng:
+            type: number
+            label: Longitude
+            step: 0.000001
+            placeholder: "ex. 4.3517"
+
+          date:
+            type: date
+            label: Date du scan
+            default: now
+
+          tags:
+            type: tags
+            label: Tags
+            help: "ex. architecture, abbaye, gothique"
+
+  # ── Tab 3 : Modèle 3D ─────────────────────────────────────────────────────
   viewer:
-    label: Modèle 3D
     label: Modèle 3D
     icon: box
     columns:
-      - width: 1/1
+      - width: 1/2
         fields:
           model_obj:
             type: files
-            label: Fichier OBJ (.obj)
+            label: Fichier OBJ
             multiple: false
             accept:
               extension: obj
-            help: "Le modèle photogrammétrique. Uploadez le fichier .obj ici."
+            help: Modèle photogrammétrique au format Wavefront OBJ.
 
           model_texture:
             type: files
-            label: Texture diffuse (.jpg ou .png)
+            label: Texture diffuse
             multiple: false
             accept:
               extension: jpg, jpeg, png
-            help: "La texture à appliquer sur le modèle (ex. _diffuse.png). Doit être dans le même dossier que le .obj."
+            help: Texture à appliquer sur le modèle (ex. _diffuse.png).
 
           model_mtl:
             type: files
-            label: Fichier matériaux (.mtl) — optionnel
+            label: Fichier matériaux (.mtl)
             multiple: false
             accept:
               extension: mtl
-            help: "Si votre export OBJ inclut un .mtl, uploadez-le ici."
+            help: Optionnel. Matériaux exportés avec le fichier OBJ.
 
+      - width: 1/2
+        fields:
           viewer_url:
             type: url
-            label: Ou, URL d'un viewer externe (Potree, Sketchfab…)
-            placeholder: "https://votre-serveur.com/potree/viewer.html"
-            help: "Alternative si le modèle est hébergé ailleurs. Ce lien sera chargé dans une iframe."
+            label: Viewer externe
+            placeholder: "https://…"
+            help: URL d'un viewer tiers (Potree, Sketchfab…). Chargé en iframe si renseigné.
 
           compress_textures:
             type: toggle
-            label: Activer la compression des textures
+            label: Compression des textures
             text:
-              - Non
-              - Oui (Convertir en JPEG optimisé)
+              - Désactivée
+              - Activée (JPEG optimisé)
             default: true
-            help: "Si activé, les textures lourdes (PNG, JPG) uploadées seront converties en JPEG optimisés pour le web."
+            help: Convertit les textures lourdes en JPEG web-ready à l'upload.
 
+  # ── Tab 4 : Points d'intérêt ──────────────────────────────────────────────
   annotations:
     label: Points d'intérêt
     icon: pin
@@ -171,11 +180,10 @@ tabs:
           annotations_info:
             type: info
             text: >
-              Ajoutez des points d'intérêt qui apparaissent sur le modèle 3D.
-              Les hotspots sont **détectés automatiquement** lors de l'upload d'un GLB.
-              Cliquez sur le bouton ci-dessous pour relancer la détection manuellement.
-              L'**identifiant** doit correspondre au nom de l'Empty placé dans Blender
-              (ex. `hotspot_01`). Exportez le GLB avec « Custom Properties » activé.
+              Les points d'intérêt apparaissent sous forme de labels cliquables
+              sur le modèle 3D. Ils sont **détectés automatiquement** à l'upload
+              d'un fichier GLB. L'identifiant doit correspondre au nom de l'Empty
+              placé dans Blender (ex. `hotspot_01`).
 
           hotspot_detect:
             type: hotspot-detect
@@ -186,13 +194,16 @@ tabs:
             label: Annotations
             columns:
               hotspot_id:
-                width: 1/5
+                width: 1/6
                 label: ID
               title:
                 width: 1/4
                 label: Titre
+              camera_mode:
+                width: 1/6
+                label: Mode
               description:
-                width: 1/2
+                width: 5/12
                 label: Description
             fields:
               hotspot_id:
@@ -200,13 +211,21 @@ tabs:
                 label: Identifiant
                 placeholder: "hotspot_01"
                 required: true
-                help: "Doit correspondre au nom de l'Empty dans Blender."
+                help: Doit correspondre au nom de l'Empty dans Blender.
               title:
                 type: text
                 label: Titre
                 required: true
                 placeholder: "ex. Voûte principale"
+              camera_mode:
+                type: select
+                label: Comportement au clic
+                default: fly
+                options:
+                  fly: Voler vers le point
+                  orbit: Orbiter autour du point
+                help: "Voler : anime la caméra vers la position enregistrée. Orbiter : recentre l'orbite sans déplacer la caméra."
               description:
                 type: writer
                 label: Description
-                help: "Texte affiché dans le panneau de gauche quand ce point est sélectionné."
+                help: Texte affiché dans le panneau latéral quand ce point est sélectionné.

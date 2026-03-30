@@ -1,11 +1,9 @@
-# The `site.yml` blueprint defines the Panel dashboard.
-
 columns:
   - width: 1/2
     sections:
       pages:
         type: pages
-        label: Main Pages
+        label: Pages principales
         templates:
           - home
           - map
@@ -18,13 +16,14 @@ columns:
     sections:
       blog:
         extends: sections/blog
+        label: Derniers articles
       footer_settings:
         type: fields
         fields:
           footer_tagline:
             type: textarea
-            label: Footer Tagline
-            help: "Shown below the logo in the footer"
+            label: Accroche du pied de page
+            help: Texte affiché sous le logo dans le footer.
           footer_email:
             type: email
-            label: Footer Contact Email
+            label: Email de contact (footer)
