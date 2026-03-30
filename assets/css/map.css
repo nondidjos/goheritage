@@ -298,7 +298,6 @@ body:has(#map-main) footer {
 
 /* separator between cards */
 .map-card + .map-card {
-    border-top: 1px solid var(--color-border);
     margin-top: 0.25rem;
     padding-top: 0.375rem;
 }

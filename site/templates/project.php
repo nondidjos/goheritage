@@ -2,8 +2,9 @@
 snippet('header');
 
 // auto-detect 3d model files from this page's directory
-// glb (draco-compressed) is preferred, obj is the fallback
-$glbFile  = $page->files()->filterBy('extension', 'glb')->first();
+// explicit field selection takes priority; glb is always preferred over obj
+$glbFile  = $page->model_glb()->toFile()
+    ?? $page->files()->filterBy('extension', 'glb')->first();
 $objFile  = $page->model_obj()->toFile()
     ?? $page->files()->filterBy('extension', 'obj')->first();
 $texFile  = $page->model_texture()->toFile()
@@ -43,7 +44,7 @@ $texUrl = $texFile ? $texFile->url() : null;
 $hasIframe  = ($viewerUrl !== null);
 $hasModel   = ($glbUrl !== null || $objUrl !== null);
 
-$posterUrl = ($cover = $page->cover())
+$posterUrl = ($cover = $page->cover()->toFile())
     ? $cover->crop(1600, 700)->url()
     : url('assets/hero-images/Seattle-Art-Museum-good-scan-60070.jpg');
 
@@ -75,7 +76,7 @@ $gallery = $page->images()
             <?php if ($page->description()->isNotEmpty()): ?>
                 <p><?= $page->description()->esc() ?></p>
             <?php else: ?>
-                <p>Ce site témoigne d'une architecture exceptionnelle et d'une histoire qui s'étend sur plusieurs siècles. Sa préservation numérique par GoHéritage permet d'en explorer chaque recoin et d'assurer la transmission de ce patrimoine aux générations futures.</p>
+                <p class="italic text-faint">Description bientôt disponible.</p>
             <?php endif ?>
         </div>
 
@@ -106,8 +107,7 @@ $gallery = $page->images()
             </div>
         <?php else: ?>
             <div class="font-serif text-base text-ink/70 leading-relaxed flex flex-col gap-4">
-                <p>Ce patrimoine architectural, fruit d'un savoir-faire ancestral, abrite une richesse ornementale et structurelle rarement égalée dans la région. La documentation photogrammétrique réalisée par nos équipes a permis de capturer près de trois mille clichés haute résolution, dont la restitution numérique restitue avec une précision millimétrique chaque moulure, chaque joint de pierre et chaque degré d'inclinaison des toitures.</p>
-                <p>L'accès au modèle 3D interactif offre aux chercheurs, aux étudiants en architecture et au grand public une fenêtre inédite sur l'édifice, indépendamment de toute contrainte géographique ou horaire. Chaque visite virtuelle peut se prolonger par l'exploration de la galerie photographique et de la fiche technique disponibles dans ce panneau.</p>
+                <p class="italic text-faint">Contenu détaillé prochainement disponible.</p>
             </div>
         <?php endif ?>
 

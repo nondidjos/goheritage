@@ -137,6 +137,7 @@ function initViewer(container) {
     extractHotspots(object);
     buildLabels();
     wireAnnotationPanel();
+    wireHotspotBlocks();
   }
 
   // ── Extract hotspots from Blender Empties ────────────────────────────────
@@ -244,6 +245,22 @@ function initViewer(container) {
       entry.addEventListener('click', function () {
         activateHotspot(entry.dataset.hotspot);
       });
+    });
+  }
+
+  // ── Listen for goheritage:activate events from hotspot blocks in body text ─
+  function wireHotspotBlocks() {
+    container.addEventListener('goheritage:activate', function (e) {
+      if (e.detail && e.detail.id) {
+        activateHotspot(e.detail.id);
+      }
+    });
+    // Also listen on the document so hotspot blocks outside the viewer
+    // container (e.g. in the text column) can still reach us.
+    document.addEventListener('goheritage:activate', function (e) {
+      if (e.detail && e.detail.id) {
+        activateHotspot(e.detail.id);
+      }
     });
   }
 
