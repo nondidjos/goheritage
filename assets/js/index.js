@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // show/hide the "× Effacer tout" tag button
             if (clearBtn) {
-                clearBtn.classList.toggle('hidden', !hasTags);
+                clearBtn.classList.toggle('hidden!', !hasTags);
             }
 
             // no-results message
