@@ -1,4 +1,4 @@
-title: Home
+title: Accueil
 icon: 🏠
 
 options:
@@ -9,77 +9,77 @@ tabs:
     label: Hero
     fields:
       heroHeading:
-        label: Titre Principal
+        label: Titre principal
         type: text
       heroImage:
-        label: Image Hero
+        label: Image hero
         type: files
         max: 1
 
   compare:
-    label: Jumeau Numérique
+    label: Jumeau numérique
     fields:
       compareHeading:
-        label: Titre Jumeau Numérique
+        label: Titre de la section
         type: text
       compareText:
-        label: Texte
+        label: Texte d'accompagnement
         type: textarea
       compareImageBefore:
-        label: Image Avant (Photo)
+        label: Image Avant (photo)
         type: files
         max: 1
       compareImageAfter:
-        label: Image Après (Modèle 3D)
+        label: Image Après (modèle 3D)
         type: files
         max: 1
 
   procede:
-    label: Procédé GOVR
+    label: Procédé
     fields:
       procedeHeading:
-        label: Titre Section
+        label: Titre de la section
         type: text
 
       step1Title:
-        label: Titre Étape 1
+        label: "Étape 1 — Titre"
         type: text
         width: 1/2
       step1Text:
-        label: Texte Étape 1
+        label: "Étape 1 — Texte"
         type: textarea
         size: small
         width: 1/2
       step1Image:
-        label: Image Étape 1
+        label: "Étape 1 — Image"
         type: files
         max: 1
 
       step2Title:
-        label: Titre Étape 2
+        label: "Étape 2 — Titre"
         type: text
         width: 1/2
       step2Text:
-        label: Texte Étape 2
+        label: "Étape 2 — Texte"
         type: textarea
         size: small
         width: 1/2
       step2Image:
-        label: Image Étape 2
+        label: "Étape 2 — Image"
         type: files
         max: 1
 
       step3Title:
-        label: Titre Étape 3
+        label: "Étape 3 — Titre"
         type: text
         width: 1/2
       step3Text:
-        label: Texte Étape 3
+        label: "Étape 3 — Texte"
         type: textarea
         size: small
         width: 1/2
       step3Image:
-        label: Image Étape 3
+        label: "Étape 3 — Image"
         type: files
         max: 1
 
@@ -87,22 +87,22 @@ tabs:
     label: Projets
     fields:
       projectsHeading:
-        label: Titre Derniers Projets
+        label: Titre de la section projets
         type: text
 
   impact:
-    label: Mission / Impact
+    label: Mission
     fields:
       impactTag:
-        label: Tag (ex. Notre Mission)
+        label: Étiquette (ex. Notre Mission)
         type: text
       impactHeading:
-        label: Titre Mission
+        label: Titre
         type: text
       impactText:
-        label: Texte Mission
+        label: Texte
         type: textarea
       impactImage:
-        label: Image de Fond
+        label: Image de fond
         type: files
         max: 1

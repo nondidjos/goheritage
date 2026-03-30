@@ -1,35 +1,24 @@
-# Each page blueprint must have a title, the title may be different from the file name
-title: blog
-
-# Each page can have an icon that is shown in page listings when no preview image is available.
+title: Blog
 icon: 📖
-
-# Define the form layout with two columns
-# More about columns: https://getkirby.com/docs/guide/blueprints/layout#defining-columns
 
 columns:
   - width: 1/3
-    # In the first column, we reuse the `blog` section
-    # (defined in `/site/blueprints/sections/blog.yml` twice with different page status and headline
     sections:
       drafts:
         extends: sections/blog
-        label: Drafts
+        label: Brouillons
         status: draft
 
       unlisted:
         extends: sections/blog
-        label: In Review
+        label: En relecture
         status: unlisted
 
   - width: 2/3
-    # In the second column, we reuse the same section, this time for listed pages and with a different headline
     sections:
       listed:
         extends: sections/blog
-        label: Published
+        label: Publiés
         status: listed
         size: small
         layout: cards
-
-# More about pages sections: https://getkirby.com/docs/reference/panel/sections/pages
