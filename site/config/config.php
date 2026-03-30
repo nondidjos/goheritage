@@ -80,23 +80,9 @@ return [
     ],
     'maptiler.key' => 'REDACTED-ROTATE-THIS-KEY',
     'hooks' => [
-        // Allow re-uploading a file with the same name (overwrite).
-        // Kirby blocks duplicate filenames by default; this hook deletes the
-        // existing file first so the new upload proceeds cleanly.
-        'file.create:before' => function ($file, $upload) {
-            $parent = $file->parent();
-            if (!$parent) return;
-            $existing = $parent->file($file->filename());
-            if ($existing) {
-                try {
-                    kirby()->impersonate('kirby');
-                    $existing->delete();
-                } catch (\Throwable $e) {
-                    // log but don't block the upload
-                    error_log('[goheritage] file overwrite cleanup failed: ' . $e->getMessage());
-                }
-            }
-        },
+        // File overwrite is handled by the custom API route in the
+        // model-converter plugin (goheritage/upload-overwrite) which calls
+        // $existing->replace() — bypassing FileRules::notExistingFile().
 
         'page.create:after' => function ($page) {
             $user = $this->user();

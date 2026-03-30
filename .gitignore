@@ -68,7 +68,9 @@ yarn-error.log*
 
 # Composer dependencies
 vendor/
-kirby/
+!kirby/
+kirby/dependencies/
+kirby/composer.lock
 
 # Environment files
 .env
@@ -84,4 +86,3 @@ kirby/
 # Temporary test files
 check.php
 test.html
-

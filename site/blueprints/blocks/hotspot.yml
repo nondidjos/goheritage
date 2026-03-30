@@ -1,0 +1,30 @@
+name: Point d'intérêt
+icon: pin
+preview: hotspot
+
+tabs:
+  content:
+    label: Contenu
+    fields:
+
+      hotspot_id:
+        type: select
+        label: Point d'intérêt
+        required: true
+        placeholder: "Choisir un hotspot…"
+        options: query
+        query:
+          fetch: page.annotations.toStructure
+          text: "{{ item.title }}"
+          value: "{{ item.hotspot_id }}"
+        help: >
+          Identifiant du point d'intérêt tel que défini dans l'onglet
+          *Points d'intérêt* de ce projet.
+
+      label:
+        type: text
+        label: Texte du lien
+        placeholder: "ex. Voir la voûte principale"
+        help: >
+          Texte affiché sur le bouton. Si vide, le titre du point d'intérêt
+          est utilisé.
