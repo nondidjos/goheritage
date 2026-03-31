@@ -66,6 +66,10 @@ Tags: chapelle, médiéval, religieux, gironde, ocean
 
 ----
 
+Viewer-url: 
+
+----
+
 Model-obj: []
 
 ----
@@ -78,15 +82,32 @@ Model-mtl: []
 
 ----
 
-Viewer-url: 
-
-----
-
 Compress-textures: true
 
 ----
 
-Annotations: []
+Annotations:
+
+-
+  hotspot_id: hotspot_01
+  title: 'dame 1'
+  camera_mode: ''
+  description: ''
+-
+  hotspot_id: hotspot_02
+  title: tombe
+  camera_mode: ''
+  description: ''
+-
+  hotspot_id: hotspot_03
+  title: 'chaire de verite'
+  camera_mode: ''
+  description: ''
+-
+  hotspot_id: hotspot_04
+  title: peak
+  camera_mode: ''
+  description: ''
 
 ----
 

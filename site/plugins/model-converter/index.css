@@ -1,0 +1,117 @@
+/* upload-overwrite panel field styles
+   Minimal styling — lets Kirby components look native */
+
+.k-upload-overwrite-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Dropzone */
+.k-upload-overwrite-dropzone.k-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 1.25rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--rounded);
+  background: var(--color-background);
+}
+
+.k-upload-overwrite-dropzone-label {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-dimmed);
+}
+
+/* File list — match Kirby's k-box row styling */
+.k-upload-overwrite-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--rounded);
+  overflow: hidden;
+}
+
+.k-upload-overwrite-list__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+  line-height: 1.5;
+  z-index: 1;
+}
+
+.k-upload-overwrite-list__item:last-child {
+  border-bottom: none;
+}
+
+.k-upload-overwrite-list__icon {
+  flex-shrink: 0;
+  opacity: 0.4;
+  display: flex;
+  align-items: center;
+}
+
+.k-upload-overwrite-list__name {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-text);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.k-upload-overwrite-list__name:hover {
+  color: var(--color-focus);
+  text-decoration: underline;
+}
+
+.k-upload-overwrite-list__delete {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--rounded);
+  cursor: pointer;
+  color: var(--color-text-dimmed);
+  transition: color 0.15s, background 0.15s;
+  z-index: 2;
+}
+
+.k-upload-overwrite-list__delete:hover {
+  color: var(--color-red);
+  background: var(--color-border);
+}
+
+/* Status notice */
+.k-upload-overwrite-notice {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--rounded);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  background: var(--color-background);
+  font-size: var(--text-sm);
+}
+
+.k-upload-overwrite-notice.--success {
+  color: var(--color-green);
+  border-color: var(--color-green);
+}
+
+.k-upload-overwrite-notice.--error {
+  color: var(--color-red);
+  border-color: var(--color-red);
+}

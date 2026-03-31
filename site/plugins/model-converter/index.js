@@ -1,91 +1,119 @@
 /**
  * upload-overwrite field
  *
- * A panel field that lets editors upload a file and silently replace it
- * if a file with the same name already exists on the page.
- * Uses the custom /api/goheritage/upload-overwrite route.
+ * Kirby panel field — overwrite-safe file upload.
+ * Shows Kirby's native k-dropzone, then a file list with delete buttons below.
  */
 
 panel.plugin('goheritage/model-converter', {
   fields: {
     'upload-overwrite': {
       template: `
-        <div class="upload-overwrite-field">
-          <k-field v-bind="$props" :input="false">
-            <template #default>
+        <div class="k-upload-overwrite-wrap">
 
-              <!-- Current file list -->
-              <ul v-if="currentFiles.length" class="upload-overwrite-field__files">
-                <li
-                  v-for="f in currentFiles"
-                  :key="f.filename"
-                  class="upload-overwrite-field__file"
-                >
-                  <k-icon type="file" />
-                  <a :href="f.url" target="_blank" rel="noopener">{{ f.filename }}</a>
-                </li>
-              </ul>
+          <!-- Native Kirby dropzone -->
+          <k-dropzone class="k-upload-overwrite-dropzone" :disabled="uploading" @drop="onDrop">
+            <p class="k-upload-overwrite-dropzone-label">
+              {{ uploading ? 'Téléversement…' : 'Déposer un fichier ici' }}
+            </p>
+            <k-button
+              size="sm"
+              icon="upload"
+              text="Sélectionner"
+              :disabled="uploading"
+              @click.stop="$refs.input.click()"
+            />
+            <input
+              ref="input"
+              type="file"
+              :accept="accept || undefined"
+              style="display:none"
+              @change="upload"
+              :disabled="uploading"
+            />
+          </k-dropzone>
 
-              <!-- Upload input -->
-              <label class="upload-overwrite-field__label">
-                <k-button icon="upload" theme="positive" size="sm" @click.prevent="$refs.input.click()">
-                  {{ uploading ? 'Téléversement…' : (accept ? 'Déposer un fichier ' + accept : 'Déposer un fichier') }}
-                </k-button>
-                <input
-                  ref="input"
-                  type="file"
-                  :accept="accept || undefined"
-                  style="display:none"
-                  @change="upload"
-                />
-              </label>
+          <!-- File list -->
+          <ul v-if="matchingFiles.length" class="k-upload-overwrite-list">
+            <li v-for="f in matchingFiles" :key="f.filename" class="k-upload-overwrite-list__item">
+              <k-icon type="file" class="k-upload-overwrite-list__icon" />
+              <a :href="f.url" target="_blank" rel="noopener" class="k-upload-overwrite-list__name">
+                {{ f.filename }}
+              </a>
+              <button
+                type="button"
+                class="k-upload-overwrite-list__delete"
+                title="Supprimer"
+                @click="confirmDelete(f)"
+              >
+                <k-icon type="trash" />
+              </button>
+            </li>
+          </ul>
 
-              <!-- Status message -->
-              <p v-if="message" :class="['upload-overwrite-field__msg', messageType]">
-                {{ message }}
-              </p>
+          <!-- Status notice -->
+          <p v-if="message" :class="['k-upload-overwrite-notice', '--' + messageType]">
+            {{ message }}
+          </p>
 
-            </template>
-          </k-field>
         </div>
       `,
 
       props: {
         label:    String,
         help:     String,
-        accept:   String,   // e.g. ".glb" or ".jpg,.jpeg,.png"
+        accept:   String,
         template: { type: String, default: 'default' },
-        pageId:   String,   // computed server-side
+        pageId:   String,
         files:    { type: Array, default: () => [] },
       },
 
       data() {
         return {
-          uploading:    false,
-          message:      '',
-          messageType:  'success',
-          currentFiles: this.files || [],
+          uploading:   false,
+          message:     '',
+          messageType: 'success',
         };
       },
 
-      watch: {
-        files(val) {
-          this.currentFiles = val;
+      computed: {
+        matchingFiles() {
+          if (!this.files || !this.accept) return [];
+          const exts = this.accept
+            .split(',')
+            .map(e => e.trim().replace(/^\./, '').toLowerCase());
+          return this.files.filter(f => {
+            const ext = f.filename.split('.').pop().toLowerCase();
+            return exts.includes(ext);
+          });
+        },
+
+        // Kirby API encodes nested page IDs with "+" instead of "/"
+        apiPageId() {
+          return (this.pageId || '').replace(/\//g, '+');
         },
       },
 
       methods: {
-        async upload(event) {
-          const file = event.target.files[0];
-          if (!file) return;
+        onDrop(files) {
+          const file = Array.isArray(files) ? files[0] : (files && files[0]);
+          if (file) this.handleFile(file);
+        },
 
-          // Optionally validate extension client-side
+        upload(event) {
+          const file = event.target.files[0];
+          if (file) this.handleFile(file);
+        },
+
+        async handleFile(file) {
+          if (this.uploading) return;
+
           if (this.accept) {
             const exts = this.accept.split(',').map(e => e.trim().replace(/^\./, '').toLowerCase());
             const ext  = file.name.split('.').pop().toLowerCase();
             if (!exts.includes(ext)) {
               this.showMessage(`Extension non autorisée : .${ext}`, 'error');
-              event.target.value = '';
+              this.$refs.input.value = '';
               return;
             }
           }
@@ -110,33 +138,59 @@ panel.plugin('goheritage/model-converter', {
             if (!resp.ok) {
               this.showMessage('Erreur : ' + (json.error || resp.statusText), 'error');
             } else {
-              const verb = json.status === 'replaced' ? 'remplacé' : 'ajouté';
-              this.showMessage(`Fichier ${verb} : ${json.filename}`, 'success');
-
-              // Update local list
-              const idx = this.currentFiles.findIndex(f => f.filename === json.filename);
-              const entry = { filename: json.filename, url: json.url };
-              if (idx >= 0) {
-                this.currentFiles.splice(idx, 1, entry);
-              } else {
-                this.currentFiles.push(entry);
-              }
-
-              // Notify Kirby panel to refresh the current page section
+              const verb = json.status === 'replaced' ? 'Remplacé' : 'Ajouté';
+              this.showMessage(`${verb} : ${json.filename}`, 'success');
               this.$panel.view.reload();
             }
           } catch (err) {
-            this.showMessage('Erreur réseau : ' + err.message, 'error');
+            this.showMessage('Erreur : ' + err.message, 'error');
           } finally {
             this.uploading = false;
-            event.target.value = '';
+            this.$refs.input.value = '';
+          }
+        },
+
+        confirmDelete(file) {
+          this.$panel.dialog.open({
+            component: 'k-remove-dialog',
+            props: {
+              text: `Supprimer "${file.filename}" ?`,
+            },
+            on: {
+              submit: () => {
+                this.$panel.dialog.close();
+                this.deleteFile(file);
+              },
+            },
+          });
+        },
+
+        async deleteFile(file) {
+          try {
+            const resp = await fetch(
+              `/api/pages/${this.apiPageId}/files/${encodeURIComponent(file.filename)}`,
+              {
+                method:  'DELETE',
+                headers: { 'X-CSRF': panel.csrf },
+              }
+            );
+
+            if (!resp.ok) {
+              const json = await resp.json().catch(() => ({}));
+              this.showMessage('Erreur : ' + (json.message || resp.statusText), 'error');
+            } else {
+              this.showMessage(`Supprimé : ${file.filename}`, 'success');
+              this.$panel.view.reload();
+            }
+          } catch (err) {
+            this.showMessage('Erreur : ' + err.message, 'error');
           }
         },
 
         showMessage(text, type) {
           this.message     = text;
           this.messageType = type;
-          setTimeout(() => { this.message = ''; }, 4000);
+          setTimeout(() => { this.message = ''; }, 3500);
         },
       },
     },
