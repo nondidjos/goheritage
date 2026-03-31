@@ -10,6 +10,11 @@ body:has(#map-main) footer {
     display: none;
 }
 
+/* Remove main padding for full bleed map */
+main#map-main {
+    padding-inline: 0;
+}
+
 /* Map layout height: primarily set by JS fitMapToScreen().
    This calc() is a reliable CSS fallback (header ≈ 60px, breadcrumb ≈ 48px). */
 .map-layout {
@@ -178,16 +183,10 @@ body:has(#map-main) footer {
     overflow: hidden;
     background: var(--color-surface);
     border-radius: 4px 4px 0 0;
-    transition: transform 0.3s;
-}
-
-.map-card:hover .map-card__image {
-    transform: translateY(-4px);
 }
 
 .map-card__image img {
     width: 100%;
-    height: 100%;
     object-fit: cover;
 }
 
@@ -279,7 +278,7 @@ body:has(#map-main) footer {
 }
 
 .map-card__btn-center {
-    min-width: 3.5rem;
+    width: 3rem;
     align-self: stretch;
     padding: 0;
 }
