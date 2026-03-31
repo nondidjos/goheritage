@@ -62,7 +62,10 @@
             anchor: 'bottom',
         }).setHTML(
             '<div class="popup-inner">' +
-                '<p class="popup-location">' + escHtml(site.location) + '</p>' +
+                '<p class="location-tag popup-location">' +
+                    '<svg class="location-pin" width="10" height="12" viewBox="0 0 10 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 0C2.24 0 0 2.24 0 5c0 3.75 5 7 5 7s5-3.25 5-7c0-2.76-2.24-5-5-5zm0 6.5C4.17 6.5 3.5 5.83 3.5 5S4.17 3.5 5 3.5 6.5 4.17 6.5 5 5.83 6.5 5 6.5z" fill="currentColor" /></svg>' +
+                    escHtml(site.location) +
+                '</p>' +
                 '<p class="popup-title">' + escHtml(site.title) + '</p>' +
             '</div>' +
             '<a class="btn popup-link" href="' + escHtml(site.url) + '">Voir le modèle →</a>'
@@ -71,7 +74,6 @@
         // close popup when its own close button is clicked — also deactivate
         popup.on('close', function () {
             if (activeId === site.id) {
-                if (markers[site.id]) markers[site.id].getElement().classList.remove('is-active');
                 activeId = null;
             }
         });
@@ -223,16 +225,13 @@
         if (!site) return;
 
         // highlight list card
-        listItems.forEach(function (el) { el.classList.remove('is-active'); });
         var listItem = document.querySelector('.map-card[data-id="' + id + '"]');
         if (listItem) {
-            listItem.classList.add('is-active');
             listItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         // activate marker
         var markerData = markers[id];
-        if (markerData) markerData.el.classList.add('is-active');
 
         // show popup
         if (popups[id]) {
@@ -251,9 +250,6 @@
     }
 
     function deactivate(id) {
-        var listItem = document.querySelector('.map-card[data-id="' + id + '"]');
-        if (listItem) listItem.classList.remove('is-active');
-        if (markers[id]) markers[id].el.classList.remove('is-active');
         if (popups[id]) popups[id].remove();
     }
 
