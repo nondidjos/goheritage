@@ -49,21 +49,14 @@ snippet('header');
             <?php endif ?>
           </div>
           <div class="map-card__body">
-            <?php if ($project->location()->isNotEmpty()): ?>
-              <p class="map-card__location font-mono">
-                <svg class="location-pin" width="10" height="12" viewBox="0 0 12 14" fill="none">
-                  <path d="M6 0C2.69 0 0 2.69 0 6c0 4.5 6 8 6 8s6-3.5 6-8c0-3.31-2.69-6-6-6zm0 8.5c-1.38 0-2.5-1.12-2.5-2.5S4.62 3.5 6 3.5 8.5 4.62 8.5 6 7.38 8.5 6 8.5z" fill="currentColor" />
-                </svg>
-                <?= $project->location()->html() ?>
-              </p>
-            <?php endif ?>
+            <?php snippet('location-tag', ['location' => $project->location()->html(), 'class' => 'map-card__location']) ?>
             <p class="map-card__title"><?= $project->title()->html() ?></p>
             <?php if ($project->description()->isNotEmpty()): ?>
               <p class="map-card__desc font-serif"><?= $project->description()->html() ?></p>
             <?php endif ?>
           </div>
-          <div class="map-card__actions flex gap-3 mt-4">
-            <button class="btn px-4! py-3! bg-transparent border-border hover:bg-border justify-center" data-action="center" title="Centrer" aria-label="Centrer">
+          <div class="map-card__actions mt-4">
+            <button class="map-card__btn map-card__btn-center" data-action="center" title="Centrer" aria-label="Centrer">
               <svg width="14" height="14" viewBox="0 0 11 11" fill="none">
                 <circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" stroke-width="1.1"/>
                 <circle cx="5.5" cy="5.5" r="1.25" fill="currentColor"/>
@@ -73,7 +66,7 @@ snippet('header');
                 <line x1="9" y1="5.5" x2="11" y2="5.5" stroke="currentColor" stroke-width="1.1"/>
               </svg>
             </button>
-            <a class="btn flex-1 justify-center bg-ink border-ink text-white hover:bg-ink hover:text-white" href="<?= $project->url() ?>">
+            <a class="map-card__btn map-card__btn--visit" href="<?= $project->url() ?>">
               Voir le modèle →
             </a>
           </div>

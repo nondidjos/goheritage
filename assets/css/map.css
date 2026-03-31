@@ -48,6 +48,7 @@ body:has(#map-main) footer {
     padding: 0.625rem 0.75rem;
     border: 1px solid var(--color-border);
     background: var(--color-bg);
+    border-radius: 4px;
     transition: border-color 0.15s;
 }
 
@@ -92,6 +93,7 @@ body:has(#map-main) footer {
     color: var(--color-mid);
     cursor: pointer;
     white-space: nowrap;
+    border-radius: 4px;
     transition: border-color 0.15s, color 0.15s;
 }
 
@@ -176,17 +178,17 @@ body:has(#map-main) footer {
     overflow: hidden;
     background: var(--color-surface);
     border-radius: 4px 4px 0 0;
+    transition: transform 0.3s;
+}
+
+.map-card:hover .map-card__image {
+    transform: translateY(-4px);
 }
 
 .map-card__image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.4s;
-}
-
-.map-card:hover .map-card__image img {
-    transform: scale(1.03);
 }
 
 .map-card__no-image {
@@ -209,12 +211,7 @@ body:has(#map-main) footer {
 /* location */
 .map-card__location {
     display: flex;
-    align-items: center;
     justify-content: flex-end;
-    gap: 0.2rem;
-    font-family: var(--font-sans);
-    font-size: 0.75rem;
-    color: var(--color-faint);
     margin-bottom: 0.125rem;
 }
 
@@ -225,10 +222,10 @@ body:has(#map-main) footer {
 /* title */
 .map-card__title {
     font-family: var(--font-thyssen);
-    font-size: 2.25rem;
+    font-size: 2.75rem;
     line-height: 1.05;
     text-align: center;
-    margin-bottom: 0.4rem;
+    margin-bottom: 1.25rem;
 }
 
 /* description */
@@ -239,6 +236,7 @@ body:has(#map-main) footer {
     line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     padding: 0 0.25rem;
@@ -248,15 +246,14 @@ body:has(#map-main) footer {
 /* separator line + space between desc and action buttons */
 .map-card__divider {
     border: none;
-    border-top: 1px solid var(--color-border);
     margin: 0.875rem 0 0;
 }
 
 /* action buttons row */
 .map-card__actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    border-top: 1px solid var(--color-border);
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
     margin-top: 0.875rem;
 }
 
@@ -265,7 +262,7 @@ body:has(#map-main) footer {
     align-items: center;
     justify-content: center;
     gap: 0.3rem;
-    padding: 0.5rem 0.25rem;
+    padding: 0.5rem 0.75rem;
     font-family: var(--font-sans);
     font-size: 0.7rem;
     font-weight: 500;
@@ -273,27 +270,33 @@ body:has(#map-main) footer {
     letter-spacing: 0.05em;
     color: var(--color-mid);
     background: none;
-    border: none;
+    border: 4px solid var(--color-border);
+    border-radius: 4px;
     cursor: pointer;
     text-decoration: none;
-    transition: color 0.15s, background 0.15s;
+    transition: all 0.15s;
     white-space: nowrap;
 }
 
-.map-card__btn:hover {
-    color: var(--color-ink);
-    background: var(--color-surface);
+.map-card__btn-center {
+    min-width: 3.5rem;
+    align-self: stretch;
+    padding: 0;
 }
 
-/* "Voir le modèle" is primary — has a left border separator */
+.map-card__btn:hover {
+    background: #e3e3e3;
+    border-color: #e3e3e3;
+}
+
+/* "Voir le modèle" is primary — no left border separator anymore */
 .map-card__btn--visit {
-    border-left: 1px solid var(--color-border);
     color: var(--color-ink);
 }
 
 .map-card__btn--visit:hover {
-    background: var(--color-ink);
-    color: var(--color-bg);
+    background: #e3e3e3;
+    border-color: #e3e3e3;
 }
 
 /* separator between cards */
@@ -317,7 +320,7 @@ body:has(#map-main) footer {
 .map-marker {
     width: 24px;
     height: 24px;
-    background: #E8973F;
+    background: var(--color-faint);
     border: 2px solid white;
     border-radius: 50%;
     cursor: pointer;
@@ -325,9 +328,8 @@ body:has(#map-main) footer {
     transition: transform 0.2s, background 0.2s;
 }
 
-.map-marker:hover,
-.map-marker.is-active {
-    background: var(--color-ink);
+.map-marker:hover {
+    background: var(--color-faint);
     transform: scale(1.25);
 }
 
@@ -346,12 +348,18 @@ body:has(#map-main) footer {
 
 .maplibregl-popup-close-button {
     font-family: var(--font-sans);
-    font-size: 1rem;
+    font-size: 1.75rem;
     color: var(--color-faint);
     padding: 0.25rem 0.5rem;
     line-height: 1;
-    top: 0.25rem;
-    right: 0.25rem;
+    top: 0.125rem;
+    right: 0.125rem;
+    transition: color 0.15s;
+}
+
+.maplibregl-popup-close-button:hover {
+    color: var(--color-ink);
+    background: none;
 }
 
 /* remove the default tip/arrow background flash */
@@ -360,42 +368,40 @@ body:has(#map-main) footer {
 }
 
 .popup-inner {
-    padding: 0.875rem 1rem 0;
+    padding: 1.25rem 1rem 0;
 }
 
 .popup-location {
-    font-family: var(--font-sans);
-    font-size: 0.625rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--color-faint);
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.4rem;
 }
 
 .popup-title {
     font-family: var(--font-thyssen);
-    font-size: 1.375rem;
+    font-size: 1.5rem;
     line-height: 1.05;
     margin-bottom: 0.625rem;
     padding-right: 1.25rem; /* make room for close button */
 }
 
 .popup-link {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
     font-family: var(--font-sans);
-    font-size: 0.6875rem;
+    font-size: 0.7rem;
     font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     color: var(--color-ink);
     text-decoration: none;
-    padding: 0.5rem 1rem;
-    border-top: 1px solid var(--color-border);
-    transition: background 0.15s;
+    padding: 0.5rem 0.25rem;
+    border-radius: 4px;
+    transition: background 0.15s, color 0.15s;
 }
 
 .popup-link:hover {
-    background: var(--color-surface);
+    background: #e3e3e3;
 }
 
 /* ── Responsive ── */
