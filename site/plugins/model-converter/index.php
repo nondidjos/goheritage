@@ -37,9 +37,15 @@ Kirby::plugin('goheritage/model-converter', [
             [
                 'pattern' => 'goheritage/upload-overwrite',
                 'method'  => 'POST',
+                'auth'    => false,
                 'action'  => function () {
                     $kirby   = kirby();
                     $request = $kirby->request();
+
+                    // Require a logged-in panel user (session auth)
+                    if (!$kirby->user()) {
+                        return Response::json(['error' => 'Unauthorized'], 401);
+                    }
 
                     $pageId   = $request->get('pageId');
                     $template = $request->get('template', 'default');
@@ -60,8 +66,14 @@ Kirby::plugin('goheritage/model-converter', [
                         return Response::json(['error' => 'Upload error code: ' . $code], 400);
                     }
 
-                    $tmpPath  = $uploaded['tmp_name'];
                     $filename = basename($uploaded['name']);
+
+                    // PHP's tmp file has no extension — copy to a named temp
+                    // file so Kirby's extension validator sees the right type.
+                    $tmpPath = sys_get_temp_dir() . '/' . uniqid('goheritage_') . '_' . $filename;
+                    if (!copy($uploaded['tmp_name'], $tmpPath)) {
+                        return Response::json(['error' => 'Failed to stage upload'], 500);
+                    }
 
                     try {
                         $kirby->impersonate('kirby');
@@ -79,6 +91,17 @@ Kirby::plugin('goheritage/model-converter', [
                             ]);
                         }
 
+                        // Manually trigger post-upload processing since the
+                        // custom route bypasses Kirby's file.create:after hook.
+                        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                        if ($ext === 'glb' && $page->compress_textures()->toBool()) {
+                            compressGlbTextures($newFile);
+                            $newFile = $page->file($filename); // reload after replace
+                        } elseif (in_array($ext, ['png', 'jpg', 'jpeg'])
+                            && $page->compress_textures()->toBool()) {
+                            compressTexture($newFile);
+                        }
+
                         return Response::json([
                             'status'   => $existing ? 'replaced' : 'created',
                             'filename' => $newFile->filename(),
@@ -87,6 +110,8 @@ Kirby::plugin('goheritage/model-converter', [
 
                     } catch (\Throwable $e) {
                         return Response::json(['error' => $e->getMessage()], 500);
+                    } finally {
+                        @unlink($tmpPath);
                     }
                 },
             ],
@@ -97,10 +122,16 @@ Kirby::plugin('goheritage/model-converter', [
     'hooks' => [
         // fires after a file has been created (uploaded) in the panel
         'file.create:after' => function ($file) {
-            if ($file->extension() === 'obj') {
+            $page = $file->parent();
+            $ext  = strtolower($file->extension());
+
+            if ($ext === 'obj') {
                 convertObjToGlb($file);
-            } elseif (in_array(strtolower($file->extension()), ['png', 'jpg', 'jpeg'])) {
-                $page = $file->parent();
+            } elseif ($ext === 'glb') {
+                if ($page && $page->compress_textures()->toBool()) {
+                    compressGlbTextures($file);
+                }
+            } elseif (in_array($ext, ['png', 'jpg', 'jpeg'])) {
                 if ($page && $page->compress_textures()->toBool()) {
                     compressTexture($file);
                 }
@@ -109,10 +140,16 @@ Kirby::plugin('goheritage/model-converter', [
 
         // fires after a file has been replaced (re-uploaded via panel default)
         'file.replace:after' => function ($newFile, $oldFile) {
-            if ($newFile->extension() === 'obj') {
+            $page = $newFile->parent();
+            $ext  = strtolower($newFile->extension());
+
+            if ($ext === 'obj') {
                 convertObjToGlb($newFile);
-            } elseif (in_array(strtolower($newFile->extension()), ['png', 'jpg', 'jpeg'])) {
-                $page = $newFile->parent();
+            } elseif ($ext === 'glb') {
+                if ($page && $page->compress_textures()->toBool()) {
+                    compressGlbTextures($newFile);
+                }
+            } elseif (in_array($ext, ['png', 'jpg', 'jpeg'])) {
                 if ($page && $page->compress_textures()->toBool()) {
                     compressTexture($newFile);
                 }
@@ -227,5 +264,59 @@ function compressTexture($file) {
         }
     } catch (\Exception $e) {
         error_log('[model-converter] compressed texture registration: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Compress textures embedded inside a GLB file using gltf-transform.
+ * Resizes all embedded textures to a max of 4096px and converts to WebP.
+ * Modifies the file in-place (tmp → replace).
+ */
+function compressGlbTextures($file) {
+    $npx     = 'npx';
+    $glbPath = $file->root();
+    $tmpPath = $glbPath . '.compressing.glb';
+
+    // Step 1: resize embedded textures to max 4096 px
+    $cmd1 = sprintf(
+        '%s gltf-transform resize %s %s --width 4096 --height 4096 2>&1',
+        $npx,
+        escapeshellarg($glbPath),
+        escapeshellarg($tmpPath)
+    );
+    $out1 = []; $code1 = 0;
+    exec($cmd1, $out1, $code1);
+
+    if ($code1 !== 0 || !file_exists($tmpPath)) {
+        error_log('[model-converter] glb texture resize failed: ' . implode("\n", $out1));
+        return;
+    }
+
+    // Step 2: convert textures to WebP at quality 80
+    $tmpPath2 = $glbPath . '.webp.glb';
+    $cmd2 = sprintf(
+        '%s gltf-transform webp %s %s --quality 80 2>&1',
+        $npx,
+        escapeshellarg($tmpPath),
+        escapeshellarg($tmpPath2)
+    );
+    $out2 = []; $code2 = 0;
+    exec($cmd2, $out2, $code2);
+
+    @unlink($tmpPath);
+
+    if ($code2 !== 0 || !file_exists($tmpPath2)) {
+        error_log('[model-converter] glb webp compression failed: ' . implode("\n", $out2));
+        return;
+    }
+
+    // Replace the original GLB with the compressed version
+    try {
+        kirby()->impersonate('kirby');
+        $file->replace($tmpPath2);
+    } catch (\Exception $e) {
+        error_log('[model-converter] glb replace after compression failed: ' . $e->getMessage());
+    } finally {
+        @unlink($tmpPath2);
     }
 }

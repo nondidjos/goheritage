@@ -106,7 +106,7 @@
         });
 
         // "Centrer sur la carte" button → fly to + activate
-        var centerBtn = item.querySelector('.map-card__btn--center');
+        var centerBtn = item.querySelector('.map-card__btn-center');
         if (centerBtn) {
             centerBtn.addEventListener('click', function (e) {
                 e.stopPropagation();

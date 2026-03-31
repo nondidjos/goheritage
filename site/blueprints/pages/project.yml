@@ -56,7 +56,7 @@ tabs:
   # ── Tab 2 : Fiche technique ────────────────────────────────────────────────
   info:
     label: Fiche technique
-    icon: list
+    icon: table
     columns:
       - width: 1/2
         fields:
@@ -137,87 +137,82 @@ tabs:
     label: Modèle 3D
     icon: box
     columns:
-      # ── Workflow principal : GLB (Blender) ──────────────────────────────────
+      # ── GLB (workflow principal) ─────────────────────────────────────────────
       - width: 1/1
         fields:
-          glb_workflow_info:
+          glb_info:
+            label: false
             type: info
             theme: info
             text: >
-              **Workflow recommandé — Blender → GLB**
+              Utilisez l'addon GoHéritage dans Blender pour placer les points d'intérêt,
+              puis exportez via **Fichier → Exporter → glTF 2.0 (.glb)**.
+              Les hotspots et positions de caméra sont intégrés automatiquement.
 
-              Utilisez l'addon Blender *GoHéritage Hotspots* pour placer vos points d'intérêt,
-              puis exportez le fichier via **Fichier → Exporter → glTF 2.0 (.glb/.gltf)**.
-              Déposez le fichier `.glb` ci-dessous. Les points d'intérêt et positions de caméra
-              sont lus automatiquement depuis le fichier.
-
-      - width: 1/2
+      - width: 2/3
         fields:
           model_glb:
             type: upload-overwrite
             label: Fichier GLB
             accept: ".glb"
             template: model
-            help: Modèle 3D au format glTF binaire, exporté depuis Blender. Remplace le workflow OBJ.
+            help: Modèle 3D au format glTF binaire, exporté depuis Blender.
 
-          compress_textures:
-            type: toggle
-            label: Compression des textures
-            text:
-              - Désactivée
-              - Activée (JPEG optimisé)
-            default: true
-            help: Compresse les textures uploadées en JPEG web-ready (max 8192 px, qualité 80).
-
-      - width: 1/2
+      - width: 1/3
         fields:
           viewer_url:
             type: url
             label: Viewer externe
             placeholder: "https://…"
-            help: >
-              URL d'un viewer tiers (Potree, Sketchfab…). Si renseigné, charge un iframe
-              à la place du viewer Three.js — le champ GLB est ignoré.
+            help: Potree, Sketchfab, etc. Remplace le viewer Three.js si renseigné.
 
-      # ── Workflow alternatif : OBJ (héritage) ────────────────────────────────
+      # ── OBJ (import alternatif sans hotspots) ───────────────────────────────
       - width: 1/1
         fields:
-          obj_workflow_info:
+          obj_section_info:
+            label: false
             type: info
             theme: warning
-            text: >
-              **Workflow alternatif — OBJ (héritage)**
-
-              Les champs ci-dessous permettent de charger un modèle OBJ sans Blender.
-              Ce format ne supporte pas les points d'intérêt ni les positions de caméra.
-              Préférez l'export GLB dès que possible.
+            text: "**Import alternatif OBJ** — Ce format n'inclut pas les hotspots ni les positions de caméra. Préférez le GLB si possible."
 
       - width: 1/2
         fields:
           model_obj:
-            type: files
+            type: upload-overwrite
             label: Fichier OBJ
-            multiple: false
-            accept:
-              extension: obj
-            help: Modèle au format Wavefront OBJ. Ignoré si un fichier GLB est présent.
+            accept: ".obj"
+            template: default
+            help: Ignoré si un fichier GLB est présent.
 
+      - width: 1/2
+        fields:
           model_texture:
             type: upload-overwrite
             label: Texture diffuse
             accept: ".jpg,.jpeg,.png"
             template: image
-            help: Texture à appliquer sur le modèle OBJ.
+            help: Texture couleur pour le modèle OBJ.
 
       - width: 1/2
         fields:
           model_mtl:
             type: files
-            label: Fichier matériaux (.mtl)
+            label: Fichier .mtl
             multiple: false
             accept:
               extension: mtl
             help: Optionnel. Matériaux exportés avec le fichier OBJ.
+
+      - width: 1/2
+        fields:
+          compress_textures:
+            type: toggle
+            label: Compression de la texture
+            text:
+              - Désactivée
+              - Activée (JPEG, max 8192 px)
+            default: true
+            help: Compresse la texture diffuse à l'upload pour le web.
 
   # ── Tab 4 : Points d'intérêt ──────────────────────────────────────────────
   annotations:
