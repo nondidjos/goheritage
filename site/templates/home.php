@@ -9,10 +9,10 @@ snippet('header');
     <h1 class="font-sans text-[clamp(1.25rem,2vw,1.75rem)] leading-tight text-ink mb-6">
       <?= $page->heroHeading()->or('Notre patrimoine, modélisé et accessible en 3D') ?>
     </h1>
-    <div class="flex flex-col sm:flex-row flex-wrap gap-3">
+    <div class="flex flex-col sm:flex-row gap-3 w-full">
       <!-- "Carte" uses an explicit lighter orange colour -->
       <a href="<?= url('map') ?>"
-        class="btn border-[4px] bg-[#ff8c33] border-[#ff8c33] text-ink hover:bg-[#ffaa66] hover:border-[#ffaa66]">Voir
+        class="btn flex-1 border-[4px] bg-[#f47a21] border-[#f47a21] text-ink hover:bg-[#d86616] hover:border-[#d86616] justify-center py-3 px-6 text-[1.1rem]">Voir
         la carte
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -20,7 +20,7 @@ snippet('header');
           <polyline points="17 7 17 17 7 17"></polyline>
         </svg></a>
       <a href="<?= url('contact') ?>"
-        class="btn border-[4px] hover:bg-surface hover:border-surface transition-colors duration-150">Nous contacter</a>
+        class="btn flex-1 justify-center border-[4px] hover:bg-surface hover:border-surface transition-colors duration-150">Nous contacter</a>
     </div>
   </div>
 
@@ -35,8 +35,8 @@ snippet('header');
 </section>
 
 <?php if ($featured_project = $site->featured_project()->toPage()): ?>
-<section class="py-16 bg-surface -mx-4 px-4 md:px-12 mb-20 rounded-[4px] mt-10">
-  <div class="flex flex-col md:flex-row gap-10 lg:gap-16 items-center">
+<section class="py-16 bg-surface col-7 -mx-4 px-4 md:px-12 mb-20 rounded-[4px] mt-10">
+  <div class="col-7 flex flex-col md:flex-row gap-10 lg:gap-16 items-center w-full">
     <!-- Featured Project Image -->
     <div class="w-full md:w-3/5">
       <a href="<?= $featured_project->url() ?>" class="block rounded-[4px] overflow-hidden aspect-[16/9] group">
@@ -51,7 +51,7 @@ snippet('header');
     </div>
     <!-- Featured Project Text -->
     <div class="w-full md:w-2/5 flex flex-col justify-center">
-      <p class="font-mono text-xs uppercase tracking-wider text-accent mb-4">Projet à la une</p>
+      <p class="font-mono text-xs uppercase tracking-wider text-faint mb-4">Projet à la une</p>
       <h3 class="font-thyssen text-4xl lg:text-5xl text-ink leading-snug mb-4">
         <a href="<?= $featured_project->url() ?>" class="hover:underline"><?= $featured_project->title()->esc() ?></a>
       </h3>
@@ -447,15 +447,21 @@ snippet('header');
           signalez-nous des éléments architecturaux en péril immédiat.
         <?php endif ?>
       </p>
-      <a href="<?= url('contact') ?>"
-        class="btn border-[4px] border-surface text-surface hover:bg-surface hover:text-ink transition-colors duration-150">
-        Contactez nous
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-          <polyline points="12 5 19 12 12 19"></polyline>
-        </svg>
-      </a>
+      <div class="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
+        <a href="<?= url('contact') ?>"
+          class="btn border-[4px] !border-surface !text-surface hover:!bg-surface hover:!text-ink transition-colors duration-150">
+          Contactez nous
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+        <a href="<?= url('map') ?>"
+          class="btn !bg-surface border-[4px] !border-surface !text-ink hover:!bg-white hover:!border-white transition-colors duration-150">
+          Explorer la carte
+        </a>
+      </div>
     </div>
   </div>
 </section>

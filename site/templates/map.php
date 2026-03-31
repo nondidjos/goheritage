@@ -67,7 +67,7 @@ snippet('header');
               </svg>
             </button>
             <a class="map-card__btn map-card__btn--visit" href="<?= $project->url() ?>">
-              Voir le modèle →
+              Voir le projet →
             </a>
           </div>
         </div>

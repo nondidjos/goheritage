@@ -57,6 +57,7 @@
         var popup = new maplibregl.Popup({
             closeButton: true,
             closeOnClick: false,
+            focusAfterOpen: false,
             offset: 28,
             maxWidth: '260px',
             anchor: 'bottom',
