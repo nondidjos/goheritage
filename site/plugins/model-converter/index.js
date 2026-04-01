@@ -9,60 +9,63 @@ panel.plugin('goheritage/model-converter', {
   fields: {
     'upload-overwrite': {
       template: `
-        <div class="k-upload-overwrite-wrap">
+        <k-field v-bind="$props" class="k-upload-overwrite-field">
+          <div class="k-upload-overwrite-wrap">
 
-          <!-- Native Kirby dropzone -->
-          <k-dropzone class="k-upload-overwrite-dropzone" :disabled="uploading" @drop="onDrop">
-            <p class="k-upload-overwrite-dropzone-label">
-              {{ uploading ? 'Téléversement…' : 'Déposer un fichier ici' }}
+            <!-- Native Kirby dropzone -->
+            <k-dropzone class="k-upload-overwrite-dropzone" :disabled="uploading" @drop="onDrop">
+              <p class="k-upload-overwrite-dropzone-label">
+                {{ uploading ? 'Téléversement…' : 'Déposer un fichier ici' }}
+              </p>
+              <k-button
+                size="sm"
+                icon="upload"
+                text="Sélectionner"
+                :disabled="uploading"
+                @click.stop="$refs.input.click()"
+              />
+              <input
+                ref="input"
+                type="file"
+                :accept="accept || undefined"
+                style="display:none"
+                @change="upload"
+                :disabled="uploading"
+              />
+            </k-dropzone>
+
+            <!-- File list -->
+            <ul v-if="matchingFiles.length" class="k-upload-overwrite-list">
+              <li v-for="f in matchingFiles" :key="f.filename" class="k-upload-overwrite-list__item">
+                <k-icon type="file" class="k-upload-overwrite-list__icon" />
+                <a :href="f.url" target="_blank" rel="noopener" class="k-upload-overwrite-list__name">
+                  {{ f.filename }}
+                </a>
+                <button
+                  type="button"
+                  class="k-upload-overwrite-list__delete"
+                  title="Supprimer"
+                  @click="confirmDelete(f)"
+                >
+                  <k-icon type="trash" />
+                </button>
+              </li>
+            </ul>
+
+            <!-- Status notice -->
+            <p v-if="message" :class="['k-upload-overwrite-notice', '--' + messageType]">
+              {{ message }}
             </p>
-            <k-button
-              size="sm"
-              icon="upload"
-              text="Sélectionner"
-              :disabled="uploading"
-              @click.stop="$refs.input.click()"
-            />
-            <input
-              ref="input"
-              type="file"
-              :accept="accept || undefined"
-              style="display:none"
-              @change="upload"
-              :disabled="uploading"
-            />
-          </k-dropzone>
 
-          <!-- File list -->
-          <ul v-if="matchingFiles.length" class="k-upload-overwrite-list">
-            <li v-for="f in matchingFiles" :key="f.filename" class="k-upload-overwrite-list__item">
-              <k-icon type="file" class="k-upload-overwrite-list__icon" />
-              <a :href="f.url" target="_blank" rel="noopener" class="k-upload-overwrite-list__name">
-                {{ f.filename }}
-              </a>
-              <button
-                type="button"
-                class="k-upload-overwrite-list__delete"
-                title="Supprimer"
-                @click="confirmDelete(f)"
-              >
-                <k-icon type="trash" />
-              </button>
-            </li>
-          </ul>
-
-          <!-- Status notice -->
-          <p v-if="message" :class="['k-upload-overwrite-notice', '--' + messageType]">
-            {{ message }}
-          </p>
-
-        </div>
+          </div>
+        </k-field>
       `,
 
       props: {
         label:    String,
         help:     String,
         accept:   String,
+        prefix:   String,
         template: { type: String, default: 'default' },
         pageId:   String,
         files:    { type: Array, default: () => [] },
@@ -84,7 +87,12 @@ panel.plugin('goheritage/model-converter', {
             .map(e => e.trim().replace(/^\./, '').toLowerCase());
           return this.files.filter(f => {
             const ext = f.filename.split('.').pop().toLowerCase();
-            return exts.includes(ext);
+            const extMatch = exts.includes(ext);
+            if (!extMatch) return false;
+            if (this.prefix) {
+              return f.filename.toLowerCase().startsWith(this.prefix.toLowerCase());
+            }
+            return true;
           });
         },
 

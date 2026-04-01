@@ -26,6 +26,7 @@ function initViewer(container) {
   const objUrl = container.dataset.obj || null;
   const mtlUrl = container.dataset.mtl || null;
   const texUrl = container.dataset.texture || null;
+  const normUrl = container.dataset.normal || null;
   const dracoPath = container.dataset.dracoPath || null;
 
   // CMS annotations passed as JSON data attribute
@@ -50,7 +51,11 @@ function initViewer(container) {
   // ── Scene ────────────────────────────────────────────────────────────────
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1a1a1a);
-  scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(5, 10, 7.5);
+  scene.add(dirLight);
 
   // ── Camera ───────────────────────────────────────────────────────────────
   const camera = new THREE.PerspectiveCamera(
@@ -406,7 +411,15 @@ function initViewer(container) {
           if (texUrl) {
             var tex = new THREE.TextureLoader().load(texUrl);
             tex.colorSpace = THREE.SRGBColorSpace;
-            var mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
+            var matParams = { map: tex, side: THREE.FrontSide };
+            
+            if (normUrl) {
+                var normTex = new THREE.TextureLoader().load(normUrl);
+                matParams.normalMap = normTex;
+            }
+            
+            var mat = normUrl ? new THREE.MeshStandardMaterial(matParams) : new THREE.MeshBasicMaterial(matParams);
+            
             object.traverse(function (child) {
               if (child.isMesh) child.material = mat;
             });

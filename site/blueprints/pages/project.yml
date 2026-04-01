@@ -181,7 +181,7 @@ tabs:
             type: upload-overwrite
             label: Fichier OBJ
             accept: ".obj"
-            template: default
+            template: model
             help: Ignoré si un fichier GLB est présent.
 
       - width: 1/2
@@ -190,8 +190,19 @@ tabs:
             type: upload-overwrite
             label: Texture diffuse
             accept: ".jpg,.jpeg,.png"
+            prefix: texture_
             template: image
-            help: Texture couleur pour le modèle OBJ.
+            help: "Texture couleur pour le modèle OBJ. Le fichier doit commencer par `texture_` (ex. `texture_chapelle.jpg`) pour être détecté automatiquement."
+
+      - width: 1/2
+        fields:
+          model_normal:
+            type: upload-overwrite
+            label: Normal Map
+            accept: ".jpg,.jpeg,.png"
+            prefix: normal_
+            template: image
+            help: "Texture de normales pour le modèle OBJ. Le fichier doit commencer par `normal_` (ex. `normal_chapelle.jpg`) pour être détecté automatiquement."
 
       - width: 1/2
         fields:

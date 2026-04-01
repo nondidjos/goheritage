@@ -1,6 +1,10 @@
 title: Modèle 3D
 accept:
-  extension: glb, gltf, obj
+  extension:
+    - glb
+    - gltf
+    - obj
+    - mtl
 
 columns:
   - width: 1/1

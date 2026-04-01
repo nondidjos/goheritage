@@ -8,17 +8,25 @@ $glbFile  = $page->model_glb()->toFile()
 $objFile  = $page->model_obj()->toFile()
     ?? $page->files()->filterBy('extension', 'obj')->first();
 $texFile  = $page->model_texture()->toFile()
-    ?? $page->files()->filterBy('extension', 'jpg')->filter(fn($f) => str_ends_with($f->name(), '-compressed'))->first()
+    ?? $page->files()->filterBy('extension', 'in', ['png', 'jpg', 'jpeg'])
+               ->filter(fn($f) => str_ends_with($f->name(), '-compressed'))->first()
     ?? $page->files()->filterBy('extension', 'in', ['png', 'jpg', 'jpeg'])
                ->filter(function($f) {
                    $name = strtolower($f->filename());
-                   return strpos($name, 'diffuse') !== false
-                       || strpos($name, 'texture') !== false
+                   return str_starts_with($name, 'texture_')
+                       || strpos($name, 'diffuse') !== false
                        || strpos($name, 'color') !== false;
                })
-               ->first()
+               ->first();
+
+$normFile = $page->model_normal()->toFile()
     ?? $page->files()->filterBy('extension', 'in', ['png', 'jpg', 'jpeg'])
-               ->not($page->cover())->first();
+               ->filter(function($f) {
+                   $name = strtolower($f->filename());
+                   return str_starts_with($name, 'normal_')
+                       || strpos($name, 'normal') !== false;
+               })
+               ->first();
 
 $viewerUrl = $page->viewer_url()->isNotEmpty() ? $page->viewer_url()->esc() : null;
 $viewerLabel = $page->viewer_label()->isNotEmpty() ? $page->viewer_label()->esc() : 'Explorer le Modèle 3D';
@@ -40,6 +48,7 @@ $annotationsJson = json_encode($annotationsData, JSON_UNESCAPED_UNICODE);
 $glbUrl = $glbFile ? $glbFile->url() : null;
 $objUrl = $objFile ? $objFile->url() : null;
 $texUrl = $texFile ? $texFile->url() : null;
+$normUrl = $normFile ? $normFile->url() : null;
 
 $hasIframe  = ($viewerUrl !== null);
 $hasModel   = ($glbUrl !== null || $objUrl !== null);
@@ -231,6 +240,7 @@ $gallery = $page->images()
                  data-glb="<?= $glbUrl ?>"
                  data-obj="<?= $objUrl ?>"
                  data-texture="<?= $texUrl ?>"
+                 data-normal="<?= $normUrl ?>"
                  data-draco-path="<?= url('node_modules/three/examples/jsm/libs/draco/') ?>"
                  data-annotations="<?= htmlspecialchars($annotationsJson) ?>">
             </div>
