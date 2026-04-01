@@ -10,6 +10,13 @@
 
 use Kirby\Cms\App as Kirby;
 use Kirby\Http\Response;
+use Kirby\Filesystem\F;
+
+// Register 3D file extensions as document types so Kirby can categorize them
+F::$types['document'][] = 'obj';
+F::$types['document'][] = 'mtl';
+F::$types['document'][] = 'glb';
+F::$types['document'][] = 'gltf';
 
 Kirby::plugin('goheritage/model-converter', [
 
@@ -39,6 +46,10 @@ Kirby::plugin('goheritage/model-converter', [
                 'method'  => 'POST',
                 'auth'    => false,
                 'action'  => function () {
+                    // Temporarily raise limits just for this heavy API route
+                    ini_set('memory_limit', '-1');
+                    set_time_limit(3600);
+                    
                     $kirby   = kirby();
                     $request = $kirby->request();
 
@@ -68,11 +79,12 @@ Kirby::plugin('goheritage/model-converter', [
 
                     $filename = basename($uploaded['name']);
 
-                    // PHP's tmp file has no extension — copy to a named temp
+                    // PHP's tmp file has no extension — move to a named temp
                     // file so Kirby's extension validator sees the right type.
+                    // We use move instead of copy to save disk space for huge models.
                     $tmpPath = sys_get_temp_dir() . '/' . uniqid('goheritage_') . '_' . $filename;
-                    if (!copy($uploaded['tmp_name'], $tmpPath)) {
-                        return Response::json(['error' => 'Failed to stage upload'], 500);
+                    if (!@move_uploaded_file($uploaded['tmp_name'], $tmpPath)) {
+                        return Response::json(['error' => 'Failed to stage upload. Ensure the server has enough free disk space.'], 500);
                     }
 
                     try {
@@ -109,6 +121,7 @@ Kirby::plugin('goheritage/model-converter', [
                         ]);
 
                     } catch (\Throwable $e) {
+                        file_put_contents(__DIR__ . '/upload-error.log', $e->getMessage() . "\n" . $e->getTraceAsString());
                         return Response::json(['error' => $e->getMessage()], 500);
                     } finally {
                         @unlink($tmpPath);

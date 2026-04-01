@@ -26,27 +26,27 @@ Location: Villandraut, Gironde
 
 ----
 
-Construction-date: 
+Construction-date: XIVe siècle
 
 ----
 
-Architect: 
+Architect: Inconnu
 
 ----
 
-Style: 
+Style: Gothique
 
 ----
 
-Dimensions: 
+Dimensions: 15 × 8 × 10 m
 
 ----
 
-Protection-status: 
+Protection-status: classé
 
 ----
 
-Condition: 
+Condition: bonne
 
 ----
 
@@ -62,7 +62,7 @@ Date: 2024-01-15
 
 ----
 
-Tags: chapelle, médiéval, religieux, gironde, ocean
+Tags: chapelle, médiéval, religieux, gironde
 
 ----
 
@@ -90,24 +90,24 @@ Annotations:
 
 -
   hotspot_id: hotspot_01
-  title: 'dame 1'
-  camera_mode: ''
-  description: ''
+  title: 'La Dame'
+  camera_mode: 'fly'
+  description: 'Sculpture d''une figure féminine sur l''une des colonnes.'
 -
   hotspot_id: hotspot_02
-  title: tombe
-  camera_mode: ''
-  description: ''
+  title: 'Le Tombeau'
+  camera_mode: 'fly'
+  description: 'Tombeau médiéval situé dans la nef.'
 -
   hotspot_id: hotspot_03
-  title: 'chaire de verite'
-  camera_mode: ''
-  description: ''
+  title: 'La Chaire'
+  camera_mode: 'fly'
+  description: 'Chaire en pierre travaillée.'
 -
   hotspot_id: hotspot_04
-  title: peak
-  camera_mode: ''
-  description: ''
+  title: 'Sommet de la Voûte'
+  camera_mode: 'fly'
+  description: 'Clé de voûte ornée.'
 
 ----
 
