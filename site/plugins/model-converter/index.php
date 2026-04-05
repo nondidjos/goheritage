@@ -27,6 +27,9 @@ Kirby::plugin('goheritage/model-converter', [
                 'pageId' => function () {
                     return $this->model()->id();
                 },
+                'fieldName' => function () {
+                    return $this->name();
+                },
                 'files' => function () {
                     return $this->model()->files()->values(fn($f) => [
                         'filename' => $f->filename(),
@@ -41,6 +44,44 @@ Kirby::plugin('goheritage/model-converter', [
     // ── Custom API routes ─────────────────────────────────────────────────────
     'api' => [
         'routes' => [
+            [
+                'pattern' => 'goheritage/delete-file',
+                'method'  => 'DELETE',
+                'auth'    => false,
+                'action'  => function () {
+                    $kirby   = kirby();
+                    $request = $kirby->request();
+
+                    if (!$kirby->user()) {
+                        return Response::json(['error' => 'Unauthorized'], 401);
+                    }
+
+                    $pageId   = $request->get('pageId');
+                    $filename = $request->get('filename');
+
+                    if (!$pageId || !$filename) {
+                        return Response::json(['error' => 'pageId and filename required'], 400);
+                    }
+
+                    $page = $kirby->page($pageId);
+                    if (!$page) {
+                        return Response::json(['error' => 'Page not found: ' . $pageId], 404);
+                    }
+
+                    $file = $page->file(basename($filename));
+                    if (!$file) {
+                        return Response::json(['error' => 'File not found: ' . $filename], 404);
+                    }
+
+                    try {
+                        $kirby->impersonate('kirby');
+                        $file->delete();
+                        return Response::json(['status' => 'deleted', 'filename' => $filename]);
+                    } catch (\Throwable $e) {
+                        return Response::json(['error' => $e->getMessage()], 500);
+                    }
+                },
+            ],
             [
                 'pattern' => 'goheritage/upload-overwrite',
                 'method'  => 'POST',
@@ -58,8 +99,9 @@ Kirby::plugin('goheritage/model-converter', [
                         return Response::json(['error' => 'Unauthorized'], 401);
                     }
 
-                    $pageId   = $request->get('pageId');
-                    $template = $request->get('template', 'default');
+                    $pageId    = $request->get('pageId');
+                    $template  = $request->get('template', 'default');
+                    $fieldName = $request->get('fieldName', '');
 
                     if (!$pageId) {
                         return Response::json(['error' => 'pageId required'], 400);
@@ -78,6 +120,7 @@ Kirby::plugin('goheritage/model-converter', [
                     }
 
                     $filename = basename($uploaded['name']);
+                    $ext      = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
                     // PHP's tmp file has no extension — move to a named temp
                     // file so Kirby's extension validator sees the right type.
@@ -92,10 +135,21 @@ Kirby::plugin('goheritage/model-converter', [
                         $existing = $page->file($filename);
 
                         if ($existing) {
-                            // Overwrite — bypasses FileRules::notExistingFile()
+                            // Overwrite in-place — bypasses FileRules::notExistingFile()
                             $newFile = $existing->replace($tmpPath);
                         } else {
-                            // First upload
+                            // New filename: delete any previous file of the same
+                            // extension that was linked to this field, then create.
+                            if ($fieldName) {
+                                $prevUuid = $page->content()->get($fieldName)->value();
+                                if ($prevUuid) {
+                                    $prevFile = $kirby->file($prevUuid);
+                                    if ($prevFile && $prevFile->parent()->id() === $page->id()) {
+                                        try { $prevFile->delete(); } catch (\Throwable $_) {}
+                                    }
+                                }
+                            }
+
                             $newFile = $page->createFile([
                                 'source'   => $tmpPath,
                                 'filename' => $filename,
@@ -103,9 +157,14 @@ Kirby::plugin('goheritage/model-converter', [
                             ]);
                         }
 
+                        // Store the file UUID back into the page content field so that
+                        // $page->model_glb()->toFile() (etc.) resolves correctly.
+                        if ($fieldName) {
+                            $page->update([$fieldName => $newFile->uuid()]);
+                        }
+
                         // Manually trigger post-upload processing since the
                         // custom route bypasses Kirby's file.create:after hook.
-                        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
                         if ($ext === 'glb' && $page->compress_textures()->toBool()) {
                             compressGlbTextures($newFile);
                             $newFile = $page->file($filename); // reload after replace

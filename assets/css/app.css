@@ -55,7 +55,7 @@
     --color-ink: #1A1916;
     --color-mid: #4A4845;
     --color-faint: #8C8A85;
-    --color-accent: #B04A2C;
+    --color-accent: #ff9448;
     --color-border: rgba(26, 25, 22, 0.12);
     --font-thyssen: 'Thyssen', serif;
   }
@@ -681,7 +681,7 @@
     background-color: #f47a21;
   }
   .bg-\[color-mix\(in_srgb\,var\(--color-accent\)_6\%\,var\(--color-bg\)\)\] {
-    background-color: color-mix(in srgb,#B04A2C 6%,#FFFFFF);
+    background-color: color-mix(in srgb,#ff9448 6%,#FFFFFF);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in srgb,var(--color-accent) 6%,var(--color-bg));
     }

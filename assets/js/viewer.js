@@ -96,7 +96,7 @@ function initViewer(container) {
   }
 
   // ── State ────────────────────────────────────────────────────────────────
-  var hotspots = [];       // { id, title, position: Vector3, cameraPos?: Vector3, labelObj, el }
+  var hotspots = [];       // { id, title, position: Vector3, cameraPos?: Vector3, lookAt?: Vector3, labelObj, el }
   var activeHotspotId = null;
   var modelCenter = new THREE.Vector3();
   var modelRadius = 1;
@@ -167,6 +167,7 @@ function initViewer(container) {
         title: node.userData.title || id,
         position: pos,
         cameraPos: null,
+        lookAt: null,
         cameraMode: node.userData.camera_mode || 'fly', // "fly" or "orbit"
         labelObj: null,
         el: null,
@@ -178,6 +179,15 @@ function initViewer(container) {
           node.userData.camera_x,
           node.userData.camera_y,
           node.userData.camera_z
+        );
+      }
+
+      // optional stored look-at target (Blender viewport orbit pivot)
+      if (node.userData.lookat_x !== undefined) {
+        entry.lookAt = new THREE.Vector3(
+          node.userData.lookat_x,
+          node.userData.lookat_y,
+          node.userData.lookat_z
         );
       }
 
@@ -291,22 +301,26 @@ function initViewer(container) {
     // camera behaviour depends on mode
     var targetPos = hs.position.clone();
 
-    if (hs.cameraMode === 'orbit') {
-      // just re-center the orbit target on the hotspot, no camera movement
-      controls.target.copy(targetPos);
-      controls.update();
+    // Compute the camera destination — same for both modes.
+    // If a position was stored in Blender, use it; otherwise approach
+    // from the direction of hotspot → model center at a sensible distance.
+    var cameraTarget;
+    if (hs.cameraPos) {
+      cameraTarget = hs.cameraPos.clone();
     } else {
-      // "fly" (default): animate camera to stored or computed position
-      var cameraTarget;
-      if (hs.cameraPos) {
-        cameraTarget = hs.cameraPos.clone();
-      } else {
-        var dir = targetPos.clone().sub(modelCenter).normalize();
-        if (dir.length() < 0.01) dir.set(0, 0, 1);
-        cameraTarget = targetPos.clone().add(dir.multiplyScalar(modelRadius * 0.6));
-      }
-      flyTo(cameraTarget, targetPos, 1.2);
+      var dir = targetPos.clone().sub(modelCenter).normalize();
+      if (dir.length() < 0.01) dir.set(0, 0, 1);
+      cameraTarget = targetPos.clone().add(dir.multiplyScalar(modelRadius * 0.6));
     }
+
+    // Use the stored Blender orbit pivot as the look-at target when available.
+    // This reproduces the exact viewport angle from Blender rather than
+    // forcing the camera to look straight at the hotspot sphere.
+    var lookAtTarget = hs.lookAt ? hs.lookAt.clone() : targetPos.clone();
+
+    // Always animate. In orbit mode the controls stay enabled after the
+    // animation so the user can freely orbit around the look-at point.
+    flyTo(cameraTarget, lookAtTarget, 1.2);
   }
 
   function deactivateHotspot(id) {

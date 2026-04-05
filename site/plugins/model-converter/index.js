@@ -62,19 +62,19 @@ panel.plugin('goheritage/model-converter', {
       `,
 
       props: {
-        label:    String,
-        help:     String,
-        accept:   String,
-        prefix:   String,
+        label: String,
+        help: String,
+        accept: String,
+        prefix: String,
         template: { type: String, default: 'default' },
-        pageId:   String,
-        files:    { type: Array, default: () => [] },
+        pageId: String,
+        files: { type: Array, default: () => [] },
       },
 
       data() {
         return {
-          uploading:   false,
-          message:     '',
+          uploading: false,
+          message: '',
           messageType: 'success',
         };
       },
@@ -118,7 +118,7 @@ panel.plugin('goheritage/model-converter', {
 
           if (this.accept) {
             const exts = this.accept.split(',').map(e => e.trim().replace(/^\./, '').toLowerCase());
-            const ext  = file.name.split('.').pop().toLowerCase();
+            const ext = file.name.split('.').pop().toLowerCase();
             if (!exts.includes(ext)) {
               this.showMessage(`Extension non autorisée : .${ext}`, 'error');
               this.$refs.input.value = '';
@@ -127,18 +127,19 @@ panel.plugin('goheritage/model-converter', {
           }
 
           this.uploading = true;
-          this.message   = '';
+          this.message = '';
 
           const form = new FormData();
-          form.append('file',     file);
-          form.append('pageId',   this.pageId || '');
+          form.append('file', file);
+          form.append('pageId', this.pageId || '');
           form.append('template', this.template || 'default');
+          form.append('fieldName', this.fieldName || '');
 
           try {
             const resp = await fetch('/api/goheritage/upload-overwrite', {
-              method:  'POST',
+              method: 'POST',
               headers: { 'X-CSRF': panel.csrf },
-              body:    form,
+              body: form,
             });
 
             const json = await resp.json();
@@ -175,17 +176,21 @@ panel.plugin('goheritage/model-converter', {
 
         async deleteFile(file) {
           try {
+            const params = new URLSearchParams({
+              pageId: this.pageId || '',
+              filename: file.filename,
+            });
             const resp = await fetch(
-              `/api/pages/${this.apiPageId}/files/${encodeURIComponent(file.filename)}`,
+              `/api/goheritage/delete-file?${params}`,
               {
-                method:  'DELETE',
+                method: 'DELETE',
                 headers: { 'X-CSRF': panel.csrf },
               }
             );
 
+            const json = await resp.json().catch(() => ({}));
             if (!resp.ok) {
-              const json = await resp.json().catch(() => ({}));
-              this.showMessage('Erreur : ' + (json.message || resp.statusText), 'error');
+              this.showMessage('Erreur : ' + (json.error || resp.statusText), 'error');
             } else {
               this.showMessage(`Supprimé : ${file.filename}`, 'success');
               this.$panel.view.reload();
@@ -196,7 +201,7 @@ panel.plugin('goheritage/model-converter', {
         },
 
         showMessage(text, type) {
-          this.message     = text;
+          this.message = text;
           this.messageType = type;
           setTimeout(() => { this.message = ''; }, 3500);
         },
