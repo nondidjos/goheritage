@@ -2,11 +2,12 @@
 snippet('header');
 
 // auto-detect 3d model files from this page's directory
-// explicit field selection takes priority; glb is always preferred over obj
+// explicit field reference (stored by upload-overwrite after each upload) takes
+// priority; falls back to the most-recently-modified file of the right type.
 $glbFile  = $page->model_glb()->toFile()
-    ?? $page->files()->filterBy('extension', 'glb')->first();
+    ?? $page->files()->filterBy('extension', 'glb')->sortBy('modified', 'desc')->first();
 $objFile  = $page->model_obj()->toFile()
-    ?? $page->files()->filterBy('extension', 'obj')->first();
+    ?? $page->files()->filterBy('extension', 'obj')->sortBy('modified', 'desc')->first();
 $texFile  = $page->model_texture()->toFile()
     ?? $page->files()->filterBy('extension', 'in', ['png', 'jpg', 'jpeg'])
                ->filter(fn($f) => str_ends_with($f->name(), '-compressed'))->first()
