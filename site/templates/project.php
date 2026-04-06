@@ -136,7 +136,7 @@ if ($gallery->count() === 0) {
         <!-- Tags -->
         <div class="flex flex-wrap gap-2 mt-4">
             <?php foreach ($page->tags()->split(',') as $tag): ?>
-                <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($tag)) ?>" class="tag"><?= esc(trim($tag)) ?></a>
+                <span class="tag"><?= esc(trim($tag)) ?></span>
             <?php endforeach ?>
         </div>
 

@@ -1,13 +1,31 @@
-name: Section dépliable
+name: Section extensible
 icon: bars
 preview: fields
+collapsed: true
 
 fields:
+
   section_title:
     type: text
-    label: Titre
+    label: Titre de la section
     required: true
-    placeholder: "ex. Historique, Contexte…"
+    placeholder: "ex. Historique, Description architecturale…"
+    width: 2/3
+
+  hotspot_id:
+    type: select
+    label: Point 3D lié (optionnel)
+    required: false
+    placeholder: "Aucun — section libre"
+    options: query
+    query:
+      fetch: page.annotations.toStructure
+      text: "{{ item.title }}"
+      value: "{{ item.hotspot_id }}"
+    help: >
+      Si renseigné, cette section s'active lorsque le hotspot correspondant
+      est cliqué dans le viewer 3D. Sur mobile, le contenu apparaît en popup.
+    width: 1/3
 
   section_content:
     type: blocks

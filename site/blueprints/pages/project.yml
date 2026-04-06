@@ -33,7 +33,6 @@ tabs:
           - gallery
           - video
           - quote
-          - hotspot
           - section
 
       gallery:
