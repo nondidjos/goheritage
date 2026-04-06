@@ -79,6 +79,9 @@ if ($isMapPage) {
   <script src="https://unpkg.com/maplibre-gl@5.16.0/dist/maplibre-gl.js"></script>
 <?php endif ?>
 
+<?php if ($page->template()->name() === 'project'): ?>
+  <?= js('assets/js/lightbox.js') ?>
+<?php endif ?>
 <?= js($jsFiles) ?>
 
 </body>

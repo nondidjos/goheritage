@@ -23,7 +23,10 @@ if ($isMapPage) {
   // If viewer_url is filled in, the project page renders an iframe instead —
   // loading Three.js would be wasteful and serves no purpose.
   $needsThreeJs = $isProjectPage && $page->viewer_url()->isEmpty();
-  if ($needsThreeJs): ?>
+  if ($isProjectPage): ?>
+  <?= css('assets/css/lightbox.css') ?>
+  <?php endif ?>
+  <?php if ($needsThreeJs): ?>
   <?= css('assets/css/viewer.css') ?>
   <script type="importmap">
   {

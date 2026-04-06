@@ -15,6 +15,18 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // ── Gallery lightbox ──
+    document.querySelectorAll('[data-lightbox]').forEach(function (link) {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+            var src = link.getAttribute('href');
+            var alt = link.querySelector('img') ? link.querySelector('img').alt : '';
+            if (typeof basicLightbox !== 'undefined') {
+                basicLightbox.create('<img src="' + src + '" alt="' + alt + '">').show();
+            }
+        });
+    });
+
     // compare sliders — works for all instances on the page
     document.querySelectorAll('.compare-slider').forEach(function (slider) {
         var afterEl = slider.querySelector('.compare-slider__after');

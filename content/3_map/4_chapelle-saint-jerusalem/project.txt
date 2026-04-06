@@ -46,10 +46,6 @@ Protection-status: classé
 
 ----
 
-Condition: 
-
-----
-
 Lat: 44.47
 
 ----

@@ -46,10 +46,6 @@ Protection-status:
 
 ----
 
-Condition: 
-
-----
-
 Lat: 
 
 ----
