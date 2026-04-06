@@ -198,6 +198,68 @@
     display: none;
 }
 
+/* ── Ext / Int model toggle ────────────────────────────────────────────────── */
+
+.viewer-toggle {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: rgba(30, 30, 30, 0.82);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 999px;
+    padding: 4px;
+    pointer-events: auto;
+}
+
+.viewer-toggle__btn {
+    padding: 5px 16px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.55);
+    font-family: var(--font-sans, system-ui, sans-serif);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.viewer-toggle__btn:hover:not(.is-active):not(:disabled) {
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.viewer-toggle__btn.is-active {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+.viewer-toggle__btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+/* ── Model switch fade overlay ──────────────────────────────────────────────── */
+
+.viewer-fade {
+    position: absolute;
+    inset: 0;
+    background: #111;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.26s ease;
+    z-index: 15;
+}
+
 /* ── Responsive ────────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
     .viewer-label {

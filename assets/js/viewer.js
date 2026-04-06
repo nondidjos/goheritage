@@ -22,12 +22,13 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 // ── Main init ────────────────────────────────────────────────────────────────
 
 function initViewer(container) {
-  const glbUrl = container.dataset.glb || null;
-  const objUrl = container.dataset.obj || null;
-  const mtlUrl = container.dataset.mtl || null;
-  const texUrl = container.dataset.texture || null;
-  const normUrl = container.dataset.normal || null;
-  const dracoPath = container.dataset.dracoPath || null;
+  const glbUrl      = container.dataset.glb || null;
+  const objUrl      = container.dataset.obj || null;
+  const mtlUrl      = container.dataset.mtl || null;
+  const texUrl      = container.dataset.texture || null;
+  const normUrl     = container.dataset.normal || null;
+  const dracoPath   = container.dataset.dracoPath || null;
+  const interiorUrl = container.dataset.glbInterior || null;
 
   // CMS annotations passed as JSON data attribute
   let cmsAnnotations = [];
@@ -96,11 +97,21 @@ function initViewer(container) {
   }
 
   // ── State ────────────────────────────────────────────────────────────────
-  var hotspots = [];       // { id, title, position: Vector3, cameraPos?: Vector3, lookAt?: Vector3, labelObj, el }
+  var hotspots = [];       // active side's hotspot list
   var activeHotspotId = null;
   var modelCenter = new THREE.Vector3();
   var modelRadius = 1;
   var flyAnimation = null; // active fly-to RAF id
+
+  // ── Dual-model state ─────────────────────────────────────────────────────
+  var currentSide  = 'exterior';
+  var modelObjects = { exterior: null, interior: null };
+  var hotspotSets  = { exterior: [], interior: [] };
+
+  // ── Fade overlay (used when switching models) ────────────────────────────
+  var fadeEl = document.createElement('div');
+  fadeEl.className = 'viewer-fade';
+  container.appendChild(fadeEl);
 
   // ── Frame camera to fit model ────────────────────────────────────────────
   function frameModel(object) {
@@ -138,11 +149,15 @@ function initViewer(container) {
     frameModel(object);
     hideProgress();
 
-    // extract hotspots from the scene graph
     extractHotspots(object);
     buildLabels();
     wireAnnotationPanel();
     wireHotspotBlocks();
+
+    // Store exterior model; build toggle once ready if interior URL is set
+    modelObjects.exterior = object;
+    hotspotSets.exterior  = hotspots.slice();
+    if (interiorUrl) buildToggle();
   }
 
   // ── Extract hotspots from Blender Empties ────────────────────────────────
@@ -220,7 +235,8 @@ function initViewer(container) {
   }
 
   // ── Build CSS2D labels ───────────────────────────────────────────────────
-  function buildLabels() {
+  // addToScene defaults to true; pass false when pre-building for an inactive model
+  function buildLabels(addToScene) {
     hotspots.forEach(function (hs, i) {
       var el = document.createElement('div');
       el.className = 'viewer-label';
@@ -246,7 +262,7 @@ function initViewer(container) {
       // offset label slightly upward so it doesn't sit right on the surface
       labelObj.position.y += modelRadius * 0.01;
       labelObj.layers.set(0);
-      scene.add(labelObj);
+      if (addToScene !== false) scene.add(labelObj);
 
       hs.labelObj = labelObj;
       hs.el = el;
@@ -277,6 +293,152 @@ function initViewer(container) {
         activateHotspot(e.detail.id);
       }
     });
+  }
+
+  // ── Ext / Int toggle ─────────────────────────────────────────────────────
+  function buildToggle() {
+    var toggle = document.createElement('div');
+    toggle.className = 'viewer-toggle';
+    toggle.innerHTML =
+      '<button class="viewer-toggle__btn is-active" data-side="exterior">Ext\u00e9rieur</button>' +
+      '<button class="viewer-toggle__btn" data-side="interior">Int\u00e9rieur</button>';
+    container.appendChild(toggle);
+    toggle.addEventListener('click', function (e) {
+      var btn = e.target.closest ? e.target.closest('.viewer-toggle__btn') : null;
+      if (btn && btn.dataset.side !== currentSide && !btn.disabled) {
+        switchModel(btn.dataset.side);
+      }
+    });
+  }
+
+  // ── Update model bounds without re-framing the camera ───────────────────
+  function updateModelBounds(object) {
+    var box  = new THREE.Box3().setFromObject(object);
+    var size = box.getSize(new THREE.Vector3());
+    modelCenter.copy(box.getCenter(new THREE.Vector3()));
+    modelRadius  = size.length() / 2;
+    camera.near  = size.length() * 0.001;
+    camera.far   = size.length() * 10;
+    camera.updateProjectionMatrix();
+  }
+
+  // ── Switch between exterior / interior models ────────────────────────────
+  function switchModel(side) {
+    if (side === currentSide || !modelObjects.exterior) return;
+
+    var btns = container.querySelectorAll('.viewer-toggle__btn');
+    btns.forEach(function (b) { b.disabled = true; });
+
+    // Capture camera so the angle is preserved across the swap
+    var savedPos    = camera.position.clone();
+    var savedTarget = controls.target.clone();
+
+    // Fade to black
+    fadeEl.style.opacity = '1';
+
+    setTimeout(function () {
+      // Remove current model and its labels from the scene
+      hotspotSets[currentSide].forEach(function (hs) {
+        if (hs.labelObj) scene.remove(hs.labelObj);
+      });
+      if (activeHotspotId) { deactivateHotspot(activeHotspotId); activeHotspotId = null; }
+      if (modelObjects[currentSide]) scene.remove(modelObjects[currentSide]);
+
+      currentSide = side;
+      btns.forEach(function (b) {
+        b.classList.toggle('is-active', b.dataset.side === side);
+        b.disabled = false;
+      });
+
+      function showSide(obj) {
+        scene.add(obj);
+        updateModelBounds(obj);
+        camera.position.copy(savedPos);
+        controls.target.copy(savedTarget);
+        controls.update();
+        hotspots = hotspotSets[side];
+        hotspots.forEach(function (hs) {
+          if (hs.labelObj) scene.add(hs.labelObj);
+        });
+        // Fade back in
+        fadeEl.style.opacity = '0';
+      }
+
+      if (modelObjects[side]) {
+        showSide(modelObjects[side]);
+      } else {
+        loadInteriorGlb(interiorUrl, showSide);
+      }
+    }, 260);
+  }
+
+  // ── Lazy-load the interior GLB (first switch only) ───────────────────────
+  function loadInteriorGlb(url, onReady) {
+    var prog = document.createElement('div');
+    prog.className = 'viewer-progress';
+    prog.innerHTML =
+      '<div class="viewer-progress-bar"><div class="viewer-progress-fill"></div></div>' +
+      '<span class="viewer-progress-text">chargement de l\u2019int\u00e9rieur\u2026</span>';
+    container.appendChild(prog);
+    var fill = prog.querySelector('.viewer-progress-fill');
+    var text = prog.querySelector('.viewer-progress-text');
+
+    var loader = new GLTFLoader();
+    if (dracoPath) {
+      var dl = new DRACOLoader();
+      dl.setDecoderPath(dracoPath);
+      loader.setDRACOLoader(dl);
+    }
+
+    loader.load(
+      url,
+      function (gltf) {
+        var model = gltf.scene;
+
+        model.traverse(function (child) {
+          if (child.isMesh && child.material) {
+            [].concat(child.material).forEach(function (m) { m.side = THREE.FrontSide; });
+          }
+        });
+
+        // Temporarily borrow globals to build hotspot labels without touching the scene
+        var prevHotspots = hotspots;
+        var prevRadius   = modelRadius;
+        var prevCenter   = modelCenter.clone();
+
+        var box = new THREE.Box3().setFromObject(model);
+        modelRadius = box.getSize(new THREE.Vector3()).length() / 2;
+        modelCenter.copy(box.getCenter(new THREE.Vector3()));
+
+        hotspots = [];
+        extractHotspots(model);
+        buildLabels(false); // create CSS2DObjects, don't add to scene yet
+        hotspotSets.interior = hotspots;
+
+        // Restore exterior state
+        hotspots    = prevHotspots;
+        modelRadius = prevRadius;
+        modelCenter.copy(prevCenter);
+
+        modelObjects.interior = model;
+
+        prog.style.opacity = '0';
+        setTimeout(function () { prog.remove(); }, 400);
+
+        onReady(model);
+      },
+      function (xhr) {
+        if (xhr.total > 0) {
+          var pct = Math.round((xhr.loaded / xhr.total) * 100);
+          fill.style.width  = pct + '%';
+          text.textContent  = 'chargement\u2026 ' + pct + '%';
+        }
+      },
+      function (err) {
+        console.error('interior glb load error:', err);
+        text.textContent = 'erreur de chargement';
+      }
+    );
   }
 
   // ── Activate a hotspot ───────────────────────────────────────────────────

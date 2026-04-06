@@ -137,7 +137,6 @@ tabs:
     label: Modèle 3D
     icon: box
     columns:
-      # ── GLB (workflow principal) ─────────────────────────────────────────────
       - width: 1/1
         fields:
           glb_info:
@@ -149,14 +148,15 @@ tabs:
               puis exportez via **Fichier → Exporter → glTF 2.0 (.glb)**.
               Les hotspots et positions de caméra sont intégrés automatiquement.
 
+      # ── Extérieur ────────────────────────────────────────────────────────────
       - width: 2/3
         fields:
           model_glb:
             type: upload-overwrite
-            label: Fichier GLB
+            label: Extérieur
             accept: ".glb"
             template: model
-            help: Modèle 3D au format glTF binaire, exporté depuis Blender.
+            help: Modèle GLB exporté depuis Blender.
 
       - width: 1/3
         fields:
@@ -166,7 +166,21 @@ tabs:
             placeholder: "https://…"
             help: Potree, Sketchfab, etc. Remplace le viewer Three.js si renseigné.
 
-      # ── OBJ (import alternatif sans hotspots) ───────────────────────────────
+      # ── Intérieur ────────────────────────────────────────────────────────────
+      - width: 2/3
+        fields:
+          model_glb_interior:
+            type: upload-overwrite
+            label: Intérieur
+            accept: ".glb"
+            template: model
+            help: "Optionnel — affiche un bouton Ext. / Int. dans le viewer. Chargé à la demande au premier clic."
+
+  # ── Tab 4 : Modèle 3D (obsolète) ──────────────────────────────────────────
+  viewer_legacy:
+    label: Modèle 3D (obsolète)
+    icon: box
+    columns:
       - width: 1/1
         fields:
           obj_section_info:
@@ -192,7 +206,7 @@ tabs:
             accept: ".jpg,.jpeg,.png"
             prefix: texture_
             template: image
-            help: "Texture couleur pour le modèle OBJ. Le fichier doit commencer par `texture_` (ex. `texture_chapelle.jpg`) pour être détecté automatiquement."
+            help: "Texture couleur pour le modèle OBJ. Le fichier doit commencer par `texture_` (ex. `texture_chapelle.jpg`)."
 
       - width: 1/2
         fields:
@@ -202,7 +216,7 @@ tabs:
             accept: ".jpg,.jpeg,.png"
             prefix: normal_
             template: image
-            help: "Texture de normales pour le modèle OBJ. Le fichier doit commencer par `normal_` (ex. `normal_chapelle.jpg`) pour être détecté automatiquement."
+            help: "Texture de normales pour le modèle OBJ. Le fichier doit commencer par `normal_` (ex. `normal_chapelle.jpg`)."
 
       - width: 1/2
         fields:
@@ -225,7 +239,7 @@ tabs:
             default: true
             help: Compresse la texture diffuse à l'upload pour le web.
 
-  # ── Tab 4 : Points d'intérêt ──────────────────────────────────────────────
+  # ── Tab 5 : Points d'intérêt ──────────────────────────────────────────────
   annotations:
     label: Points d'intérêt
     icon: pin

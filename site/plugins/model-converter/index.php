@@ -31,7 +31,27 @@ Kirby::plugin('goheritage/model-converter', [
                     return $this->name();
                 },
                 'files' => function () {
-                    return $this->model()->files()->values(fn($f) => [
+                    $page     = $this->model();
+                    $fieldVal = $page->content()->get($this->name())->value();
+
+                    // If this field has a stored file UUID, show only that file.
+                    // This prevents every upload-overwrite field on the page from
+                    // listing all files of the same extension (e.g. two GLB fields
+                    // each showing every GLB on the page).
+                    if ($fieldVal) {
+                        $file = kirby()->file($fieldVal);
+                        if ($file && $file->parent()->id() === $page->id()) {
+                            return [[
+                                'filename' => $file->filename(),
+                                'url'      => $file->url(),
+                                'id'       => $file->id(),
+                            ]];
+                        }
+                    }
+
+                    // No stored value yet — fall back to all page files
+                    // (covers fields that pre-date the UUID-storage upgrade)
+                    return $page->files()->values(fn($f) => [
                         'filename' => $f->filename(),
                         'url'      => $f->url(),
                         'id'       => $f->id(),
