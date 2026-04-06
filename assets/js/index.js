@@ -184,6 +184,20 @@ document.addEventListener('DOMContentLoaded', function () {
     if (tagBtns.length && blogArticles.length) {
         var selectedBlogTags = new Set();
 
+        // Pre-activate tag from URL ?tag= param (links from project/article pages)
+        var urlTag = new URLSearchParams(window.location.search).get('tag');
+        if (urlTag) {
+            var normalised = urlTag.trim();
+            tagBtns.forEach(function (btn) {
+                if (btn.dataset.filterTag.trim() === normalised) {
+                    selectedBlogTags.add(normalised);
+                    btn.classList.add('tag--active');
+                }
+            });
+            // applyBlogFilters is defined below; defer so it runs after declaration
+            setTimeout(function () { applyBlogFilters(); }, 0);
+        }
+
         tagBtns.forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var tag = btn.dataset.filterTag;

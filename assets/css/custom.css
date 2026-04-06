@@ -115,7 +115,7 @@
     letter-spacing: 0.08em;
     padding: 0.625rem 1.5rem;
     border: 4px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     text-decoration: none;
     transition: background 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out;
     color: var(--color-ink);
@@ -175,8 +175,7 @@ babylon {
 
 /* ── Location tag (pin + city, matches .tag visual) ───── */
 .location-tag {
-    display: inline-flex;
-    align-items: center;
+    display: inline-block;
     gap: 0.625rem;
     font-family: var(--font-mono);
     font-size: 0.625rem;
@@ -186,12 +185,19 @@ babylon {
     color: var(--color-faint);
     line-height: 1.5;
     margin: 0;
+    white-space: nowrap;
+}
+.location-tag svg {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 0.5rem;
+    margin-top: -2px;
 }
 
 /* ── Tags ─────────────────────────────────────────────── */
 .tag {
-    display: inline-flex;
-    align-items: center;
+    display: inline-block;
+    vertical-align: middle;
     font-family: var(--font-mono);
     font-size: 0.6875rem;
     font-weight: 500;
@@ -199,9 +205,9 @@ babylon {
     letter-spacing: 0.06em;
     color: var(--color-mid);
     background-color: var(--color-surface);
-    padding: 0.25rem 0.75rem;
-    border-radius: 4px;
-    line-height: 1.5;
+    padding: 0.35rem 1rem;
+    border-radius: var(--radius-sm);
+    line-height: 1.25;
 }
 
 /* ── Byline / Author name ─────────────────────────────── */
@@ -291,7 +297,7 @@ babylon {
 .compare-slider {
     position: relative;
     overflow: hidden;
-    border-radius: 4px;
+    border-radius: var(--radius-md);
     aspect-ratio: 4/3;
     cursor: col-resize;
     user-select: none;
@@ -404,6 +410,7 @@ babylon {
     gap: 0.5rem;
     padding: 0.625rem 0.75rem;
     border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
     background: var(--color-bg);
     transition: border-color 0.15s;
 }
@@ -456,6 +463,22 @@ babylon {
 
 .blog-search-bar__submit:hover {
     color: var(--color-ink);
+}
+
+/* ── Interactive tags (button or anchor) ──────────────── */
+button.tag,
+a.tag {
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+button.tag:hover,
+a.tag:hover {
+    background-color: var(--color-ink);
+    color: var(--color-bg);
+    text-decoration: none;
 }
 
 /* ── Tag active state ─────────────────────────────────── */
@@ -550,9 +573,9 @@ model-viewer .progress-bar {
     left: 50%;
     top: 50%;
     transform: translate3d(-50%, -50%, 0);
-    border-radius: 4px;
     box-shadow: 0px 3px 10px 3px rgba(0, 0, 0, 0.5), 0px 0px 5px 1px rgba(0, 0, 0, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: var(--radius-md);
     background-color: rgba(0, 0, 0, 0.5);
 }
 
@@ -566,7 +589,7 @@ model-viewer .update-bar {
     background-color: var(--color-ink);
     width: 0%;
     height: 100%;
-    border-radius: 4px;
+    border-radius: var(--radius-md);
     float: left;
     transition: width 0.3s;
 }

@@ -26,7 +26,7 @@ snippet('header');
 
   <div class="col-5">
     <!-- removing aspect ratio constraints and just letting the image fill its natural column height natively -->
-    <div class="w-full h-full bg-surface rounded-[4px] overflow-hidden min-h-[50vh]">
+    <div class="w-full h-full bg-surface rounded-md overflow-hidden min-h-[50vh]">
       <img src="<?= url('assets/hero-images/Wien-Museum-Online-Sammlung-311154-1-4.jpeg') ?>" alt="Patrimoine numérisé"
         class="w-full h-full object-cover" loading="eager">
     </div>
@@ -35,11 +35,11 @@ snippet('header');
 </section>
 
 <?php if ($featured_project = $site->featured_project()->toPage()): ?>
-<section class="py-16 bg-surface col-7 -mx-4 px-4 md:px-12 mb-20 rounded-[4px] mt-10">
+<section class="py-16 bg-surface col-7 -mx-4 px-4 md:px-12 mb-20 rounded-md mt-10">
   <div class="col-7 flex flex-col md:flex-row gap-10 lg:gap-16 items-center w-full">
     <!-- Featured Project Image -->
     <div class="w-full md:w-3/5">
-      <a href="<?= $featured_project->url() ?>" class="block rounded-[4px] overflow-hidden aspect-[16/9] group">
+      <a href="<?= $featured_project->url() ?>" class="block rounded-md overflow-hidden aspect-[16/9] group">
         <?php if ($cover = $featured_project->cover()->toFile()): ?>
           <img src="<?= $cover->crop(1200, 675)->url() ?>" alt="<?= $cover->alt()->esc() ?>" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
         <?php else: ?>
@@ -130,7 +130,7 @@ snippet('header');
     <?= $page->procedeHeading()->or('Le procédé GOVR') ?>
   </h2>
 
-  <div class="col-7 overflow-hidden rounded-[4px] aspect-[3/1] relative" id="procede-images">
+  <div class="col-7 overflow-hidden rounded-md aspect-[3/1] relative" id="procede-images">
     <?php if ($step1Img = $page->step1Image()->toFile()): ?>
       <img src="<?= $step1Img->url() ?>" alt="Acquisition" class="procede-image" data-step="0">
     <?php else: ?>
@@ -153,7 +153,7 @@ snippet('header');
     <?php endif ?>
   </div>
 
-  <div class="col-7 bg-surface rounded-[4px] relative overflow-hidden p-4 pt-4">
+  <div class="col-7 bg-surface rounded-md relative overflow-hidden p-4 pt-4">
 
     <div class="absolute top-0 left-0 w-full h-1 bg-border/50">
       <div id="procede-progress" class="h-full bg-mid w-0 transition-none"></div>
@@ -162,7 +162,7 @@ snippet('header');
     <div class="relative flex flex-col md:block md:h-52 gap-4" id="procede-steps">
 
       <div
-        class="bg-white rounded-[4px] p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start md:absolute md:top-0 w-full md:w-[27%] md:left-0"
+        class="bg-white rounded-md p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start md:absolute md:top-0 w-full md:w-[27%] md:left-0"
         data-step="0">
         <span class="font-sans text-5xl leading-none text-ink mb-3 block">1</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step1Title()->or('Acquisition') ?></h3>
@@ -172,7 +172,7 @@ snippet('header');
       </div>
 
       <div
-        class="bg-white rounded-[4px] p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start md:absolute md:top-0 w-full md:w-[27%] md:left-[42%]"
+        class="bg-white rounded-md p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start md:absolute md:top-0 w-full md:w-[27%] md:left-[42%]"
         data-step="1">
         <span class="font-sans text-5xl leading-none text-faint mb-3 block">2</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step2Title()->or('Traitement') ?></h3>
@@ -182,7 +182,7 @@ snippet('header');
       </div>
 
       <div
-        class="bg-white rounded-[4px] p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start md:absolute md:top-0 w-full md:w-[27%] md:left-[72%]"
+        class="bg-white rounded-md p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start md:absolute md:top-0 w-full md:w-[27%] md:left-[72%]"
         data-step="2">
         <span class="font-sans text-5xl leading-none text-faint mb-3 block">3</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step3Title()->or('Production') ?></h3>
@@ -197,7 +197,7 @@ snippet('header');
 
 <section class="py-20">
 
-  <div class="col-7 bg-ink rounded-[4px] overflow-hidden">
+  <div class="col-7 bg-ink rounded-md overflow-hidden">
 
     <!-- Manifesto header -->
     <div class="px-10 md:px-16 pt-14 pb-12 border-b border-white/10">
@@ -255,7 +255,7 @@ snippet('header');
         ?>
         <a href="<?= $project->url() ?>"
           class="col-span-1 md:col-span-2 block no-underline hover:no-underline group transition-transform duration-200">
-          <div class="overflow-hidden rounded-[4px] aspect-[16/7] mb-3 bg-surface">
+          <div class="overflow-hidden rounded-md aspect-[16/7] mb-3 bg-surface">
             <?php if ($cover = $project->cover()->toFile()): ?>
               <img src="<?= $cover->crop(800, 350)->url() ?>" alt="<?= $cover->alt()->esc() ?>" loading="lazy"
                 class="w-full h-full object-cover">
@@ -291,7 +291,7 @@ snippet('header');
       <!-- fallback cards when no projects exist -->
       <a href="<?= url('map') ?>"
         class="col-span-1 md:col-span-2 block no-underline hover:no-underline group transition-transform duration-200">
-        <div class="overflow-hidden rounded-[4px] aspect-[16/7] mb-3 bg-surface">
+        <div class="overflow-hidden rounded-md aspect-[16/7] mb-3 bg-surface">
           <img src="<?= url('assets/hero-images/Wien-Museum-Online-Sammlung-311154-1-4.jpeg') ?>" alt="Projet"
             loading="lazy" class="w-full h-full object-cover">
         </div>
@@ -311,7 +311,7 @@ snippet('header');
       </a>
       <a href="<?= url('map') ?>"
         class="col-span-1 md:col-span-2 block no-underline hover:no-underline group transition-transform duration-200">
-        <div class="overflow-hidden rounded-[4px] aspect-[16/7] mb-3 bg-surface">
+        <div class="overflow-hidden rounded-md aspect-[16/7] mb-3 bg-surface">
           <img src="<?= url('assets/hero-images/Seattle-Art-Museum-good-scan-60070.jpg') ?>" alt="Projet" loading="lazy"
             class="w-full h-full object-cover">
         </div>
@@ -331,7 +331,7 @@ snippet('header');
       </a>
       <a href="<?= url('map') ?>"
         class="col-span-1 md:col-span-2 block no-underline hover:no-underline group transition-transform duration-200">
-        <div class="overflow-hidden rounded-[4px] aspect-[16/7] mb-3 bg-surface">
+        <div class="overflow-hidden rounded-md aspect-[16/7] mb-3 bg-surface">
           <img src="<?= url('assets/hero-images/s-l1600-2.jpg') ?>" alt="Projet" loading="lazy"
             class="w-full h-full object-cover">
         </div>
@@ -353,7 +353,7 @@ snippet('header');
 
     <!-- "Tous nos projets" Button acting as the 4th card in col-7 -->
     <a href="<?= url('map') ?>"
-      class="btn border-[4px] border-border hover:bg-surface hover:border-surface col-span-1 md:col-span-1 flex flex-col items-center justify-center p-6 bg-transparent transition-colors duration-150 rounded-[4px] no-underline group h-full min-h-[150px]">
+      class="btn border-[4px] border-border hover:bg-surface hover:border-surface col-span-1 md:col-span-1 flex flex-col items-center justify-center p-6 bg-transparent transition-colors duration-150 rounded-md no-underline group h-full min-h-[150px]">
       <!-- Enter key arrow (corner-down-left) -->
       <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
@@ -396,7 +396,7 @@ snippet('header');
   <div class="col-1"></div>
 
   <!-- Right: image (3 cols, portrait) -->
-  <div class="col-3 overflow-hidden rounded-[4px] bg-surface" style="min-height: 320px;">
+  <div class="col-3 overflow-hidden rounded-md bg-surface" style="min-height: 320px;">
     <img src="<?= url('assets/hero-images/Wien-Museum-Online-Sammlung-311154-1-4.jpeg') ?>"
       alt="Relevé architectural" class="w-full h-full object-cover">
   </div>
@@ -426,7 +426,7 @@ snippet('header');
 </section>
 
 <section class="py-12 mb-16">
-  <div class="col-7 relative rounded-[4px] overflow-hidden min-h-[50vh] flex items-center justify-center p-12 bg-ink">
+  <div class="col-7 relative rounded-md overflow-hidden min-h-[50vh] flex items-center justify-center p-12 bg-ink">
     <div class="absolute inset-0 opacity-20 mix-blend-luminosity pointer-events-none">
       <?php if ($impactImg = $page->impactImage()->toFile()): ?>
         <img src="<?= $impactImg->url() ?>" alt="Statistiques" class="w-full h-full object-cover">

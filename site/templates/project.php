@@ -130,7 +130,7 @@ if ($gallery->count() === 0) {
         <!-- Tags -->
         <div class="flex flex-wrap gap-2 mt-4">
             <?php foreach ($page->tags()->split(',') as $tag): ?>
-                <span class="tag text-xs"><?= trim($tag) ?></span>
+                <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($tag)) ?>" class="tag"><?= esc(trim($tag)) ?></a>
             <?php endforeach ?>
         </div>
 
@@ -141,7 +141,7 @@ if ($gallery->count() === 0) {
                 <div class="grid grid-cols-2 gap-2">
                     <?php foreach ($gallery as $image): ?>
                         <a href="<?= $image->url() ?>" data-lightbox
-                           class="block aspect-square overflow-hidden rounded-[4px] bg-border transition-transform hover:-translate-y-0.5 cursor-zoom-in">
+                           class="block aspect-square overflow-hidden rounded-md bg-border transition-transform hover:-translate-y-0.5 cursor-zoom-in">
                             <img src="<?= $image->crop(400, 400)->url() ?>"
                                  alt="<?= $image->alt()->or($page->title())->esc() ?>"
                                  loading="lazy" class="w-full h-full object-cover">
@@ -154,7 +154,7 @@ if ($gallery->count() === 0) {
     </div>
 
     <!-- ── Right: 3D Viewer (5 cols, sticky) ── -->
-    <div class="col-5 sticky overflow-hidden rounded-[4px] relative bg-ink z-50" id="viewer-container" style="top: 80px; height: calc(100vh - 100px); min-height: 500px;">
+    <div class="col-5 sticky overflow-hidden rounded-md relative bg-ink z-50" id="viewer-container" style="top: 80px; height: calc(100vh - 100px); min-height: 500px;">
 
         <?php if ($hasIframe): ?>
             <div id="model-poster" class="absolute inset-0 cursor-pointer z-10 transition-opacity duration-500">
