@@ -1,7 +1,7 @@
 <?php snippet('header') ?>
 
-<div class="py-12">
-  <div class="col-2"></div>
+<div class="py-6 md:py-12">
+  <div class="col-2 hidden md:block"></div>
   <div class="col-3">
     <div class="text-center">
       <?php if ($author = $page->author()->toUser()): ?>
@@ -18,8 +18,8 @@
 </div>
 
 <?php $cover = $page->cover()->toFile(); ?>
-<div class="py-8">
-  <div class="col-1"></div>
+<div class="py-3 md:py-8">
+  <div class="col-1 home-spacer"></div>
   <div class="col-5 aspect-16/7 overflow-hidden">
     <?php if ($cover): ?>
       <img src="<?= $cover->crop(1200, 525)->url() ?>" alt="<?= $cover->alt()->esc() ?>"
@@ -31,8 +31,8 @@
   </div>
 </div>
 
-<div class="pt-12 pb-20">
-  <div class="col-2"></div>
+<div class="pt-8 md:pt-12 pb-12 md:pb-20">
+  <div class="col-2 hidden md:block"></div>
   <div class="col-3">
     <div class="text font-serif">
       <?= $page->text()->toBlocks() ?>
@@ -53,8 +53,8 @@
   </div>
 </div>
 
-<div class="pb-20">
-  <div class="col-1"></div>
+<div class="pb-12 md:pb-20">
+  <div class="col-1 home-spacer"></div>
   <div class="col-5">
     <?php snippet('prevnext') ?>
   </div>

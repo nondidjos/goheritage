@@ -15,6 +15,29 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // ── Project page: mobile content drawer ──
+    var projectDrawerHandle = document.getElementById('project-drawer-handle');
+    var projectContent = document.getElementById('project-content');
+    if (projectDrawerHandle && projectContent) {
+        projectDrawerHandle.addEventListener('click', function () {
+            projectContent.classList.toggle('is-expanded');
+            // Prevent body scroll when drawer is open
+            document.body.style.overflow = projectContent.classList.contains('is-expanded') ? 'hidden' : '';
+        });
+
+        // Tapping the viewer area collapses the drawer
+        var viewerContainer = document.getElementById('viewer-container');
+        if (viewerContainer) {
+            viewerContainer.addEventListener('click', function (e) {
+                // Don't collapse if clicking a label or control inside the viewer
+                if (e.target.closest('.viewer-label, .viewer-toggle, .poi-popup')) return;
+                if (projectContent.classList.contains('is-expanded')) {
+                    projectContent.classList.remove('is-expanded');
+                }
+            });
+        }
+    }
+
     // ── Gallery lightbox ──
     document.querySelectorAll('[data-lightbox]').forEach(function (link) {
         link.addEventListener('click', function (e) {
@@ -101,6 +124,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var steps = stepsContainer.querySelectorAll('[data-step]');
         var images = imageContainer.querySelectorAll('.procede-image');
         var progressBar = document.getElementById('procede-progress');
+        var isMobileSteps = window.innerWidth <= 640;
 
         var positions = [
             ['0%', '42%', '72%'],   // step 0 active
@@ -131,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         .replace(/text-(ink|faint)/g, '')
                         .trim() + (isActive ? ' text-ink' : ' text-faint');
                 }
-                s.style.left = positions[idx][i];
+                if (!isMobileSteps) s.style.left = positions[idx][i];
             });
         }
 

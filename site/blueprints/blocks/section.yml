@@ -1,0 +1,21 @@
+name: Section dépliable
+icon: bars
+preview: fields
+
+fields:
+  section_title:
+    type: text
+    label: Titre
+    required: true
+    placeholder: "ex. Historique, Contexte…"
+
+  section_content:
+    type: blocks
+    label: Contenu
+    fieldsets:
+      - heading
+      - text
+      - image
+      - gallery
+      - video
+      - quote

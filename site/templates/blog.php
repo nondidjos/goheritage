@@ -118,10 +118,10 @@ function resolveAuthor($field): string {
     </div>
 
     <!-- Main Article List -->
-    <div class="border-t border-border pt-12 mb-12">
-      
+    <div class="border-t border-border pt-8 md:pt-12 mb-12">
+
       <!-- Left sidebar: 2 columns (Search, Tags) -->
-      <aside class="col-2 flex flex-col gap-10 pr-4 md:pr-8 mb-12 md:mb-0">
+      <aside class="col-2 flex flex-col gap-10 pr-0 md:pr-8 mb-8 md:mb-0 order-2 border-t border-border pt-8 md:border-t-0 md:pt-0 md:mt-0">
 
         <form action="<?= $page->url() ?>" method="GET">
           <div class="blog-search-bar">
@@ -155,7 +155,7 @@ function resolveAuthor($field): string {
       </aside>
 
       <!-- Right content: 5 columns (Articles) -->
-      <div class="col-5 flex flex-col">
+      <div class="col-5 flex flex-col order-1">
 
         <?php foreach ($mainList as $item): ?>
           <?php $itemTagsJson = htmlspecialchars(json_encode($item->tags()->split(',')), ENT_QUOTES, 'UTF-8') ?>

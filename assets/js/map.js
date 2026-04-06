@@ -7,17 +7,29 @@
 (function () {
     'use strict';
 
+    // ── Mobile detection ─────────────────────────────────────────────────────
+    var isMobile = window.matchMedia('(max-width: 60rem)').matches;
+
     // ── Fit layout to remaining viewport height ──────────────────────────────
     var layout = document.getElementById('map-layout');
 
     function fitMapToScreen() {
         if (!layout) return;
-        var top = layout.getBoundingClientRect().top;
-        layout.style.height = (window.innerHeight - top) + 'px';
+        if (isMobile) {
+            // On mobile the panel is a fixed overlay; map fills remaining space
+            var top = layout.getBoundingClientRect().top;
+            layout.style.height = (window.innerHeight - top) + 'px';
+        } else {
+            var top = layout.getBoundingClientRect().top;
+            layout.style.height = (window.innerHeight - top) + 'px';
+        }
     }
 
     fitMapToScreen();
-    window.addEventListener('resize', fitMapToScreen);
+    window.addEventListener('resize', function () {
+        isMobile = window.matchMedia('(max-width: 60rem)').matches;
+        fitMapToScreen();
+    });
 
     // ── Init MapLibre ────────────────────────────────────────────────────────
     var mapEl = document.getElementById('heritage-map');
@@ -41,6 +53,47 @@
     var popups = {};
     var activeId = null;
     var selectedTags = new Set();
+
+    // ── Mobile bottom drawer (declared early so activateSite can call them) ──
+    var panel       = document.getElementById('map-panel');
+    var panelHandle = document.getElementById('map-panel-handle');
+    var panelSearch = document.getElementById('map-panel-search');
+
+    function expandDrawer() {
+        if (panel) panel.classList.add('is-expanded');
+    }
+
+    function collapseDrawer() {
+        if (panel) panel.classList.remove('is-expanded');
+    }
+
+    function toggleDrawer() {
+        if (panel) panel.classList.toggle('is-expanded');
+    }
+
+    // Handle + search row taps toggle the drawer
+    if (panelHandle) panelHandle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        toggleDrawer();
+    });
+    if (panelSearch) panelSearch.addEventListener('click', function (e) {
+        if (e.target.tagName === 'INPUT') { expandDrawer(); return; }
+        toggleDrawer();
+    });
+
+    // Tapping the map collapses the drawer on mobile
+    var mapContainer = document.getElementById('map-container');
+    if (mapContainer) {
+        mapContainer.addEventListener('click', function () {
+            if (isMobile) collapseDrawer();
+        });
+    }
+
+    // Close button (desktop hidden, fallback)
+    var closeBtn = document.getElementById('map-panel-close');
+    if (closeBtn && panel) {
+        closeBtn.addEventListener('click', collapseDrawer);
+    }
 
     // ── Build markers + popups ───────────────────────────────────────────────
     SITES.forEach(function (site) {
@@ -105,7 +158,7 @@
             activateSite(id, true);
         });
 
-        // "Centrer sur la carte" button → fly to + activate
+        // "Centrer sur la carte" button → fly to + activate (desktop only)
         var centerBtn = item.querySelector('.map-card__btn-center');
         if (centerBtn) {
             centerBtn.addEventListener('click', function (e) {
@@ -114,7 +167,7 @@
             });
         }
 
-        // "Voir le modèle" link navigates normally — just stop propagation
+        // "Voir le projet" link navigates normally — just stop propagation
         var visitLink = item.querySelector('.map-card__btn--visit');
         if (visitLink) {
             visitLink.addEventListener('click', function (e) {
@@ -146,6 +199,10 @@
 
     if (searchInput) {
         searchInput.addEventListener('input', applyFilters);
+        // On mobile, focusing the search field expands the drawer
+        searchInput.addEventListener('focus', function () {
+            if (isMobile) expandDrawer();
+        });
     }
 
     // ── Tag filter panel ──────────────────────────────────────────────────────
@@ -225,14 +282,11 @@
         var site = SITES.find(function (s) { return s.id === id; });
         if (!site) return;
 
-        // highlight list card
+        // highlight list card (desktop only — on mobile drawer collapses)
         var listItem = document.querySelector('.map-card[data-id="' + id + '"]');
-        if (listItem) {
+        if (listItem && !isMobile) {
             listItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-
-        // activate marker
-        var markerData = markers[id];
 
         // show popup
         if (popups[id]) {
@@ -248,6 +302,11 @@
                 curve: 1.4,
             });
         }
+
+        // On mobile: collapse the drawer so the map + popup are visible
+        if (isMobile) {
+            collapseDrawer();
+        }
     }
 
     function deactivate(id) {
@@ -258,15 +317,6 @@
         if (activeId) deactivate(activeId);
         activeId = null;
     });
-
-    // ── Mobile panel toggle ───────────────────────────────────────────────────
-    var panel = document.getElementById('map-panel');
-    var closeBtn = document.getElementById('map-panel-close');
-    if (closeBtn && panel) {
-        closeBtn.addEventListener('click', function () {
-            panel.classList.toggle('is-collapsed');
-        });
-    }
 
     // ── Utility ───────────────────────────────────────────────────────────────
     function escHtml(str) {
