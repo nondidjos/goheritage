@@ -15,11 +15,19 @@ if ($q = get('q')) {
   $mainList = $remaining->search($q, 'title|text');
 }
 $allTags = $allArticles->pluck('tags', ',', true);
+
+// Helper: resolve author field (may be a Kirby user ID or a plain name)
+function resolveAuthor($field): string {
+    $raw = trim($field->value());
+    if ($raw === '') return 'GoHeritage';
+    $user = kirby()->user($raw);
+    return $user ? esc($user->name()->value()) : esc($raw);
+}
 ?>
 <?php snippet('header') ?>
 
   <?php if ($flagship): ?>
-    <div class="mb-20 lg:mb-32">
+    <div class="mb-10 lg:mb-16">
 
       <article class="col-4 group mb-16 lg:mb-0">
         <a href="<?= $flagship->url() ?>" class="block w-full overflow-hidden bg-surface relative aspect-[16/9] transition-transform duration-300 ease-out">
@@ -40,13 +48,13 @@ $allTags = $allArticles->pluck('tags', ',', true);
               $extra = count($tags) - 2;
             ?>
             <?php foreach ($displayTags as $tag): ?>
-              <span class="tag"><?= trim($tag) ?></span>
+              <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($tag)) ?>" class="tag"><?= esc(trim($tag)) ?></a>
             <?php endforeach ?>
             <?php if ($extra > 0): ?>
               <span class="tag" style="background-color:transparent;border:1px solid var(--color-border);">+<?= $extra ?></span>
             <?php endif ?>
           </div>
-          <span class="byline"><?= $flagship->author()->isNotEmpty() ? $flagship->author()->esc() : 'GoHeritage' ?></span>
+          <span class="byline"><?= resolveAuthor($flagship->author()) ?></span>
         </div>
 
         <div class="text-center w-full px-4">
@@ -73,10 +81,10 @@ $allTags = $allArticles->pluck('tags', ',', true);
               <div class="flex justify-between items-center mb-3">
                 <div class="flex flex-wrap gap-1.5">
                   <?php foreach (array_slice($article->tags()->split(','), 0, 2) as $tag): ?>
-                    <span class="tag"><?= trim($tag) ?></span>
+                    <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($tag)) ?>" class="tag"><?= esc(trim($tag)) ?></a>
                   <?php endforeach ?>
                 </div>
-                <span class="byline"><?= $article->author()->isNotEmpty() ? $article->author()->esc() : 'GoHeritage' ?></span>
+                <span class="byline"><?= resolveAuthor($article->author()) ?></span>
               </div>
 
               <h3 class="font-sans font-semibold text-2xl text-ink leading-snug mb-3 transition-colors tracking-tight">
@@ -96,10 +104,10 @@ $allTags = $allArticles->pluck('tags', ',', true);
         </div>
 
         <a href="<?= $page->url() ?>"
-          class="btn border-[4px] border-border hover:bg-surface hover:border-surface col-span-1 flex flex-col items-center justify-center p-6 bg-transparent transition-colors duration-150 no-underline group mt-6 min-h-[100px]">
+          class="btn border-[4px] border-border hover:bg-surface hover:border-surface col-span-1 flex flex-row items-center justify-center gap-6 p-6 bg-transparent transition-colors duration-150 no-underline group mt-4 min-h-[100px]">
           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
-            class="text-ink mb-3">
+            class="text-ink">
             <polyline points="9 10 4 15 9 20"></polyline>
             <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
           </svg>
@@ -110,7 +118,7 @@ $allTags = $allArticles->pluck('tags', ',', true);
     </div>
 
     <!-- Main Article List -->
-    <div class="border-t border-border pt-20 mb-20">
+    <div class="border-t border-border pt-12 mb-12">
       
       <!-- Left sidebar: 2 columns (Search, Tags) -->
       <aside class="col-2 flex flex-col gap-10 pr-4 md:pr-8 mb-12 md:mb-0">
@@ -151,12 +159,12 @@ $allTags = $allArticles->pluck('tags', ',', true);
 
         <?php foreach ($mainList as $item): ?>
           <?php $itemTagsJson = htmlspecialchars(json_encode($item->tags()->split(',')), ENT_QUOTES, 'UTF-8') ?>
-          <article class="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8 border-b border-border pb-12 mb-12 last:border-b-0 last:mb-0 last:pb-0 group"
+          <article class="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8 border-b border-border pb-8 mb-8 last:border-b-0 last:mb-0 last:pb-0 group"
                    data-article-tags="<?= $itemTagsJson ?>">
             
             <!-- 2 columns of 5 for image -->
             <div class="md:col-span-2">
-               <a href="<?= $item->url() ?>" class="block overflow-hidden relative rounded-[4px] h-48 bg-surface">
+               <a href="<?= $item->url() ?>" class="block overflow-hidden relative rounded-md h-48 bg-surface">
                  <?php if ($cover = $item->cover()->toFile()): ?>
                    <img src="<?= $cover->crop(600, 450)->url() ?>" alt="<?= $cover->alt()->esc() ?>" class="w-full h-full object-cover">
                  <?php else: ?>
@@ -166,10 +174,10 @@ $allTags = $allArticles->pluck('tags', ',', true);
             </div>
 
             <!-- 3 columns of 5 for text -->
-            <div class="md:col-span-3 flex flex-col justify-center">
+            <div class="md:col-span-3 flex flex-col justify-start">
               <div class="flex flex-wrap gap-2 mb-3">
                 <?php foreach (array_slice($item->tags()->split(','), 0, 3) as $tag): ?>
-                  <span class="tag"><?= trim($tag) ?></span>
+                  <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($tag)) ?>" class="tag"><?= esc(trim($tag)) ?></a>
                 <?php endforeach ?>
               </div>
               <h3 class="font-sans font-semibold text-2xl text-ink leading-tight mb-3 transition-colors tracking-tight">
@@ -183,20 +191,20 @@ $allTags = $allArticles->pluck('tags', ',', true);
                   echo esc($excerpt ?: 'Contenu détaillé prochainement disponible.');
                 ?>
               </p>
-              <div class="mt-5 flex items-center justify-between">
-                <time class="font-mono text-xs text-faint uppercase tracking-wider"><?= $item->date()->toDate('d F Y') ?></time>
-                <span class="byline"><?= $item->author()->isNotEmpty() ? $item->author()->esc() : 'GoHeritage' ?></span>
+              <div class="mt-4 flex items-center gap-3">
+                <span class="byline"><?= resolveAuthor($item->author()) ?></span>
+                <span class="font-mono text-[10px] text-faint"><?= $item->date()->toDate('d M Y') ?></span>
               </div>
             </div>
           </article>
         <?php endforeach ?>
 
         <?php if ($mainList->count() === 0): ?>
-          <p class="font-sans text-faint text-lg text-center py-10 bg-surface rounded-[4px]">Aucun article ne correspond à votre recherche.</p>
+          <p class="font-sans text-faint text-lg text-center py-10 bg-surface rounded-md">Aucun article ne correspond à votre recherche.</p>
         <?php endif ?>
 
         <!-- no-results message for JS tag filtering -->
-        <p id="blog-no-results" class="hidden font-sans text-faint text-lg text-center py-10 bg-surface rounded-[4px]">
+        <p id="blog-no-results" class="hidden font-sans text-faint text-lg text-center py-10 bg-surface rounded-md">
           Aucun article ne correspond aux thèmes sélectionnés.
         </p>
       </div>

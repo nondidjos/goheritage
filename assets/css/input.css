@@ -79,6 +79,9 @@
     --font-mono: 'IBM Plex Mono', monospace;
     --font-serif: 'IBM Plex Serif', Georgia, serif;
     --font-sans: 'DM Sans', system-ui, sans-serif;
+
+    --radius-sm: 6px;
+    --radius-md: 8px;
 }
 
 /* ── Base ─────────────────────────────────────────────── */
@@ -125,7 +128,7 @@
         max-width: 100%;
         height: auto;
         display: block;
-        border-radius: 4px;
+        border-radius: var(--radius-md);
     }
 
     a {
