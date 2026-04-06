@@ -41,10 +41,16 @@ Kirby::plugin('goheritage/hotspot-detector', [
             [
                 'pattern' => 'goheritage/detect-hotspots/(:any)',
                 'method'  => 'POST',
+                'auth'    => false,
                 'action'  => function ($rawId) {
+                    $kirby = kirby();
+                    if (!$kirby->user()) {
+                        return ['status' => 'error', 'message' => 'Unauthorized'];
+                    }
+
                     // Kirby panel encodes page IDs with + instead of /
                     $pageId = str_replace('+', '/', urldecode($rawId));
-                    $page   = kirby()->page($pageId);
+                    $page   = $kirby->page($pageId);
 
                     if (!$page) {
                         return ['status' => 'error', 'message' => 'Page not found: ' . $pageId];
@@ -112,6 +118,7 @@ function detectAndSaveHotspots($page, $glbPath = null) {
             $existing[$id] = [
                 'hotspot_id'  => $id,
                 'title'       => $ann->title()->value(),
+                'camera_mode' => $ann->camera_mode()->value() ?: 'fly',
                 'description' => $ann->description()->value(),
             ];
         }
@@ -133,6 +140,7 @@ function detectAndSaveHotspots($page, $glbPath = null) {
             $merged[] = [
                 'hotspot_id'  => $hs['id'],
                 'title'       => $hs['title'],
+                'camera_mode' => $hs['camera_mode'],
                 'description' => '',
             ];
             $added++;
@@ -219,14 +227,16 @@ function parseGlbHotspots($glbPath) {
         // skip nodes that have mesh data — those are geometry, not Empties
         if (isset($node['mesh'])) continue;
 
-        $id    = $extras['hotspot_id'] ?? $name;
-        $title = $extras['title']      ?? $name;
+        $id         = $extras['hotspot_id']  ?? $name;
+        $title      = $extras['title']       ?? $name;
+        $cameraMode = $extras['camera_mode'] ?? 'fly';
 
         if (empty($id)) continue;
 
         $hotspots[] = [
-            'id'    => $id,
-            'title' => $title,
+            'id'          => $id,
+            'title'       => $title,
+            'camera_mode' => $cameraMode,
         ];
     }
 
