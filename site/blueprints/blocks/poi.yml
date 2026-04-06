@@ -1,0 +1,36 @@
+name: Section dépliable (POI)
+icon: pin
+preview: fields
+
+fields:
+  hotspot_id:
+    type: select
+    label: Point d'intérêt lié
+    placeholder: "Aucun (section libre)"
+    options: query
+    query:
+      fetch: page.annotations.toStructure
+      text: "{{ item.title }}"
+      value: "{{ item.hotspot_id }}"
+    help: >
+      Optionnel — relie cette section à un hotspot 3D.
+      Quand l'utilisateur déplie la section, la caméra vole vers ce point.
+    width: 1/2
+
+  poi_title:
+    type: text
+    label: Titre de la section
+    required: true
+    placeholder: "ex. Voûte principale"
+    width: 1/2
+
+  poi_content:
+    type: blocks
+    label: Contenu
+    fieldsets:
+      - heading
+      - text
+      - image
+      - gallery
+      - video
+      - quote

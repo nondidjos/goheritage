@@ -34,6 +34,7 @@ tabs:
           - video
           - quote
           - hotspot
+          - poi
 
       gallery:
         type: files

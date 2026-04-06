@@ -74,6 +74,7 @@ function initViewer(container) {
   controls.dampingFactor = 0.08;
   controls.screenSpacePanning = true;
   controls.maxDistance = 5000;
+  controls.zoomSpeed = 1.2;
 
   // ── Progress overlay ─────────────────────────────────────────────────────
   const progress = document.createElement('div');
@@ -272,12 +273,23 @@ function initViewer(container) {
     });
   }
 
-  // ── Wire annotation panel entries (left side, rendered by PHP) ───────────
+  // ── Wire POI expandable sections (left side, rendered by PHP) ────────────
   function wireAnnotationPanel() {
+    // Legacy annotation entries
     var entries = document.querySelectorAll('.annotation-entry[data-hotspot]');
     entries.forEach(function (entry) {
       entry.addEventListener('click', function () {
         activateHotspot(entry.dataset.hotspot);
+      });
+    });
+
+    // New expandable POI sections — activate hotspot when toggled open
+    var poiSections = document.querySelectorAll('.poi-section[data-hotspot]');
+    poiSections.forEach(function (section) {
+      section.addEventListener('toggle', function () {
+        if (section.open) {
+          activateHotspot(section.dataset.hotspot);
+        }
       });
     });
   }
@@ -552,7 +564,7 @@ function initViewer(container) {
     // camera behaviour depends on mode
     var targetPos = hs.position.clone();
 
-    // Compute the camera destination — same for both modes.
+    // Compute the camera destination.
     // If a position was stored in Blender, use it; otherwise approach
     // from the direction of hotspot → model center at a sensible distance.
     var cameraTarget;
@@ -564,15 +576,17 @@ function initViewer(container) {
       cameraTarget = targetPos.clone().add(dir.multiplyScalar(modelRadius * 0.6));
     }
 
-    if (hs.cameraMode === 'orbit') {
-      // Orbit mode: keep the camera where it is, shift the orbit pivot
-      // to the hotspot so the user can immediately start orbiting around it.
-      var orbitPivot = hs.lookAt ? hs.lookAt.clone() : targetPos.clone();
-      flyTo(camera.position.clone(), orbitPivot, 0.8);
+    var lookAtTarget = hs.lookAt ? hs.lookAt.clone() : targetPos.clone();
+
+    if (hs.cameraMode === 'auto-orbit') {
+      // Auto-orbit: fly to stored position, then start 360° auto-orbit
+      flyTo(cameraTarget, lookAtTarget, 1.2, function () {
+        startAutoOrbit(lookAtTarget);
+      });
     } else {
-      // Fly mode: animate camera to the stored Blender position, looking at
-      // the stored orbit pivot (reproduces the exact Blender viewport angle).
-      var lookAtTarget = hs.lookAt ? hs.lookAt.clone() : targetPos.clone();
+      // Both "fly" and "orbit" fly to the stored Blender position.
+      // "orbit" simply re-centers the orbit pivot so subsequent user
+      // interaction orbits around the hotspot naturally.
       flyTo(cameraTarget, lookAtTarget, 1.2);
     }
   }
@@ -586,9 +600,10 @@ function initViewer(container) {
   }
 
   // ── Smooth camera fly-to ─────────────────────────────────────────────────
-  function flyTo(targetCamPos, targetLookAt, duration) {
-    // cancel any existing fly animation
+  function flyTo(targetCamPos, targetLookAt, duration, onComplete) {
+    // cancel any existing fly or auto-orbit animation
     if (flyAnimation) cancelAnimationFrame(flyAnimation);
+    stopAutoOrbit();
 
     var startPos = camera.position.clone();
     var startTarget = controls.target.clone();
@@ -614,10 +629,63 @@ function initViewer(container) {
       } else {
         flyAnimation = null;
         controls.enabled = true;
+        if (typeof onComplete === 'function') onComplete();
       }
     }
 
     flyAnimation = requestAnimationFrame(tick);
+  }
+
+  // ── Auto-orbit (360° rotation around a pivot) ────────────────────────────
+  var autoOrbitRAF = null;
+
+  function startAutoOrbit(pivot) {
+    stopAutoOrbit();
+
+    var radius = camera.position.distanceTo(pivot);
+    var offset = camera.position.clone().sub(pivot);
+    var angle  = Math.atan2(offset.x, offset.z);
+    var elevY  = offset.y;
+    var speed  = 0.3; // radians per second
+
+    var lastTime = performance.now();
+
+    function orbitTick(now) {
+      var dt = (now - lastTime) / 1000;
+      lastTime = now;
+      angle += speed * dt;
+
+      camera.position.set(
+        pivot.x + Math.sin(angle) * radius,
+        pivot.y + elevY,
+        pivot.z + Math.cos(angle) * radius
+      );
+      controls.target.copy(pivot);
+      controls.update();
+
+      autoOrbitRAF = requestAnimationFrame(orbitTick);
+    }
+
+    autoOrbitRAF = requestAnimationFrame(orbitTick);
+
+    // Cancel auto-orbit on any user interaction
+    var cancelEvents = ['pointerdown', 'wheel', 'touchstart'];
+    function cancelAutoOrbit() {
+      stopAutoOrbit();
+      cancelEvents.forEach(function (ev) {
+        renderer.domElement.removeEventListener(ev, cancelAutoOrbit);
+      });
+    }
+    cancelEvents.forEach(function (ev) {
+      renderer.domElement.addEventListener(ev, cancelAutoOrbit, { once: true });
+    });
+  }
+
+  function stopAutoOrbit() {
+    if (autoOrbitRAF) {
+      cancelAnimationFrame(autoOrbitRAF);
+      autoOrbitRAF = null;
+    }
   }
 
   // ── Load model ───────────────────────────────────────────────────────────
@@ -751,6 +819,15 @@ function initViewer(container) {
   // ── Render loop ──────────────────────────────────────────────────────────
   function animate() {
     requestAnimationFrame(animate);
+
+    // Dynamic controls speed — scale damping, pan, and zoom relative to
+    // camera-to-target distance so close-up navigation stays responsive.
+    var dist = camera.position.distanceTo(controls.target);
+    var ratio = Math.max(dist / Math.max(modelRadius, 1), 0.05);
+    controls.dampingFactor = 0.08 * Math.max(ratio, 0.3);
+    controls.panSpeed     = Math.max(ratio * 0.8, 0.15);
+    controls.zoomSpeed    = Math.max(ratio * 1.0, 0.25);
+
     controls.update();
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera);
