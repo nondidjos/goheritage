@@ -54,6 +54,13 @@
     var activeId = null;
     var selectedTags = new Set();
 
+    // ── Pre-select tag from URL if present ──
+    var urlParams = new URLSearchParams(window.location.search);
+    var initialTag = urlParams.get('tag');
+    if (initialTag) {
+        selectedTags.add(initialTag);
+    }
+
     // ── Mobile bottom drawer (declared early so activateSite can call them) ──
     var panel       = document.getElementById('map-panel');
     var panelHandle = document.getElementById('map-panel-handle');
@@ -243,6 +250,9 @@
                 var btn = document.createElement('button');
                 btn.className = 'tag';
                 btn.textContent = tag;
+                if (selectedTags.has(tag)) {
+                    btn.classList.add('tag--active');
+                }
                 btn.addEventListener('click', function (e) {
                     e.stopPropagation();
                     if (selectedTags.has(tag)) {
@@ -287,6 +297,10 @@
         } else {
             filterBtn.style.display = 'none';
         }
+
+        // Apply filters initially in case a tag was selected via URL
+        updateFilterBtnState();
+        applyFilters();
     }
 
     function updateFilterBtnState() {
