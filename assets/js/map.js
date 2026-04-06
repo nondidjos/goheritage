@@ -95,6 +95,25 @@
         closeBtn.addEventListener('click', collapseDrawer);
     }
 
+    // Forward wheel events from popups so zooming still works without scrolling the page
+    mapEl.addEventListener('wheel', function (e) {
+        if (e.target.closest('.maplibregl-popup')) {
+            e.preventDefault();
+            var clone = new WheelEvent('wheel', {
+                clientX: e.clientX,
+                clientY: e.clientY,
+                deltaX: e.deltaX,
+                deltaY: e.deltaY,
+                deltaZ: e.deltaZ,
+                deltaMode: e.deltaMode,
+                bubbles: true,
+                cancelable: true
+            });
+            var canvas = map.getCanvasContainer();
+            if (canvas) canvas.dispatchEvent(clone);
+        }
+    }, { passive: false });
+
     // ── Build markers + popups ───────────────────────────────────────────────
     SITES.forEach(function (site) {
         if (!site.lat || !site.lng) return;
