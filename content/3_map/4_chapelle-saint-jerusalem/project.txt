@@ -46,7 +46,7 @@ Protection-status: classé
 
 ----
 
-Condition: bonne
+Condition: 
 
 ----
 
@@ -91,22 +91,22 @@ Annotations:
 -
   hotspot_id: hotspot_01
   title: 'La Dame'
-  camera_mode: 'fly'
-  description: 'Sculpture d''une figure féminine sur l''une des colonnes.'
+  camera_mode: fly
+  description: "Sculpture d'une figure féminine sur l'une des colonnes."
 -
   hotspot_id: hotspot_02
   title: 'Le Tombeau'
-  camera_mode: 'fly'
+  camera_mode: orbit
   description: 'Tombeau médiéval situé dans la nef.'
 -
   hotspot_id: hotspot_03
   title: 'La Chaire'
-  camera_mode: 'fly'
+  camera_mode: fly
   description: 'Chaire en pierre travaillée.'
 -
   hotspot_id: hotspot_04
   title: 'Sommet de la Voûte'
-  camera_mode: 'fly'
+  camera_mode: fly
   description: 'Clé de voûte ornée.'
 
 ----

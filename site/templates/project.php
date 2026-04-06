@@ -6,6 +6,7 @@ snippet('header');
 // priority; falls back to the most-recently-modified file of the right type.
 $glbFile  = $page->model_glb()->toFile()
     ?? $page->files()->filterBy('extension', 'glb')->sortBy('modified', 'desc')->first();
+$interiorGlbFile = $page->model_glb_interior()->toFile();
 $objFile  = $page->model_obj()->toFile()
     ?? $page->files()->filterBy('extension', 'obj')->sortBy('modified', 'desc')->first();
 $texFile  = $page->model_texture()->toFile()
@@ -46,9 +47,10 @@ if ($page->annotations()->isNotEmpty()) {
 }
 $annotationsJson = json_encode($annotationsData, JSON_UNESCAPED_UNICODE);
 
-$glbUrl = $glbFile ? $glbFile->url() : null;
-$objUrl = $objFile ? $objFile->url() : null;
-$texUrl = $texFile ? $texFile->url() : null;
+$glbUrl          = $glbFile ? $glbFile->url() : null;
+$interiorGlbUrl  = $interiorGlbFile ? $interiorGlbFile->url() : null;
+$objUrl          = $objFile ? $objFile->url() : null;
+$texUrl          = $texFile ? $texFile->url() : null;
 $normUrl = $normFile ? $normFile->url() : null;
 
 $hasIframe  = ($viewerUrl !== null);
@@ -239,6 +241,7 @@ $gallery = $page->images()
             <div id="viewer-3d"
                  class="w-full h-full bg-ink"
                  data-glb="<?= $glbUrl ?>"
+                 <?php if ($interiorGlbUrl): ?>data-glb-interior="<?= $interiorGlbUrl ?>"<?php endif ?>
                  data-obj="<?= $objUrl ?>"
                  data-texture="<?= $texUrl ?>"
                  data-normal="<?= $normUrl ?>"
