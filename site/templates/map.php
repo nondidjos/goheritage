@@ -10,8 +10,11 @@ snippet('header');
   <?php /* left panel */ ?>
   <aside class="col-2 map-panel" id="map-panel">
 
+    <!-- mobile drag handle (hidden on desktop via CSS) -->
+    <div class="map-panel__handle" id="map-panel-handle" aria-hidden="true"></div>
+
     <!-- search & filter bar -->
-    <div class="map-panel__search">
+    <div class="map-panel__search" id="map-panel-search">
       <div class="map-search-bar">
         <svg class="map-search-bar__icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
           <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.5" />

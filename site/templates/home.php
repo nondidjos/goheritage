@@ -3,7 +3,7 @@
 snippet('header');
 ?>
 
-<section class="items-end min-h-[85vh] pt-4 pb-16">
+<section class="items-end min-h-[85vh] pt-4 pb-16" id="hero-section">
 
   <div class="col-2 flex flex-col justify-end pb-2">
     <h1 class="font-sans text-[clamp(1.25rem,2vw,1.75rem)] leading-tight text-ink mb-6">
@@ -106,7 +106,7 @@ snippet('header');
     </div>
   </div>
 
-  <div class="col-1"></div>
+  <div class="col-1 hidden md:block"></div>
 
   <div class="col-2 flex flex-col justify-end">
     <h2 class="font-sans text-[clamp(1.25rem,2vw,1.75rem)] text-ink leading-snug mb-4">
@@ -162,7 +162,7 @@ snippet('header');
     <div class="relative flex flex-col md:block md:h-52 gap-4" id="procede-steps">
 
       <div
-        class="bg-white rounded-md p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start md:absolute md:top-0 w-full md:w-[27%] md:left-0"
+        class="bg-white rounded-md p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start w-full md:absolute md:top-0 md:w-[27%] md:left-0"
         data-step="0">
         <span class="font-sans text-5xl leading-none text-ink mb-3 block">1</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step1Title()->or('Acquisition') ?></h3>
@@ -172,7 +172,7 @@ snippet('header');
       </div>
 
       <div
-        class="bg-white rounded-md p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start md:absolute md:top-0 w-full md:w-[27%] md:left-[42%]"
+        class="bg-white rounded-md p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start w-full md:absolute md:top-0 md:w-[27%] md:left-[42%]"
         data-step="1">
         <span class="font-sans text-5xl leading-none text-faint mb-3 block">2</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step2Title()->or('Traitement') ?></h3>
@@ -182,7 +182,7 @@ snippet('header');
       </div>
 
       <div
-        class="bg-white rounded-md p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start md:absolute md:top-0 w-full md:w-[27%] md:left-[72%]"
+        class="bg-white rounded-md p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start w-full md:absolute md:top-0 md:w-[27%] md:left-[72%]"
         data-step="2">
         <span class="font-sans text-5xl leading-none text-faint mb-3 block">3</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step3Title()->or('Production') ?></h3>
@@ -200,7 +200,7 @@ snippet('header');
   <div class="col-7 bg-ink rounded-md overflow-hidden">
 
     <!-- Manifesto header -->
-    <div class="px-10 md:px-16 pt-14 pb-12 border-b border-white/10">
+    <div class="px-6 md:px-16 pt-10 md:pt-14 pb-10 md:pb-12 border-b border-white/10">
       <p class="font-mono text-xs uppercase tracking-wider text-white/40 mb-6">Conservation par le numérique</p>
       <h2 class="font-thyssen text-[clamp(2.75rem,7vw,5.5rem)] text-white leading-[0.95]">
         Le temps efface.<br>Nous préservons l'irremplaçable.
@@ -208,7 +208,7 @@ snippet('header');
     </div>
 
     <!-- Stats row -->
-    <div class="grid grid-cols-1 md:grid-cols-3 px-10 md:px-16 py-12 gap-10 md:gap-0 border-b border-white/10">
+    <div class="grid grid-cols-1 md:grid-cols-3 px-6 md:px-16 py-10 md:py-12 gap-8 md:gap-0 border-b border-white/10">
       <div class="md:border-r md:border-white/10 md:pr-12">
         <p class="font-thyssen text-[4.5rem] text-white leading-none mb-3">10×</p>
         <p class="font-sans text-sm text-white/50 leading-relaxed">plus rapide qu'un relevé terrain traditionnel pour une couverture complète d'un site</p>
@@ -224,7 +224,7 @@ snippet('header');
     </div>
 
     <!-- Footer: description + CTA -->
-    <div class="px-10 md:px-16 py-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+    <div class="px-6 md:px-16 py-8 md:py-10 flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8">
       <p class="font-sans text-base text-white/60 leading-relaxed max-w-lg">
         Un jumeau numérique détecte les dégradations invisibles, prépare les interventions de restauration et ouvre votre patrimoine au monde entier.
       </p>
@@ -393,7 +393,7 @@ snippet('header');
   </div>
 
   <!-- Spacer (1 col) -->
-  <div class="col-1"></div>
+  <div class="col-1 hidden md:block"></div>
 
   <!-- Right: image (3 cols, portrait) -->
   <div class="col-3 overflow-hidden rounded-md bg-surface" style="min-height: 320px;">
@@ -405,19 +405,19 @@ snippet('header');
   <div class="col-7 border-t border-border mt-12"></div>
 
   <!-- Three deliverables: col-2 | col-2 | col-3 -->
-  <div class="col-2 pt-8 pr-8">
+  <div class="col-2 pt-8 md:pr-8">
     <p class="font-mono text-xs text-faint mb-3">01</p>
     <h3 class="font-sans font-semibold text-base text-ink mb-2">Plans & élévations</h3>
     <p class="font-sans text-sm text-mid leading-relaxed">Coupes, façades, vues en élévation. Export DXF/DWG, précision millimétrique.</p>
   </div>
 
-  <div class="col-2 pt-8 px-8 border-l border-border">
+  <div class="col-2 pt-8 md:px-8 md:border-l md:border-border">
     <p class="font-mono text-xs text-faint mb-3">02</p>
     <h3 class="font-sans font-semibold text-base text-ink mb-2">Analyse dimensionnelle</h3>
     <p class="font-sans text-sm text-mid leading-relaxed">Distances, angles et superficies mesurés directement dans le modèle interactif.</p>
   </div>
 
-  <div class="col-3 pt-8 pl-8 border-l border-border">
+  <div class="col-3 pt-8 md:pl-8 md:border-l md:border-border">
     <p class="font-mono text-xs text-faint mb-3">03</p>
     <h3 class="font-sans font-semibold text-base text-ink mb-2">Intégration BIM & SIG</h3>
     <p class="font-sans text-sm text-mid leading-relaxed">Formats IFC, Revit, QGIS. Données brutes E57/LAS disponibles. Le jumeau s'intègre directement dans vos workflows existants.</p>

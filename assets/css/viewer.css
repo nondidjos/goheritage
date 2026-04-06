@@ -391,3 +391,208 @@
         padding: 0.625rem 0.5rem;
     }
 }
+
+/* ── Desktop: drawer handle hidden ─────────────────────────────────────────── */
+.project-drawer__handle {
+    display: none;
+}
+
+/* ── Desktop: POI popup hidden ─────────────────────────────────────────────── */
+.poi-popup {
+    display: none;
+}
+
+/* ── Mobile: project page — viewer-first layout ───────────────────────────── */
+@media (max-width: 640px) {
+    /* Stack everything vertically */
+    .items-start {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding-inline: 0;
+        position: relative;
+        min-height: 100dvh;
+    }
+
+    /* Header compact, first */
+    .project-header {
+        order: 0;
+        width: 100%;
+        padding: 0.75rem 1.25rem 0.5rem;
+    }
+
+    .project-header h1 {
+        font-size: clamp(1.75rem, 7vw, 3rem) !important;
+    }
+
+    /* ── Viewer fills the remaining screen ── */
+    #viewer-container {
+        order: 1;
+        width: 100%;
+        position: relative !important;
+        top: 0 !important;
+        /* Fill available space: viewport minus header (~100px) */
+        height: calc(100dvh - 120px) !important;
+        min-height: 300px !important;
+        max-height: none !important;
+        border-radius: 0 !important;
+        z-index: 1 !important;
+    }
+
+    /* ── Content becomes a bottom drawer ── */
+    .project-content {
+        order: 2;
+        width: 100%;
+        position: fixed !important;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 100;
+        background: var(--color-bg, #fff);
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+        padding: 0 1.25rem 2rem !important;
+        gap: 1.25rem !important;
+
+        /* Collapsed: only handle visible (~56px) */
+        --drawer-peek: 56px;
+        max-height: 80vh;
+        height: 80vh;
+        transform: translateY(calc(100% - var(--drawer-peek)));
+        transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+        overflow: hidden;
+    }
+
+    .project-content.is-expanded {
+        transform: translateY(0);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* ── Drawer handle ── */
+    .project-drawer__handle {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 12px 0 4px;
+        cursor: pointer;
+        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        background: var(--color-bg, #fff);
+        z-index: 5;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .project-drawer__bar {
+        width: 36px;
+        height: 4px;
+        background: rgba(26, 25, 22, 0.18);
+        border-radius: 2px;
+    }
+
+    .project-drawer__label {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.6875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--color-faint, #8C8A85);
+    }
+
+    /* ── Toggle pill bigger for touch ── */
+    .viewer-toggle__btn {
+        padding: 7px 18px;
+        font-size: 13px;
+    }
+
+    /* ── POI popup overlay (inside viewer container) ── */
+    .poi-popup {
+        display: block;
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 25;
+        pointer-events: none;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.25s, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .poi-popup.is-visible {
+        pointer-events: auto;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .poi-popup__card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 14px 14px 0 0;
+        padding: 1.25rem 1.25rem 1.5rem;
+        max-height: 50vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .poi-popup__close {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.06);
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        color: var(--color-mid, #4A4845);
+        transition: background 0.15s;
+    }
+
+    .poi-popup__close:hover {
+        background: rgba(0, 0, 0, 0.12);
+    }
+
+    .poi-popup__title {
+        font-family: var(--font-sans, system-ui);
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--color-ink, #1a1916);
+        margin-bottom: 0.625rem;
+        padding-right: 2.5rem;
+    }
+
+    .poi-popup__body {
+        font-family: var(--font-serif, Georgia);
+        font-size: 0.875rem;
+        color: var(--color-mid, #4A4845);
+        line-height: 1.65;
+    }
+
+    .poi-popup__body p {
+        margin: 0 0 0.5rem;
+    }
+
+    .poi-popup__body img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 6px;
+        margin: 0.5rem 0;
+    }
+
+    /* POI body compact on mobile */
+    .poi-section__body {
+        padding-left: 0.875rem;
+    }
+
+    /* Spec card compact */
+    .spec-card {
+        padding-top: 0.75rem;
+    }
+}

@@ -1,3 +1,8 @@
+/* ── Scrollbar Gutter Fix ─────────────────────────────── */
+html {
+    scrollbar-gutter: stable;
+}
+
 /* ── Local Fonts ──────────────────────────────────────── */
 @font-face {
     font-family: 'DM Sans';
@@ -638,3 +643,189 @@ model-viewer .update-bar {
 }
 
 /* upload-overwrite panel field — styles live in site/plugins/model-converter/index.css */
+
+/* ── Mobile global ──────────────────────────────────── */
+@media (max-width: 640px) {
+    /* Compact header */
+    header .grid-7 {
+        padding-block: 0.75rem;
+    }
+
+    /* Compact breadcrumb */
+    .breadcrumb {
+        padding: 0.4rem 1rem;
+        margin-bottom: 0;
+    }
+
+    .breadcrumb__inner {
+        font-size: 1rem;
+    }
+
+    /* Ensure main has no extra padding on mobile project/map pages */
+    main {
+        padding-inline: 0 !important;
+    }
+
+    /* Tags row compact */
+    .tag {
+        font-size: 0.625rem;
+        padding: 0.25rem 0.625rem;
+    }
+}
+
+/* ── Mobile: map page — hide breadcrumb to save space ── */
+@media (max-width: 60rem) {
+    body:has(#map-main) .breadcrumb {
+        display: none;
+    }
+}
+
+/* ── Mobile homepage & global fixes ─────────────────────── */
+@media (max-width: 640px) {
+
+    /* Hide pure spacer columns */
+    .home-spacer {
+        display: none !important;
+    }
+
+    /* Hero: image first, text below */
+    #hero-section {
+        display: flex !important;
+        flex-direction: column;
+        min-height: auto;
+        padding-inline: 1rem;
+        padding-top: 1rem;
+        padding-bottom: 2rem;
+    }
+
+    #hero-section .col-2 {
+        order: 2;
+        padding-top: 1.5rem;
+        width: 100%;
+    }
+
+    #hero-section .col-5 {
+        order: 1;
+        width: 100%;
+    }
+
+    #hero-section .col-5 > div {
+        min-height: 40vw;
+        max-height: 52vh;
+    }
+
+    /* Procede steps: disable JS absolute positioning on mobile */
+    #procede-steps {
+        height: auto !important;
+    }
+
+    #procede-steps [data-step] {
+        position: static !important;
+        left: auto !important;
+        width: 100% !important;
+    }
+
+    /* Blog: sidebar moves below articles on mobile */
+    #blog-main-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    #blog-main-list > .col-2 {
+        order: 2;
+        padding-right: 0;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--color-border);
+        margin-top: 1.5rem;
+    }
+
+    #blog-main-list > .col-5 {
+        order: 1;
+    }
+
+    /* Reduce section vertical padding */
+    section.py-20 { padding-top: 2.5rem; padding-bottom: 2.5rem; }
+    section.py-16 { padding-top: 2rem;   padding-bottom: 2rem;   }
+    section.py-12 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+
+    /* Homepage: manifesto big heading */
+    .leading-\[0\.95\] {
+        font-size: clamp(2rem, 9vw, 3.2rem) !important;
+    }
+
+    /* Impact CTA section */
+    section.mb-16 > .col-7 {
+        padding: 2.5rem 1.25rem;
+        min-height: 35vh;
+    }
+
+    /* Blog: flagship article section padding */
+    .mb-10 {
+        padding-inline: 1rem;
+    }
+
+    /* Article: reduce article title size */
+    .font-sans.leading-tight.mb-4.text-\[clamp\(2rem\,4vw\,3\.5rem\)\] {
+        font-size: clamp(1.75rem, 7vw, 2.5rem) !important;
+    }
+}
+
+/* ── Fix: restore main padding on content pages (homepage, blog, article) ── */
+/* The global mobile rule removed padding-inline for map/project edge-to-edge,
+   but homepage, blog, article need their 1.25rem gutter back. */
+@media (max-width: 640px) {
+    body:not(:has(#viewer-container)):not(:has(#map-main)) main {
+        padding-inline: 1rem !important;
+    }
+}
+
+/* ── Complex layouts requiring CSS (grid to flex transitions) ── */
+@media (max-width: 640px) {
+
+    /* Reduce section vertical padding */
+    section.py-20 { padding-top: 2.5rem; padding-bottom: 2.5rem; }
+    section.py-16 { padding-top: 2rem;   padding-bottom: 2rem;   }
+    section.py-12 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+
+    /* Hero: override grid to flex for reordering */
+    #hero-section {
+        display: flex !important;
+        flex-direction: column;
+        min-height: auto;
+        padding-inline: 1rem;
+        padding-top: 1rem;
+        padding-bottom: 2rem;
+    }
+
+    #hero-section .col-2 {
+        order: 2;
+        padding-top: 1.5rem;
+        width: 100%;
+    }
+
+    #hero-section .col-5 {
+        order: 1;
+        width: 100%;
+    }
+
+    #hero-section .col-5 > div {
+        min-height: 40vw;
+        max-height: 52vh;
+    }
+
+    /* Procede steps: disable absolute positioning mobile */
+    #procede-steps {
+        height: auto !important;
+    }
+
+    #procede-steps [data-step] {
+        position: static !important;
+        left: auto !important;
+        width: 100% !important;
+    }
+
+    /* Restore main padding for content pages (not map/project) */
+    body:not(:has(#viewer-container)):not(:has(#map-main)) main {
+        padding-inline: 1rem !important;
+    }
+}

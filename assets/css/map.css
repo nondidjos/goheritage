@@ -3,6 +3,10 @@
 /* Prevent the page from scrolling behind the map */
 body:has(#map-main) {
     overflow: hidden;
+    /* Prevent iOS rubber-band scroll */
+    overscroll-behavior: none;
+    position: fixed;
+    width: 100%;
 }
 
 /* Hide the footer so the map can fill the remaining screen */
@@ -143,6 +147,11 @@ main#map-main {
 .map-filter-panel.is-open {
     display: flex;
     animation: map-filter-open 0.2s ease forwards;
+}
+
+/* mobile drag handle — hidden on desktop */
+.map-panel__handle {
+    display: none;
 }
 
 /* mobile close button */
@@ -405,32 +414,94 @@ main#map-main {
 
 /* ── Responsive ── */
 @media (max-width: 60rem) {
+    /* Map fills the full layout height */
     .map-layout {
         grid-template-columns: 1fr;
-        grid-template-rows: 60vh auto;
-        height: auto;
-        min-height: calc(100dvh - 108px);
+        grid-template-rows: 1fr;
+        position: relative;
     }
 
-    .map-panel {
-        border-right: none;
-        border-top: 1px solid var(--color-border);
-        order: 2;
-        max-height: 50vh;
-        overflow-y: auto;
-    }
-
+    /* Map container fills all of it */
     .map-container {
-        order: 1;
+        grid-column: 1;
+        grid-row: 1;
+        min-height: 0;
     }
 
-    .map-panel__close {
+    /* ── Bottom drawer ── */
+    .map-panel {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 200;
+        border-right: none;
+        border-top: none;
+        border-radius: 14px 14px 0 0;
+        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+
+        /* Collapsed: only search bar + handle visible (~72px) */
+        --drawer-peek: 72px;
+        max-height: 75vh;
+        height: 75vh;
+        transform: translateY(calc(100% - var(--drawer-peek)));
+        transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+        overflow: hidden;
+    }
+
+    .map-panel.is-expanded {
+        transform: translateY(0);
+    }
+
+    /* Drag handle bar above search */
+    .map-panel__handle {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 20px;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+
+    .map-panel__handle::before {
+        content: '';
         display: block;
+        width: 36px;
+        height: 4px;
+        background: rgba(26, 25, 22, 0.18);
+        border-radius: 2px;
+    }
+
+    /* Search bar becomes the visible handle — cursor indicates it toggles */
+    .map-panel__search {
+        cursor: pointer;
+        padding: 0.375rem 0.75rem 0.625rem;
+    }
+
+    /* List scrollable inside drawer */
+    .map-list {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Action buttons hidden on mobile — card tap does everything */
+    .map-card__actions {
+        display: none;
+    }
+
+    /* Shrink card title slightly */
+    .map-card__title {
+        font-size: 2rem;
+    }
+
+    /* Panel close button not needed — handled by drawer */
+    .map-panel__close {
+        display: none;
     }
 }
 
 @media (max-width: 480px) {
-    .map-panel__search {
-        padding: 0.5rem;
+    .map-card__title {
+        font-size: 1.75rem;
     }
 }

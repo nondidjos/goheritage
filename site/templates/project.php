@@ -89,8 +89,14 @@ if ($gallery->count() === 0) {
         </div>
     </div>
 
-    <!-- ── Left: Content & Specs (2 cols) ── -->
-    <div class="col-2 flex flex-col gap-8 pb-10">
+    <!-- ── Left: Content & Specs (2 cols) — becomes bottom drawer on mobile ── -->
+    <div class="col-2 flex flex-col gap-8 pb-10 project-content" id="project-content">
+
+        <!-- mobile drawer handle (hidden on desktop) -->
+        <div class="project-drawer__handle" id="project-drawer-handle">
+            <div class="project-drawer__bar"></div>
+            <span class="project-drawer__label">Informations</span>
+        </div>
 
         <!-- Rich text blocks -->
         <?php if ($page->text()->isNotEmpty()): ?>
@@ -225,6 +231,17 @@ if ($gallery->count() === 0) {
                 <span class="font-mono text-sm uppercase tracking-widest text-white px-6 py-2 border border-white/30 backdrop-blur-md rounded-sm">Vue 3D prochainement</span>
             </div>
         <?php endif ?>
+
+        <!-- Mobile POI popup (hidden on desktop, shown by viewer.js on hotspot tap) -->
+        <div class="poi-popup" id="poi-popup" aria-hidden="true">
+            <div class="poi-popup__card">
+                <button class="poi-popup__close" id="poi-popup-close" aria-label="Fermer">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+                <h3 class="poi-popup__title" id="poi-popup-title"></h3>
+                <div class="poi-popup__body" id="poi-popup-body"></div>
+            </div>
+        </div>
 
     </div>
 

@@ -35,6 +35,7 @@ tabs:
           - quote
           - hotspot
           - poi
+          - section
 
       gallery:
         type: files

@@ -39,9 +39,16 @@ function initViewer(container) {
 
   if (!glbUrl && !objUrl) return;
 
+  // ── Mobile detection ─────────────────────────────────────────────────────
+  var isMobile = window.innerWidth <= 768 || ('ontouchstart' in window);
+
   // ── Renderer ─────────────────────────────────────────────────────────────
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const renderer = new THREE.WebGLRenderer({
+    antialias: !isMobile,
+    alpha: false,
+    powerPreference: isMobile ? 'low-power' : 'default',
+  });
+  renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);
@@ -554,11 +561,16 @@ function initViewer(container) {
     // highlight 3D label
     if (hs.el) hs.el.classList.add('is-active');
 
-    // highlight panel entry
+    // highlight panel entry (desktop)
     var panelEntry = document.querySelector('.annotation-entry[data-hotspot="' + id + '"]');
     if (panelEntry) {
       panelEntry.classList.add('is-active');
       panelEntry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // On mobile: show POI popup with the matching section's content
+    if (isMobile) {
+      showPoiPopup(id);
     }
 
     // camera behaviour depends on mode
@@ -594,6 +606,7 @@ function initViewer(container) {
   function deactivateHotspot(id) {
     var hs = hotspots.find(function (h) { return h.id === id; });
     if (hs && hs.el) hs.el.classList.remove('is-active');
+    if (isMobile) hidePoiPopup();
 
     var panelEntry = document.querySelector('.annotation-entry[data-hotspot="' + id + '"]');
     if (panelEntry) panelEntry.classList.remove('is-active');
@@ -686,6 +699,42 @@ function initViewer(container) {
       cancelAnimationFrame(autoOrbitRAF);
       autoOrbitRAF = null;
     }
+  }
+
+  // ── Mobile POI popup ─────────────────────────────────────────────────────
+  var poiPopup      = document.getElementById('poi-popup');
+  var poiPopupTitle = document.getElementById('poi-popup-title');
+  var poiPopupBody  = document.getElementById('poi-popup-body');
+  var poiPopupClose = document.getElementById('poi-popup-close');
+
+  function showPoiPopup(hotspotId) {
+    if (!poiPopup || !poiPopupTitle || !poiPopupBody) return;
+
+    // Find the matching POI section rendered by the poi block
+    var section = document.querySelector('.poi-section[data-hotspot="' + hotspotId + '"]');
+    if (!section) return;
+
+    var titleEl = section.querySelector('.poi-section__title');
+    var bodyEl  = section.querySelector('.poi-section__body');
+
+    poiPopupTitle.textContent = titleEl ? titleEl.textContent : hotspotId;
+    poiPopupBody.innerHTML    = bodyEl ? bodyEl.innerHTML : '';
+
+    poiPopup.classList.add('is-visible');
+    poiPopup.setAttribute('aria-hidden', 'false');
+  }
+
+  function hidePoiPopup() {
+    if (!poiPopup) return;
+    poiPopup.classList.remove('is-visible');
+    poiPopup.setAttribute('aria-hidden', 'true');
+  }
+
+  if (poiPopupClose) {
+    poiPopupClose.addEventListener('click', function (e) {
+      e.stopPropagation();
+      hidePoiPopup();
+    });
   }
 
   // ── Load model ───────────────────────────────────────────────────────────
@@ -797,9 +846,10 @@ function initViewer(container) {
   // ── Adaptive pixel ratio (performance) ───────────────────────────────────
   var frameCount = 0;
   var lastFpsCheck = performance.now();
-  var currentPixelRatio = Math.min(window.devicePixelRatio, 2);
+  var currentPixelRatio = isMobile ? 1 : Math.min(window.devicePixelRatio, 2);
 
   function checkPerformance() {
+    if (isMobile) return; // already locked to 1 on mobile
     frameCount++;
     var now = performance.now();
     var delta = now - lastFpsCheck;
