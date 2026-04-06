@@ -83,6 +83,24 @@ function initViewer(container) {
   controls.maxDistance = 5000;
   controls.zoomSpeed = 1.2;
 
+  // Forward wheel events from labels so zooming still works without scrolling the page
+  container.addEventListener('wheel', function (e) {
+    if (e.target.closest('.viewer-label')) {
+      e.preventDefault();
+      var clone = new WheelEvent('wheel', {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        deltaX: e.deltaX,
+        deltaY: e.deltaY,
+        deltaZ: e.deltaZ,
+        deltaMode: e.deltaMode,
+        bubbles: true,
+        cancelable: true
+      });
+      renderer.domElement.dispatchEvent(clone);
+    }
+  }, { passive: false });
+
   // ── Progress overlay ─────────────────────────────────────────────────────
   const progress = document.createElement('div');
   progress.className = 'viewer-progress';
