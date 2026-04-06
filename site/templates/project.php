@@ -66,118 +66,72 @@ $posterUrl = ($cover = $page->cover()->toFile())
     ? $cover->crop(1600, 700)->url()
     : url('assets/hero-images/Seattle-Art-Museum-good-scan-60070.jpg');
 
-$gallery = $page->images()
-    ->filterBy('extension', 'in', ['jpg', 'jpeg', 'png', 'webp'])
-    ->filter(fn($f) => !str_contains(strtolower($f->filename()), 'diffuse')
-                    && !str_contains(strtolower($f->filename()), 'texture'))
-    ->sortBy('sort');
+$gallery = $page->gallery()->toFiles();
+if ($gallery->count() === 0) {
+    $gallery = $page->images()
+        ->filterBy('extension', 'in', ['jpg', 'jpeg', 'png', 'webp'])
+        ->filter(fn($f) => !str_contains(strtolower($f->filename()), 'diffuse')
+                        && !str_contains(strtolower($f->filename()), 'texture')
+                        && !str_contains(strtolower($f->filename()), 'normal_'))
+        ->sortBy('sort');
+}
 ?>
 
-<div class="items-start pt-4 pb-20">
+<div class="items-start pt-0 pb-10">
+
+    <!-- Project Header (spans full 7 cols) -->
+    <div class="col-7 flex flex-col items-center mb-4 px-4 pt-8 project-header relative">
+        <h1 class="font-thyssen text-[clamp(2.5rem,8vw,6rem)] text-center leading-[0.9] mb-2 border-none no-underline"><?= $page->title()->esc() ?></h1>
+        
+        <!-- Location (right aligned, but closer in flow) -->
+        <div class="flex justify-end w-full max-w-6xl pr-6">
+            <?php snippet('location-tag', ['location' => $page->location()->value()]) ?>
+        </div>
+    </div>
 
     <!-- ── Left: Content & Specs (2 cols) ── -->
     <div class="col-2 flex flex-col gap-8 pb-10">
-
-        <!-- Location + Tags -->
-        <div class="flex flex-wrap gap-2 items-center">
-            <?php snippet('location-tag', ['location' => $page->location()->value()]) ?>
-            <?php foreach ($page->tags()->split(',') as $tag): ?>
-                <span class="tag"><?= trim($tag) ?></span>
-            <?php endforeach ?>
-        </div>
-
-        <!-- Title -->
-        <h1 class="font-thyssen text-5xl leading-tight"><?= $page->title()->esc() ?></h1>
-
-        <!-- Description -->
-        <div class="font-serif text-base text-ink/80 leading-relaxed">
-            <?php if ($page->description()->isNotEmpty()): ?>
-                <p><?= $page->description()->esc() ?></p>
-            <?php else: ?>
-                <p class="italic text-faint">Description bientôt disponible.</p>
-            <?php endif ?>
-        </div>
-
-        <!-- Annotation panel (points of interest) -->
-        <?php if (count($annotationsData) > 0): ?>
-            <div class="annotation-panel">
-                <h3 class="annotation-panel__heading">Points d'intérêt</h3>
-                <div class="annotation-list">
-                    <?php foreach ($annotationsData as $i => $ann): ?>
-                        <button class="annotation-entry" data-hotspot="<?= htmlspecialchars($ann['id']) ?>">
-                            <span class="annotation-entry__number"><?= str_pad($i + 1, 2, '0', STR_PAD_LEFT) ?></span>
-                            <div class="annotation-entry__body">
-                                <p class="annotation-entry__title"><?= htmlspecialchars($ann['title']) ?></p>
-                                <?php if (!empty($ann['description'])): ?>
-                                    <div class="annotation-entry__desc"><?= $ann['description'] ?></div>
-                                <?php endif ?>
-                            </div>
-                        </button>
-                    <?php endforeach ?>
-                </div>
-            </div>
-        <?php endif ?>
 
         <!-- Rich text blocks -->
         <?php if ($page->text()->isNotEmpty()): ?>
             <div class="font-serif text-base text-ink leading-relaxed [&_h2]:font-sans [&_h2]:text-xl [&_h2]:mb-3 [&_h2]:mt-8 [&_p]:mb-4">
                 <?= $page->text()->toBlocks() ?>
             </div>
-        <?php else: ?>
-            <div class="font-serif text-base text-ink/70 leading-relaxed flex flex-col gap-4">
-                <p class="italic text-faint">Contenu détaillé prochainement disponible.</p>
+        <?php endif ?>
+
+        <!-- Spec Sheet — monospace minimal -->
+        <?php
+        $specFields = [
+            ['label' => 'Construction', 'value' => $page->construction_date()],
+            ['label' => 'Architecte',   'value' => $page->architect()],
+            ['label' => 'Style',        'value' => $page->style()],
+            ['label' => 'Dimensions',   'value' => $page->dimensions()],
+            ['label' => 'Protection',   'value' => $page->protection_status()],
+        ];
+        $hasSpecs = false;
+        foreach ($specFields as $sf) { if ($sf['value']->isNotEmpty()) { $hasSpecs = true; break; } }
+        ?>
+        <?php if ($hasSpecs): ?>
+            <div class="spec-card">
+                <h3 class="spec-card__heading">Fiche technique</h3>
+                <dl class="spec-card__grid">
+                    <?php foreach ($specFields as $sf): ?>
+                        <?php if ($sf['value']->isNotEmpty()): ?>
+                            <div class="spec-card__item">
+                                <dt class="spec-card__label"><?= $sf['label'] ?></dt>
+                                <dd class="spec-card__value"><?= $sf['value']->esc() ?></dd>
+                            </div>
+                        <?php endif ?>
+                    <?php endforeach ?>
+                </dl>
             </div>
         <?php endif ?>
 
-        <!-- Spec Sheet -->
-        <div class="border-t border-border pt-6">
-            <h3 class="font-mono text-xs uppercase tracking-widest text-faint mb-5">Fiche technique</h3>
-            <dl class="flex flex-col gap-4">
-                <?php if ($page->construction_date()->isNotEmpty()): ?>
-                    <div>
-                        <dt class="font-mono text-xs uppercase tracking-widest text-faint mb-1">Date de construction</dt>
-                        <dd class="font-serif text-sm text-ink"><?= $page->construction_date()->esc() ?></dd>
-                    </div>
-                <?php endif ?>
-                <?php if ($page->architect()->isNotEmpty()): ?>
-                    <div>
-                        <dt class="font-mono text-xs uppercase tracking-widest text-faint mb-1">Architecte</dt>
-                        <dd class="font-serif text-sm text-ink"><?= $page->architect()->esc() ?></dd>
-                    </div>
-                <?php endif ?>
-                <?php if ($page->style()->isNotEmpty()): ?>
-                    <div>
-                        <dt class="font-mono text-xs uppercase tracking-widest text-faint mb-1">Style</dt>
-                        <dd class="font-serif text-sm text-ink"><?= $page->style()->esc() ?></dd>
-                    </div>
-                <?php endif ?>
-                <?php if ($page->dimensions()->isNotEmpty()): ?>
-                    <div>
-                        <dt class="font-mono text-xs uppercase tracking-widest text-faint mb-1">Dimensions</dt>
-                        <dd class="font-mono text-xs text-ink"><?= $page->dimensions()->esc() ?></dd>
-                    </div>
-                <?php endif ?>
-                <?php if ($page->protection_status()->isNotEmpty()): ?>
-                    <div class="pt-3 border-t border-border">
-                        <dt class="font-mono text-xs uppercase tracking-widest text-faint mb-1.5">Protection</dt>
-                        <dd>
-                            <span class="inline-flex items-center gap-1.5 font-serif text-xs bg-mid/10 text-ink px-2 py-1 rounded-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                <?= $page->protection_status()->esc() ?>
-                            </span>
-                        </dd>
-                    </div>
-                <?php endif ?>
-                <?php if ($page->condition()->isNotEmpty()): ?>
-                    <div>
-                        <dt class="font-mono text-xs uppercase tracking-widest text-faint mb-1">État</dt>
-                        <dd class="font-serif text-xs text-accent flex items-center gap-1.5">
-                            <div class="w-2 h-2 rounded-full bg-accent flex-shrink-0"></div>
-                            <?= $page->condition()->esc() ?>
-                        </dd>
-                    </div>
-                <?php endif ?>
-            </dl>
+        <!-- Tags -->
+        <div class="flex flex-wrap gap-2 mt-4">
+            <?php foreach ($page->tags()->split(',') as $tag): ?>
+                <span class="tag text-xs"><?= trim($tag) ?></span>
+            <?php endforeach ?>
         </div>
 
         <!-- Gallery -->
@@ -186,8 +140,8 @@ $gallery = $page->images()
                 <h3 class="font-mono text-xs uppercase tracking-widest text-faint mb-3">Galerie</h3>
                 <div class="grid grid-cols-2 gap-2">
                     <?php foreach ($gallery as $image): ?>
-                        <a href="<?= $image->url() ?>" target="_blank"
-                           class="block aspect-square overflow-hidden rounded-[4px] bg-border transition-transform hover:-translate-y-0.5">
+                        <a href="<?= $image->url() ?>" data-lightbox
+                           class="block aspect-square overflow-hidden rounded-[4px] bg-border transition-transform hover:-translate-y-0.5 cursor-zoom-in">
                             <img src="<?= $image->crop(400, 400)->url() ?>"
                                  alt="<?= $image->alt()->or($page->title())->esc() ?>"
                                  loading="lazy" class="w-full h-full object-cover">
@@ -197,25 +151,10 @@ $gallery = $page->images()
             </div>
         <?php endif ?>
 
-        <!-- Additional images -->
-        <?php $additionalImages = $page->additional_images()->toFiles(); ?>
-        <?php if ($additionalImages->count()): ?>
-            <div class="flex flex-col gap-3">
-                <?php foreach ($additionalImages as $img): ?>
-                    <a href="<?= $img->url() ?>" target="_blank"
-                       class="block overflow-hidden rounded-[4px] bg-border hover:-translate-y-0.5 transition-transform">
-                        <img src="<?= $img->resize(1200)->url() ?>"
-                             alt="<?= $img->alt()->or($page->title())->esc() ?>"
-                             loading="lazy" class="w-full h-auto object-cover">
-                    </a>
-                <?php endforeach ?>
-            </div>
-        <?php endif ?>
-
     </div>
 
     <!-- ── Right: 3D Viewer (5 cols, sticky) ── -->
-    <div class="col-5 sticky top-6 h-[calc(100vh-5rem)] overflow-hidden rounded-[4px] relative bg-ink" id="viewer-container">
+    <div class="col-5 sticky overflow-hidden rounded-[4px] relative bg-ink z-50" id="viewer-container" style="top: 80px; height: calc(100vh - 100px); min-height: 500px;">
 
         <?php if ($hasIframe): ?>
             <div id="model-poster" class="absolute inset-0 cursor-pointer z-10 transition-opacity duration-500">

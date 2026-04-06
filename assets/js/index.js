@@ -22,7 +22,22 @@ document.addEventListener('DOMContentLoaded', function () {
             var src = link.getAttribute('href');
             var alt = link.querySelector('img') ? link.querySelector('img').alt : '';
             if (typeof basicLightbox !== 'undefined') {
-                basicLightbox.create('<img src="' + src + '" alt="' + alt + '">').show();
+                var instance = basicLightbox.create('<img src="' + src + '" alt="' + alt + '">');
+                instance.show();
+
+                // Close on Escape key
+                function onKey(ev) {
+                    if (ev.key === 'Escape' && instance.visible()) {
+                        instance.close();
+                    }
+                }
+                document.addEventListener('keydown', onKey);
+                // Clean up listener when lightbox closes
+                var origClose = instance.close.bind(instance);
+                instance.close = function () {
+                    document.removeEventListener('keydown', onKey);
+                    return origClose();
+                };
             }
         });
     });
