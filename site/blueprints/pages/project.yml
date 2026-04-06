@@ -44,15 +44,6 @@ tabs:
         uploads: image
         query: page.images.template('image')
 
-      additional_images:
-        type: files
-        label: Images supplémentaires
-        layout: cards
-        size: medium
-        help: Images complémentaires affichées sous la fiche technique.
-        uploads: image
-        query: page.images.template('image')
-
   # ── Tab 2 : Fiche technique ────────────────────────────────────────────────
   info:
     label: Fiche technique
@@ -97,16 +88,6 @@ tabs:
               unesco: Inscrit au patrimoine mondial de l'UNESCO
               regional: Inventaire Régional
               none: Non protégé
-
-          condition:
-            type: select
-            label: État de conservation
-            options:
-              excellent: Excellent
-              bon: Bon
-              peril: En péril
-              ruine: Ruine
-              disparu: Disparu
 
           lat:
             type: number
@@ -330,7 +311,8 @@ tabs:
                 options:
                   fly: Voler vers le point
                   orbit: Orbiter autour du point
-                help: "Voler : anime la caméra vers la position enregistrée. Orbiter : recentre l'orbite sans déplacer la caméra."
+                  auto-orbit: Orbite automatique (360°)
+                help: "Voler : anime la caméra vers la position. Orbiter : idem, puis permet d'orbiter autour. Auto : vol + rotation 360° automatique."
               description:
                 type: writer
                 label: Description
