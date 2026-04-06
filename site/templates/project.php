@@ -6,7 +6,10 @@ snippet('header');
 // priority; falls back to the most-recently-modified file of the right type.
 $glbFile  = $page->model_glb()->toFile()
     ?? $page->files()->filterBy('extension', 'glb')->sortBy('modified', 'desc')->first();
-$interiorGlbFile = $page->model_glb_interior()->toFile();
+$interiorGlbFile  = $page->model_glb_interior()->toFile();
+$interiorObjFile  = $page->model_obj_interior()->toFile();
+$interiorTexFile  = $page->model_texture_interior()->toFile();
+$interiorNormFile = $page->model_normal_interior()->toFile();
 $objFile  = $page->model_obj()->toFile()
     ?? $page->files()->filterBy('extension', 'obj')->sortBy('modified', 'desc')->first();
 $texFile  = $page->model_texture()->toFile()
@@ -47,14 +50,17 @@ if ($page->annotations()->isNotEmpty()) {
 }
 $annotationsJson = json_encode($annotationsData, JSON_UNESCAPED_UNICODE);
 
-$glbUrl          = $glbFile ? $glbFile->url() : null;
-$interiorGlbUrl  = $interiorGlbFile ? $interiorGlbFile->url() : null;
-$objUrl          = $objFile ? $objFile->url() : null;
+$glbUrl           = $glbFile         ? $glbFile->url()         : null;
+$interiorGlbUrl   = $interiorGlbFile  ? $interiorGlbFile->url()  : null;
+$interiorObjUrl   = $interiorObjFile  ? $interiorObjFile->url()  : null;
+$interiorTexUrl   = $interiorTexFile  ? $interiorTexFile->url()  : null;
+$interiorNormUrl  = $interiorNormFile ? $interiorNormFile->url() : null;
+$objUrl           = $objFile          ? $objFile->url()          : null;
 $texUrl          = $texFile ? $texFile->url() : null;
 $normUrl = $normFile ? $normFile->url() : null;
 
 $hasIframe  = ($viewerUrl !== null);
-$hasModel   = ($glbUrl !== null || $objUrl !== null);
+$hasModel   = ($glbUrl !== null || $objUrl !== null || $interiorGlbUrl !== null || $interiorObjUrl !== null);
 
 $posterUrl = ($cover = $page->cover()->toFile())
     ? $cover->crop(1600, 700)->url()
@@ -241,7 +247,10 @@ $gallery = $page->images()
             <div id="viewer-3d"
                  class="w-full h-full bg-ink"
                  data-glb="<?= $glbUrl ?>"
-                 <?php if ($interiorGlbUrl): ?>data-glb-interior="<?= $interiorGlbUrl ?>"<?php endif ?>
+                 <?php if ($interiorGlbUrl):  ?>data-glb-interior="<?= $interiorGlbUrl ?>"<?php endif ?>
+                 <?php if ($interiorObjUrl):  ?>data-obj-interior="<?= $interiorObjUrl ?>"<?php endif ?>
+                 <?php if ($interiorTexUrl):  ?>data-texture-interior="<?= $interiorTexUrl ?>"<?php endif ?>
+                 <?php if ($interiorNormUrl): ?>data-normal-interior="<?= $interiorNormUrl ?>"<?php endif ?>
                  data-obj="<?= $objUrl ?>"
                  data-texture="<?= $texUrl ?>"
                  data-normal="<?= $normUrl ?>"

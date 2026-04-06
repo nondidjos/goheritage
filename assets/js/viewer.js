@@ -28,7 +28,10 @@ function initViewer(container) {
   const texUrl      = container.dataset.texture || null;
   const normUrl     = container.dataset.normal || null;
   const dracoPath   = container.dataset.dracoPath || null;
-  const interiorUrl = container.dataset.glbInterior || null;
+  const interiorUrl     = container.dataset.glbInterior      || null;
+  const interiorObjUrl  = container.dataset.objInterior       || null;
+  const interiorTexUrl  = container.dataset.textureInterior   || null;
+  const interiorNormUrl = container.dataset.normalInterior    || null;
 
   // CMS annotations passed as JSON data attribute
   let cmsAnnotations = [];
@@ -154,10 +157,10 @@ function initViewer(container) {
     wireAnnotationPanel();
     wireHotspotBlocks();
 
-    // Store exterior model; build toggle once ready if interior URL is set
+    // Store exterior model; build toggle once ready if any interior model is set
     modelObjects.exterior = object;
     hotspotSets.exterior  = hotspots.slice();
-    if (interiorUrl) buildToggle();
+    if (interiorUrl || interiorObjUrl) buildToggle();
   }
 
   // ── Extract hotspots from Blender Empties ────────────────────────────────
@@ -367,9 +370,95 @@ function initViewer(container) {
       if (modelObjects[side]) {
         showSide(modelObjects[side]);
       } else {
-        loadInteriorGlb(interiorUrl, showSide);
+        loadInteriorModel(showSide);
       }
     }, 260);
+  }
+
+  // ── Dispatch to GLB or OBJ interior loader ───────────────────────────────
+  function loadInteriorModel(onReady) {
+    if (interiorUrl) {
+      loadInteriorGlb(interiorUrl, onReady);
+    } else {
+      loadInteriorObj(onReady);
+    }
+  }
+
+  // ── Lazy-load interior OBJ (first switch only) ────────────────────────────
+  function loadInteriorObj(onReady) {
+    var prog = document.createElement('div');
+    prog.className = 'viewer-progress';
+    prog.innerHTML =
+      '<div class="viewer-progress-bar"><div class="viewer-progress-fill"></div></div>' +
+      '<span class="viewer-progress-text">chargement de l\u2019int\u00e9rieur\u2026</span>';
+    container.appendChild(prog);
+    var fill = prog.querySelector('.viewer-progress-fill');
+    var text = prog.querySelector('.viewer-progress-text');
+
+    var objLoader = new OBJLoader();
+    var basePath   = interiorObjUrl.substring(0, interiorObjUrl.lastIndexOf('/') + 1);
+    var objFilename = interiorObjUrl.substring(interiorObjUrl.lastIndexOf('/') + 1);
+    objLoader.setPath(basePath);
+
+    objLoader.load(
+      objFilename,
+      function (model) {
+        if (interiorTexUrl) {
+          var tex = new THREE.TextureLoader().load(interiorTexUrl);
+          tex.colorSpace = THREE.SRGBColorSpace;
+          var matParams = { map: tex, side: THREE.FrontSide };
+          if (interiorNormUrl) {
+            matParams.normalMap = new THREE.TextureLoader().load(interiorNormUrl);
+          }
+          var mat = interiorNormUrl
+            ? new THREE.MeshStandardMaterial(matParams)
+            : new THREE.MeshBasicMaterial(matParams);
+          model.traverse(function (child) {
+            if (child.isMesh) child.material = mat;
+          });
+        } else {
+          var fallback = new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.FrontSide });
+          model.traverse(function (child) {
+            if (child.isMesh) child.material = fallback;
+          });
+        }
+
+        // Same hotspot extraction pattern as loadInteriorGlb
+        var prevHotspots = hotspots;
+        var prevRadius   = modelRadius;
+        var prevCenter   = modelCenter.clone();
+
+        var box = new THREE.Box3().setFromObject(model);
+        modelRadius = box.getSize(new THREE.Vector3()).length() / 2;
+        modelCenter.copy(box.getCenter(new THREE.Vector3()));
+
+        hotspots = [];
+        extractHotspots(model);
+        buildLabels(false);
+        hotspotSets.interior = hotspots;
+
+        hotspots    = prevHotspots;
+        modelRadius = prevRadius;
+        modelCenter.copy(prevCenter);
+
+        modelObjects.interior = model;
+
+        prog.style.opacity = '0';
+        setTimeout(function () { prog.remove(); }, 400);
+        onReady(model);
+      },
+      function (xhr) {
+        if (xhr.total > 0) {
+          var pct = Math.round((xhr.loaded / xhr.total) * 100);
+          fill.style.width = pct + '%';
+          text.textContent = 'chargement\u2026 ' + pct + '%';
+        }
+      },
+      function (err) {
+        console.error('interior obj load error:', err);
+        text.textContent = 'erreur de chargement';
+      }
+    );
   }
 
   // ── Lazy-load the interior GLB (first switch only) ───────────────────────
@@ -475,14 +564,17 @@ function initViewer(container) {
       cameraTarget = targetPos.clone().add(dir.multiplyScalar(modelRadius * 0.6));
     }
 
-    // Use the stored Blender orbit pivot as the look-at target when available.
-    // This reproduces the exact viewport angle from Blender rather than
-    // forcing the camera to look straight at the hotspot sphere.
-    var lookAtTarget = hs.lookAt ? hs.lookAt.clone() : targetPos.clone();
-
-    // Always animate. In orbit mode the controls stay enabled after the
-    // animation so the user can freely orbit around the look-at point.
-    flyTo(cameraTarget, lookAtTarget, 1.2);
+    if (hs.cameraMode === 'orbit') {
+      // Orbit mode: keep the camera where it is, shift the orbit pivot
+      // to the hotspot so the user can immediately start orbiting around it.
+      var orbitPivot = hs.lookAt ? hs.lookAt.clone() : targetPos.clone();
+      flyTo(camera.position.clone(), orbitPivot, 0.8);
+    } else {
+      // Fly mode: animate camera to the stored Blender position, looking at
+      // the stored orbit pivot (reproduces the exact Blender viewport angle).
+      var lookAtTarget = hs.lookAt ? hs.lookAt.clone() : targetPos.clone();
+      flyTo(cameraTarget, lookAtTarget, 1.2);
+    }
   }
 
   function deactivateHotspot(id) {

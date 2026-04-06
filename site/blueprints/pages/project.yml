@@ -174,7 +174,7 @@ tabs:
             label: Intérieur
             accept: ".glb"
             template: model
-            help: "Optionnel — affiche un bouton Ext. / Int. dans le viewer. Chargé à la demande au premier clic."
+            help: "Optionnel — affiche un bouton Ext. / Int. dans le viewer."
 
   # ── Tab 4 : Modèle 3D (obsolète) ──────────────────────────────────────────
   viewer_legacy:
@@ -239,6 +239,42 @@ tabs:
             default: true
             help: Compresse la texture diffuse à l'upload pour le web.
 
+      # ── OBJ intérieur ────────────────────────────────────────────────────────
+      - width: 1/1
+        fields:
+          obj_interior_info:
+            label: false
+            type: info
+            theme: warning
+            text: "**OBJ intérieur** — Comme pour l'extérieur, ce format n'inclut pas les hotspots. Ignoré si un GLB intérieur est présent."
+
+      - width: 1/2
+        fields:
+          model_obj_interior:
+            type: upload-overwrite
+            label: Fichier OBJ — Intérieur
+            accept: ".obj"
+            template: model
+            help: Modèle OBJ pour l'intérieur.
+
+      - width: 1/2
+        fields:
+          model_texture_interior:
+            type: upload-overwrite
+            label: Texture diffuse — Intérieur
+            accept: ".jpg,.jpeg,.png"
+            template: image
+            help: Texture couleur pour le modèle OBJ intérieur.
+
+      - width: 1/2
+        fields:
+          model_normal_interior:
+            type: upload-overwrite
+            label: Normal Map — Intérieur
+            accept: ".jpg,.jpeg,.png"
+            template: image
+            help: Texture de normales pour le modèle OBJ intérieur.
+
   # ── Tab 5 : Points d'intérêt ──────────────────────────────────────────────
   annotations:
     label: Points d'intérêt
@@ -247,6 +283,7 @@ tabs:
       - width: 1/1
         fields:
           annotations_info:
+            label: false
             type: info
             text: >
               Les points d'intérêt apparaissent sous forme de labels cliquables
