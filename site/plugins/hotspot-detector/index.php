@@ -63,18 +63,20 @@ Kirby::plugin('goheritage/hotspot-detector', [
         ],
     ],
 
-    // ── Hooks: auto-detect when a GLB lands on a project page ─────────────
+    // ── Hooks: auto-detect when a JSON lands on a project page ─────────────
     'hooks' => [
         'file.create:after' => function ($file) {
-            if (strtolower($file->extension()) === 'glb') {
+            if (strtolower($file->extension()) === 'json') {
                 $page = $file->parent();
                 if ($page && $page->template()->name() === 'project') {
+                    // Only auto-trigger if this file was specifically assigned
+                    // to model_hotspots_json, OR let detectAndSaveHotspots find it.
                     detectAndSaveHotspots($page, $file->root());
                 }
             }
         },
         'file.replace:after' => function ($newFile, $oldFile) {
-            if (strtolower($newFile->extension()) === 'glb') {
+            if (strtolower($newFile->extension()) === 'json') {
                 $page = $newFile->parent();
                 if ($page && $page->template()->name() === 'project') {
                     detectAndSaveHotspots($page, $newFile->root());
@@ -85,30 +87,39 @@ Kirby::plugin('goheritage/hotspot-detector', [
 ]);
 
 
-// ── Core: parse GLB + merge into page annotations ──────────────────────────
+// ── Core: parse JSON + merge into page annotations ────────────────────────
 
 /**
- * Parse a GLB file for hotspot Empties and merge into the page's
+ * Parse a JSON file for hotspots and merge into the page's
  * annotations structure field, preserving any existing descriptions.
  *
  * @param \Kirby\Cms\Page $page
- * @param string|null     $glbPath  explicit path; if null, auto-detected
+ * @param string|null     $jsonPath explicit path; if null, auto-detected from page field
  * @return array  { count: int, added: int, skipped: int, hotspots: [] }
  */
-function detectAndSaveHotspots($page, $glbPath = null) {
+function detectAndSaveHotspots($page, $jsonPath = null) {
 
-    // ── find the GLB file ──────────────────────────────────────────────────
-    if (!$glbPath) {
-        $glbFile = $page->files()->filterBy('extension', 'glb')->first();
-        if (!$glbFile) {
-            return ['status' => 'ok', 'count' => 0, 'added' => 0, 'skipped' => 0,
-                    'message' => 'No GLB file found on this page.', 'hotspots' => []];
+    // ── find the JSON file ─────────────────────────────────────────────────
+    if (!$jsonPath) {
+        $uuid = $page->content()->get('model_hotspots_json')->value();
+        if ($uuid) {
+            $file = kirby()->file($uuid) ?? $page->file($uuid);
+            if ($file) $jsonPath = $file->root();
         }
-        $glbPath = $glbFile->root();
+        
+        if (!$jsonPath) {
+            return ['status' => 'ok', 'count' => 0, 'added' => 0, 'skipped' => 0,
+                    'message' => 'Veuillez d\'abord téléverser un fichier Hotspots JSON.', 'hotspots' => []];
+        }
     }
 
-    // ── parse hotspots from the GLB binary ────────────────────────────────
-    $hotspots = parseGlbHotspots($glbPath);
+    // ── parse hotspots from the JSON ──────────────────────────────────────
+    $hotspots = parseJsonHotspots($jsonPath);
+
+    if (empty($hotspots)) {
+        return ['status' => 'ok', 'count' => 0, 'added' => 0, 'skipped' => 0,
+                'message' => 'Le fichier JSON semble vide ou mal formaté.', 'hotspots' => []];
+    }
 
     // ── read existing annotations from the page ───────────────────────────
     $existing = [];
@@ -132,7 +143,6 @@ function detectAndSaveHotspots($page, $glbPath = null) {
     foreach ($hotspots as $hs) {
         if (isset($existing[$hs['id']])) {
             // already exists — preserve description, optionally update title
-            // (Blender title wins only if user hasn't touched the CMS title)
             $existing[$hs['id']]['title'] = $existing[$hs['id']]['title'] ?: $hs['title'];
             $merged[] = $existing[$hs['id']];
             $skipped++;
@@ -150,8 +160,6 @@ function detectAndSaveHotspots($page, $glbPath = null) {
     // ── persist ───────────────────────────────────────────────────────────
     if (!empty($merged)) {
         try {
-            // impersonate kirby superuser so this works regardless of the
-            // current user's role (e.g. author who can't publish)
             kirby()->impersonate('kirby');
             $page->update([
                 'annotations' => Yaml::encode($merged),
@@ -169,67 +177,48 @@ function detectAndSaveHotspots($page, $glbPath = null) {
         'added'    => $added,
         'skipped'  => $skipped,
         'hotspots' => $hotspots,
-        'message'  => count($merged) . ' hotspot(s) detected (' . $added . ' new, ' . $skipped . ' existing preserved)',
+        'message'  => count($merged) . ' hotspot(s) détecté(s) (' . $added . ' nouveau(x), ' . $skipped . ' existant(s) conservé(s))',
     ];
 }
 
 /**
- * Parse a GLB binary and return all hotspot Empty objects found in it.
- * No Node.js required — reads the GLB JSON chunk directly.
+ * Parse arbitrary JSON exported by Blender addons and extract hotspot entries.
  *
- * GLB format:
- *   Bytes  0- 3  magic "glTF" = 0x46546C67
- *   Bytes  4- 7  version (uint32 LE, should be 2)
- *   Bytes  8-11  total file length (uint32 LE)
- *   Bytes 12-15  JSON chunk length (uint32 LE)
- *   Bytes 16-19  JSON chunk type  (0x4E4F534A = "JSON")
- *   Bytes 20-..  JSON chunk data
- *
- * @param string $glbPath absolute path to the .glb file
- * @return array  array of ['id' => string, 'title' => string]
+ * @param string $jsonPath absolute path to the .json file
+ * @return array  array of ['id' => string, 'title' => string, 'camera_mode' => string]
  */
-function parseGlbHotspots($glbPath) {
-    if (!file_exists($glbPath) || !is_readable($glbPath)) {
-        return [];
-    }
+function parseJsonHotspots($jsonPath) {
+    if (!file_exists($jsonPath) || !is_readable($jsonPath)) return [];
 
-    // read just the header + JSON chunk (skip the binary buffer)
-    $header = file_get_contents($glbPath, false, null, 0, 20);
-    if (strlen($header) < 20) return [];
-
-    $magic = unpack('V', substr($header, 0, 4))[1];
-    if ($magic !== 0x46546C67) {
-        error_log('[hotspot-detector] not a valid GLB file: ' . $glbPath);
-        return [];
-    }
-
-    $jsonLen = unpack('V', substr($header, 12, 4))[1];
-    if ($jsonLen <= 0 || $jsonLen > 50 * 1024 * 1024) return []; // sanity check
-
-    $jsonStr = file_get_contents($glbPath, false, null, 20, $jsonLen);
+    $jsonStr = file_get_contents($jsonPath);
     if (!$jsonStr) return [];
 
-    $gltf = json_decode($jsonStr, true);
-    if (!is_array($gltf) || !isset($gltf['nodes'])) return [];
+    $data = json_decode($jsonStr, true);
+    if (!is_array($data)) return [];
+
+    // Extract correct array inside JSON depending on what the addon produced
+    $source = [];
+    if (isset($data['hotspots']) && is_array($data['hotspots'])) {
+        $source = $data['hotspots'];
+    } elseif (isset($data['annotations']) && is_array($data['annotations'])) {
+        $source = $data['annotations'];
+    } else {
+        $source = $data; // assume root array
+    }
 
     $hotspots = [];
 
-    foreach ($gltf['nodes'] as $node) {
-        $extras = isset($node['extras']) && is_array($node['extras']) ? $node['extras'] : [];
-        $name   = $node['name'] ?? '';
+    foreach ($source as $key => $node) {
+        if (!is_array($node)) continue;
 
-        // a hotspot is either tagged in extras OR named "hotspot_*"
-        $isHotspot = !empty($extras['hotspot'])
-            || strncasecmp($name, 'hotspot_', 8) === 0;
+        $id         = $node['id']          ?? $node['hotspot_id'] ?? (is_string($key) ? $key : null) ?? $node['name'] ?? null;
+        $title      = $node['title']       ?? $node['name']       ?? $id;
+        $cameraMode = $node['camera_mode'] ?? $node['mode']       ?? 'fly';
 
-        if (!$isHotspot) continue;
-
-        // skip nodes that have mesh data — those are geometry, not Empties
-        if (isset($node['mesh'])) continue;
-
-        $id         = $extras['hotspot_id']  ?? $name;
-        $title      = $extras['title']       ?? $name;
-        $cameraMode = $extras['camera_mode'] ?? 'fly';
+        // Addon specific fallback
+        if (empty($id) && isset($node['uuid'])) {
+            $id = 'hotspot_' . substr($node['uuid'], 0, 6);
+        }
 
         if (empty($id)) continue;
 

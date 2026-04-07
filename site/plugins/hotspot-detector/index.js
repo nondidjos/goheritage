@@ -64,7 +64,7 @@ panel.plugin('goheritage/hotspot-detector', {
               :disabled="loading"
               @click="detect"
             >
-              {{ loading ? 'Détection en cours…' : 'Détecter les hotspots du GLB' }}
+              {{ loading ? 'Détection en cours…' : 'Détecter les hotspots depuis le JSON' }}
             </k-button>
 
             <span v-if="!result && !error && existingCount > 0"
@@ -86,9 +86,8 @@ panel.plugin('goheritage/hotspot-detector', {
               Rechargement…
             </template>
             <template v-else>
-              Aucun hotspot trouvé dans ce GLB. Vérifiez que les Empties
-              sont nommés <code>hotspot_*</code> et que «&nbsp;Custom Properties&nbsp;»
-              était coché lors de l'export.
+              Aucun hotspot trouvé dans ce JSON. Vérifiez que l'export depuis Blender 
+              a bien été réalisé avec l'addon GoHéritage.
             </template>
           </k-box>
 
