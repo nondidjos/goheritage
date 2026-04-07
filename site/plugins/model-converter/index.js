@@ -41,6 +41,10 @@ panel.plugin('goheritage/model-converter', {
                 <a :href="f.url" target="_blank" rel="noopener" class="k-upload-overwrite-list__name">
                   {{ f.filename }}
                 </a>
+                <span v-if="f.size" class="k-upload-overwrite-list__size" style="font-size: 0.8rem; color: var(--color-text-dimmed); margin-right: 0.5rem;">
+                  {{ f.size }}
+                </span>
+                <k-icon v-if="f.isSelected" type="check" style="color: var(--color-green); margin-right: 0.5rem;" title="Fichier assigné" />
                 <button
                   type="button"
                   class="k-upload-overwrite-list__delete"

@@ -17,6 +17,7 @@ F::$types['document'][] = 'obj';
 F::$types['document'][] = 'mtl';
 F::$types['document'][] = 'glb';
 F::$types['document'][] = 'gltf';
+F::$types['document'][] = 'json';
 
 Kirby::plugin('goheritage/model-converter', [
 
@@ -34,28 +35,23 @@ Kirby::plugin('goheritage/model-converter', [
                     $page     = $this->model();
                     $fieldVal = $page->content()->get($this->name())->value();
 
-                    // If this field has a stored file UUID, show only that file.
-                    // This prevents every upload-overwrite field on the page from
-                    // listing all files of the same extension (e.g. two GLB fields
-                    // each showing every GLB on the page).
+                    // If this field has a stored file UUID or filename, show only that file.
                     if ($fieldVal) {
-                        $file = kirby()->file($fieldVal);
+                        $file = kirby()->file($fieldVal) ?? $page->file($fieldVal);
                         if ($file && $file->parent()->id() === $page->id()) {
                             return [[
-                                'filename' => $file->filename(),
-                                'url'      => $file->url(),
-                                'id'       => $file->id(),
+                                'filename'   => $file->filename(),
+                                'url'        => $file->url(),
+                                'id'         => $file->id(),
+                                'size'       => $file->niceSize(),
+                                'isSelected' => true,
                             ]];
                         }
                     }
 
-                    // No stored value yet — fall back to all page files
-                    // (covers fields that pre-date the UUID-storage upgrade)
-                    return $page->files()->values(fn($f) => [
-                        'filename' => $f->filename(),
-                        'url'      => $f->url(),
-                        'id'       => $f->id(),
-                    ]);
+                    // No stored value yet — return empty array so we don't accidentally
+                    // list all page files (like cover images).
+                    return [];
                 },
             ],
         ],
@@ -185,7 +181,9 @@ Kirby::plugin('goheritage/model-converter', [
 
                         // Manually trigger post-upload processing since the
                         // custom route bypasses Kirby's file.create:after hook.
-                        if ($ext === 'glb' && $page->compress_textures()->toBool()) {
+                        if ($ext === 'obj') {
+                            convertObjToGlb($newFile);
+                        } elseif ($ext === 'glb' && $page->compress_textures()->toBool()) {
                             compressGlbTextures($newFile);
                         } elseif (in_array($ext, ['png', 'jpg', 'jpeg'])
                             && $page->compress_textures()->toBool()) {
@@ -250,7 +248,8 @@ Kirby::plugin('goheritage/model-converter', [
 ]);
 
 /**
- * convert an obj file to draco-compressed glb using node cli tools
+ * Convert an OBJ file to Draco-compressed GLB using node CLI tools.
+ * The resulting GLB replaces (or creates) a same-named .glb file on the page.
  */
 function convertObjToGlb($file) {
     $npx = 'npx';

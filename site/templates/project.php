@@ -4,14 +4,11 @@ snippet('header');
 // auto-detect 3d model files from this page's directory
 // explicit field reference (stored by upload-overwrite after each upload) takes
 // priority; falls back to the most-recently-modified file of the right type.
-$glbFile  = $page->model_glb()->toFile()
-    ?? $page->files()->filterBy('extension', 'glb')->sortBy('modified', 'desc')->first();
-$interiorGlbFile  = $page->model_glb_interior()->toFile();
+$objFile  = $page->model_obj()->toFile()
+    ?? $page->files()->filterBy('extension', 'obj')->sortBy('modified', 'desc')->first();
 $interiorObjFile  = $page->model_obj_interior()->toFile();
 $interiorTexFile  = $page->model_texture_interior()->toFile();
 $interiorNormFile = $page->model_normal_interior()->toFile();
-$objFile  = $page->model_obj()->toFile()
-    ?? $page->files()->filterBy('extension', 'obj')->sortBy('modified', 'desc')->first();
 $texFile  = $page->model_texture()->toFile()
     ?? $page->files()->filterBy('extension', 'in', ['png', 'jpg', 'jpeg'])
                ->filter(fn($f) => str_ends_with($f->name(), '-compressed'))->first()
@@ -33,6 +30,10 @@ $normFile = $page->model_normal()->toFile()
                })
                ->first();
 
+$hotspotsJsonFile = $page->model_hotspots_json()->toFile()
+    ?? $page->files()->filterBy('extension', 'json')->sortBy('modified', 'desc')->first();
+$hotspotsJsonUrl = $hotspotsJsonFile ? $hotspotsJsonFile->url() : null;
+
 $viewerUrl = $page->viewer_url()->isNotEmpty() ? $page->viewer_url()->esc() : null;
 $viewerLabel = $page->viewer_label()->isNotEmpty() ? $page->viewer_label()->esc() : 'Explorer le Modèle 3D';
 
@@ -50,17 +51,27 @@ if ($page->annotations()->isNotEmpty()) {
 }
 $annotationsJson = json_encode($annotationsData, JSON_UNESCAPED_UNICODE);
 
-$glbUrl           = $glbFile         ? $glbFile->url()         : null;
-$interiorGlbUrl   = $interiorGlbFile  ? $interiorGlbFile->url()  : null;
+$objUrl           = $objFile          ? $objFile->url()          : null;
 $interiorObjUrl   = $interiorObjFile  ? $interiorObjFile->url()  : null;
 $interiorTexUrl   = $interiorTexFile  ? $interiorTexFile->url()  : null;
 $interiorNormUrl  = $interiorNormFile ? $interiorNormFile->url() : null;
-$objUrl           = $objFile          ? $objFile->url()          : null;
-$texUrl          = $texFile ? $texFile->url() : null;
-$normUrl = $normFile ? $normFile->url() : null;
+$texUrl           = $texFile ? $texFile->url() : null;
+$normUrl          = $normFile ? $normFile->url() : null;
+
+// The OBJ→GLB converter creates a same-named .glb file on the page.
+// Point the viewer at it so it loads the compressed version.
+$glbFile          = $objFile
+    ? $page->files()->filterBy('filename', $objFile->name() . '.glb')->first()
+    : null;
+$glbUrl           = $glbFile ? $glbFile->url() : null;
+
+$interiorGlbFile  = $interiorObjFile
+    ? $page->files()->filterBy('filename', $interiorObjFile->name() . '.glb')->first()
+    : null;
+$interiorGlbUrl   = $interiorGlbFile ? $interiorGlbFile->url() : null;
 
 $hasIframe  = ($viewerUrl !== null);
-$hasModel   = ($glbUrl !== null || $objUrl !== null || $interiorGlbUrl !== null || $interiorObjUrl !== null);
+$hasModel   = ($objUrl !== null || $interiorObjUrl !== null);
 
 $posterUrl = ($cover = $page->cover()->toFile())
     ? $cover->crop(1600, 700)->url()
@@ -195,16 +206,17 @@ if ($gallery->count() === 0) {
         <?php elseif ($hasModel): ?>
             <div id="viewer-3d"
                  class="w-full h-full bg-ink"
-                 data-glb="<?= $glbUrl ?>"
-                 <?php if ($interiorGlbUrl):  ?>data-glb-interior="<?= $interiorGlbUrl ?>"<?php endif ?>
-                 <?php if ($interiorObjUrl):  ?>data-obj-interior="<?= $interiorObjUrl ?>"<?php endif ?>
-                 <?php if ($interiorTexUrl):  ?>data-texture-interior="<?= $interiorTexUrl ?>"<?php endif ?>
-                 <?php if ($interiorNormUrl): ?>data-normal-interior="<?= $interiorNormUrl ?>"<?php endif ?>
                  data-obj="<?= $objUrl ?>"
+                 <?php if ($glbUrl): ?>data-glb="<?= $glbUrl ?>"<?php endif ?>
                  data-texture="<?= $texUrl ?>"
                  data-normal="<?= $normUrl ?>"
+                 <?php if ($interiorObjUrl):  ?>data-obj-interior="<?= $interiorObjUrl ?>"<?php endif ?>
+                 <?php if ($interiorGlbUrl):  ?>data-glb-interior="<?= $interiorGlbUrl ?>"<?php endif ?>
+                 <?php if ($interiorTexUrl):  ?>data-texture-interior="<?= $interiorTexUrl ?>"<?php endif ?>
+                 <?php if ($interiorNormUrl): ?>data-normal-interior="<?= $interiorNormUrl ?>"<?php endif ?>
                  data-draco-path="<?= url('node_modules/three/examples/jsm/libs/draco/') ?>"
-                 data-annotations="<?= htmlspecialchars($annotationsJson) ?>">
+                 data-annotations="<?= htmlspecialchars($annotationsJson) ?>"
+                 <?php if ($hotspotsJsonUrl): ?>data-hotspots-json="<?= $hotspotsJsonUrl ?>"<?php endif ?>>
             </div>
             <style>
               .viewer-progress {

@@ -22,22 +22,25 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 // ── Main init ────────────────────────────────────────────────────────────────
 
 function initViewer(container) {
-  const glbUrl      = container.dataset.glb || null;
   const objUrl      = container.dataset.obj || null;
-  const mtlUrl      = container.dataset.mtl || null;
+  const glbUrl      = container.dataset.glb || null;
   const texUrl      = container.dataset.texture || null;
   const normUrl     = container.dataset.normal || null;
   const dracoPath   = container.dataset.dracoPath || null;
-  const interiorUrl     = container.dataset.glbInterior      || null;
   const interiorObjUrl  = container.dataset.objInterior       || null;
+  const interiorGlbUrl  = container.dataset.glbInterior       || null;
   const interiorTexUrl  = container.dataset.textureInterior   || null;
   const interiorNormUrl = container.dataset.normalInterior    || null;
+  const hotspotsJsonUrl = container.dataset.hotspotsJson     || null;
 
   // CMS annotations passed as JSON data attribute
   let cmsAnnotations = [];
   try { cmsAnnotations = JSON.parse(container.dataset.annotations || '[]'); } catch (_) { }
 
-  if (!glbUrl && !objUrl) return;
+  // Hotspot positions loaded from JSON file (set after fetch)
+  var jsonHotspots = null; // { exterior: { hotspots: [...] }, interior: { hotspots: [...] } }
+
+  if (!objUrl && !glbUrl) return;
 
   // ── Mobile detection ─────────────────────────────────────────────────────
   var isMobile = window.innerWidth <= 768 || ('ontouchstart' in window);
@@ -166,11 +169,15 @@ function initViewer(container) {
   }
 
   // ── Prepare model materials ──────────────────────────────────────────────
-  function prepareModel(object) {
+  function prepareModel(object, side) {
+    // Exterior: DoubleSide (opaque backfaces visible from outside)
+    // Interior: FrontSide (backfaces transparent, see through walls)
+    var materialSide = (side === 'interior') ? THREE.FrontSide : THREE.DoubleSide;
+
     object.traverse(function (child) {
       if (child.isMesh && child.material) {
         var mats = Array.isArray(child.material) ? child.material : [child.material];
-        mats.forEach(function (m) { m.side = THREE.FrontSide; });
+        mats.forEach(function (m) { m.side = materialSide; });
       }
     });
 
@@ -178,7 +185,7 @@ function initViewer(container) {
     frameModel(object);
     hideProgress();
 
-    extractHotspots(object);
+    extractHotspots(object, side || 'exterior');
     buildLabels();
     wireAnnotationPanel();
     wireHotspotBlocks();
@@ -189,57 +196,74 @@ function initViewer(container) {
     if (interiorUrl || interiorObjUrl) buildToggle();
   }
 
-  // ── Extract hotspots from Blender Empties ────────────────────────────────
-  function extractHotspots(root) {
-    root.traverse(function (node) {
-      // detect hotspot Empties: either has "hotspot" userData or name starts with "hotspot_"
-      var isHotspot = node.userData && (
-        node.userData.hotspot === true ||
-        node.userData.hotspot === 1 ||
-        (typeof node.name === 'string' && node.name.toLowerCase().startsWith('hotspot_'))
-      );
-      if (!isHotspot) return;
-      // skip meshes — we only want Empty objects (Object3D without geometry)
-      if (node.isMesh) return;
+  // ── Extract hotspots from JSON file or GLB Empties (fallback) ─────────────
+  function extractHotspots(root, side) {
+    var sideKey = side || 'exterior';
 
-      var id = node.userData.hotspot_id || node.name;
-      var pos = new THREE.Vector3();
-      node.getWorldPosition(pos);
-
-      var entry = {
-        id: id,
-        title: node.userData.title || id,
-        position: pos,
-        cameraPos: null,
-        lookAt: null,
-        cameraMode: node.userData.camera_mode || 'fly', // "fly" or "orbit"
-        labelObj: null,
-        el: null,
-      };
-
-      // optional stored camera position from Blender
-      if (node.userData.camera_x !== undefined) {
-        entry.cameraPos = new THREE.Vector3(
-          node.userData.camera_x,
-          node.userData.camera_y,
-          node.userData.camera_z
+    // Primary: read hotspot positions from the JSON file exported by Blender addon
+    if (jsonHotspots && jsonHotspots[sideKey] && jsonHotspots[sideKey].hotspots) {
+      jsonHotspots[sideKey].hotspots.forEach(function (h) {
+        var pos = h.position;
+        var entry = {
+          id: h.id,
+          title: h.title || h.id,
+          position: new THREE.Vector3(pos.x, pos.y, pos.z),
+          cameraPos: null,
+          lookAt: null,
+          cameraMode: h.camera_mode || 'fly',
+          labelObj: null,
+          el: null,
+        };
+        if (h.camera) {
+          entry.cameraPos = new THREE.Vector3(h.camera.x, h.camera.y, h.camera.z);
+        }
+        if (h.lookat) {
+          entry.lookAt = new THREE.Vector3(h.lookat.x, h.lookat.y, h.lookat.z);
+        }
+        hotspots.push(entry);
+      });
+    } else {
+      // Fallback: extract from GLB Empties (legacy pipeline)
+      root.traverse(function (node) {
+        var isHotspot = node.userData && (
+          node.userData.hotspot === true ||
+          node.userData.hotspot === 1 ||
+          (typeof node.name === 'string' && node.name.toLowerCase().startsWith('hotspot_'))
         );
-      }
+        if (!isHotspot) return;
+        if (node.isMesh) return;
 
-      // optional stored look-at target (Blender viewport orbit pivot)
-      if (node.userData.lookat_x !== undefined) {
-        entry.lookAt = new THREE.Vector3(
-          node.userData.lookat_x,
-          node.userData.lookat_y,
-          node.userData.lookat_z
-        );
-      }
+        var id = node.userData.hotspot_id || node.name;
+        var pos = new THREE.Vector3();
+        node.getWorldPosition(pos);
 
-      hotspots.push(entry);
-    });
+        var entry = {
+          id: id,
+          title: node.userData.title || id,
+          position: pos,
+          cameraPos: null,
+          lookAt: null,
+          cameraMode: node.userData.camera_mode || 'fly',
+          labelObj: null,
+          el: null,
+        };
 
-    // also create hotspots for CMS annotations that have no matching Blender Empty
-    // (in case user entered manual coordinates in the future)
+        if (node.userData.camera_x !== undefined) {
+          entry.cameraPos = new THREE.Vector3(
+            node.userData.camera_x, node.userData.camera_y, node.userData.camera_z
+          );
+        }
+        if (node.userData.lookat_x !== undefined) {
+          entry.lookAt = new THREE.Vector3(
+            node.userData.lookat_x, node.userData.lookat_y, node.userData.lookat_z
+          );
+        }
+
+        hotspots.push(entry);
+      });
+    }
+
+    // CMS annotations: create hotspots for entries with manual coordinates
     cmsAnnotations.forEach(function (ann) {
       var existing = hotspots.find(function (h) { return h.id === ann.id; });
       if (!existing && ann.x !== undefined && ann.y !== undefined && ann.z !== undefined) {
@@ -248,13 +272,14 @@ function initViewer(container) {
           title: ann.title || ann.id,
           position: new THREE.Vector3(ann.x, ann.y, ann.z),
           cameraPos: null,
+          lookAt: null,
           labelObj: null,
           el: null,
         });
       }
     });
 
-    // merge CMS data into hotspot entries (CMS values take priority)
+    // merge CMS data (titles, camera_mode) into hotspot entries
     hotspots.forEach(function (hs) {
       var cms = cmsAnnotations.find(function (a) { return a.id === hs.id; });
       if (!cms) return;
@@ -413,10 +438,17 @@ function initViewer(container) {
   }
 
   // ── Dispatch to GLB or OBJ interior loader ───────────────────────────────
+  // Prefer the converted GLB (same basename as OBJ); fall back to OBJ
+  var interiorGlbDerivedUrl = interiorGlbUrl || (interiorObjUrl
+    ? interiorObjUrl.replace(/\.obj$/i, '.glb')
+    : null);
+
   function loadInteriorModel(onReady) {
-    if (interiorUrl) {
-      loadInteriorGlb(interiorUrl, onReady);
-    } else {
+    if (interiorGlbDerivedUrl) {
+      loadInteriorGlb(interiorGlbDerivedUrl, onReady, interiorObjUrl ? function () {
+        loadInteriorObj(onReady);
+      } : null);
+    } else if (interiorObjUrl) {
       loadInteriorObj(onReady);
     }
   }
@@ -470,7 +502,7 @@ function initViewer(container) {
         modelCenter.copy(box.getCenter(new THREE.Vector3()));
 
         hotspots = [];
-        extractHotspots(model);
+        extractHotspots(model, 'interior');
         buildLabels(false);
         hotspotSets.interior = hotspots;
 
@@ -499,7 +531,7 @@ function initViewer(container) {
   }
 
   // ── Lazy-load the interior GLB (first switch only) ───────────────────────
-  function loadInteriorGlb(url, onReady) {
+  function loadInteriorGlb(url, onReady, onFail) {
     var prog = document.createElement('div');
     prog.className = 'viewer-progress';
     prog.innerHTML =
@@ -537,7 +569,7 @@ function initViewer(container) {
         modelCenter.copy(box.getCenter(new THREE.Vector3()));
 
         hotspots = [];
-        extractHotspots(model);
+        extractHotspots(model, 'interior');
         buildLabels(false); // create CSS2DObjects, don't add to scene yet
         hotspotSets.interior = hotspots;
 
@@ -561,8 +593,10 @@ function initViewer(container) {
         }
       },
       function (err) {
-        console.error('interior glb load error:', err);
-        text.textContent = 'erreur de chargement';
+        console.warn('interior glb load failed, trying obj:', err);
+        prog.remove();
+        if (onFail) onFail();
+        else text.textContent = 'erreur de chargement';
       }
     );
   }
@@ -755,110 +789,89 @@ function initViewer(container) {
     });
   }
 
-  // ── Load model ───────────────────────────────────────────────────────────
-  if (glbUrl) {
-    var gltfLoader = new GLTFLoader();
+  // ── Derive the converted GLB url from the OBJ url (same basename, .glb ext) ─
+  var exteriorGlbUrl = glbUrl || (objUrl
+    ? objUrl.replace(/\.obj$/i, '.glb')
+    : null);
 
+  // ── Load exterior model — GLB (converted from OBJ) preferred, OBJ fallback ─
+  function loadExteriorGlb(onFail) {
+    var loader = new GLTFLoader();
     if (dracoPath) {
-      var dracoLoader = new DRACOLoader();
-      dracoLoader.setDecoderPath(dracoPath);
-      gltfLoader.setDRACOLoader(dracoLoader);
+      var dl = new DRACOLoader();
+      dl.setDecoderPath(dracoPath);
+      loader.setDRACOLoader(dl);
     }
-
-    gltfLoader.load(
-      glbUrl,
+    loader.load(
+      exteriorGlbUrl,
       function (gltf) {
         var model = gltf.scene;
-
-        if (texUrl) {
-          var tex = new THREE.TextureLoader().load(texUrl);
-          tex.colorSpace = THREE.SRGBColorSpace;
-          tex.flipY = false;
-          var mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
-          model.traverse(function (child) {
-            if (child.isMesh) child.material = mat;
-          });
-        }
-
-        prepareModel(model);
+        prepareModel(model, 'exterior');
       },
       function (xhr) { updateProgress(xhr.loaded, xhr.total); },
       function (err) {
-        console.error('glb load error:', err);
-        progressText.textContent = 'erreur de chargement';
+        console.warn('glb load failed, falling back to obj:', err);
+        if (onFail) onFail();
       }
     );
+  }
 
-  } else if (objUrl) {
+  function loadExteriorObj() {
     var manager = new THREE.LoadingManager();
-    manager.onLoad = hideProgress;
     manager.onError = function (url) {
       progressText.textContent = 'erreur de chargement';
       console.error('failed to load:', url);
     };
 
-    function loadObj(materials) {
-      var objLoader = new OBJLoader(manager);
-      if (materials) {
-        materials.preload();
-        objLoader.setMaterials(materials);
-      }
+    var objLoader = new OBJLoader(manager);
+    var basePath = objUrl.substring(0, objUrl.lastIndexOf('/') + 1);
+    var objFilename = objUrl.substring(objUrl.lastIndexOf('/') + 1);
+    objLoader.setPath(basePath);
 
-      var basePath = objUrl.substring(0, objUrl.lastIndexOf('/') + 1);
-      var objFilename = objUrl.substring(objUrl.lastIndexOf('/') + 1);
-      objLoader.setPath(basePath);
-
-      objLoader.load(
-        objFilename,
-        function (object) {
-          if (texUrl) {
-            var tex = new THREE.TextureLoader().load(texUrl);
-            tex.colorSpace = THREE.SRGBColorSpace;
-            var matParams = { map: tex, side: THREE.FrontSide };
-            
-            if (normUrl) {
-                var normTex = new THREE.TextureLoader().load(normUrl);
-                matParams.normalMap = normTex;
-            }
-            
-            var mat = normUrl ? new THREE.MeshStandardMaterial(matParams) : new THREE.MeshBasicMaterial(matParams);
-            
-            object.traverse(function (child) {
-              if (child.isMesh) child.material = mat;
-            });
-          } else if (!materials) {
-            var fallback = new THREE.MeshBasicMaterial({
-              color: 0x888888, side: THREE.FrontSide
-            });
-            object.traverse(function (child) {
-              if (child.isMesh) child.material = fallback;
-            });
+    objLoader.load(
+      objFilename,
+      function (object) {
+        if (texUrl) {
+          var tex = new THREE.TextureLoader().load(texUrl);
+          tex.colorSpace = THREE.SRGBColorSpace;
+          var matParams = { map: tex, side: THREE.DoubleSide };
+          if (normUrl) {
+            matParams.normalMap = new THREE.TextureLoader().load(normUrl);
           }
-          prepareModel(object);
-        },
-        function (xhr) { updateProgress(xhr.loaded, xhr.total); },
-        function (err) { console.error('obj load error:', err); }
-      );
-    }
-
-    if (mtlUrl && !texUrl) {
-      var mtlLoader = new MTLLoader(manager);
-      var mtlBase = mtlUrl.substring(0, mtlUrl.lastIndexOf('/') + 1);
-      var mtlFilename = mtlUrl.substring(mtlUrl.lastIndexOf('/') + 1);
-      mtlLoader.setPath(mtlBase);
-
-      mtlLoader.load(
-        mtlFilename,
-        function (materials) { loadObj(materials); },
-        undefined,
-        function (err) {
-          console.warn('mtl load failed, falling back to obj-only:', err);
-          loadObj(null);
+          var mat = normUrl
+            ? new THREE.MeshStandardMaterial(matParams)
+            : new THREE.MeshBasicMaterial(matParams);
+          object.traverse(function (child) {
+            if (child.isMesh) child.material = mat;
+          });
+        } else {
+          var fallback = new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.DoubleSide });
+          object.traverse(function (child) { if (child.isMesh) child.material = fallback; });
         }
-      );
-    } else {
-      loadObj(null);
+        prepareModel(object, 'exterior');
+      },
+      function (xhr) { updateProgress(xhr.loaded, xhr.total); },
+      function (err) { console.error('obj load error:', err); }
+    );
+  }
+
+  function startLoading() {
+    if (exteriorGlbUrl) {
+      loadExteriorGlb(objUrl ? loadExteriorObj : null);
+    } else if (objUrl) {
+      loadExteriorObj();
     }
+  }
+
+  // Fetch JSON hotspots first, then load the model
+  if (hotspotsJsonUrl) {
+    fetch(hotspotsJsonUrl)
+      .then(function (r) { return r.json(); })
+      .then(function (data) { jsonHotspots = data; })
+      .catch(function (err) { console.warn('hotspots json load failed:', err); })
+      .finally(startLoading);
+  } else {
+    startLoading();
   }
 
   // ── Adaptive pixel ratio (performance) ───────────────────────────────────
