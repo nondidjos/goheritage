@@ -78,7 +78,13 @@ Compress-textures: false
 
 ----
 
-Annotations: []
+Annotations:
+
+-
+  hotspot_id: ''
+  title: ''
+  camera_mode: fly
+  description: ''
 
 ----
 
@@ -99,3 +105,7 @@ Model-toggle: true
 ----
 
 Model-type-upload: true
+
+----
+
+Compress-textures-interior: true

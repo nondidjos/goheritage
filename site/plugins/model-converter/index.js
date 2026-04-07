@@ -211,5 +211,45 @@ panel.plugin('goheritage/model-converter', {
         },
       },
     },
+
+    'accordion-trigger': {
+      props: {
+        label: String,
+        target: String,
+        defaultOpen: Boolean,
+      },
+      data() {
+        return {
+          isOpen: this.defaultOpen
+        };
+      },
+      mounted() {
+        // slight delay to ensure siblings are mounted by Vue before manipulating DOM
+        setTimeout(() => this.updateVisibility(), 50);
+      },
+      methods: {
+        toggle() {
+          this.isOpen = !this.isOpen;
+          this.updateVisibility();
+        },
+        updateVisibility() {
+          const col = this.$el.closest('.k-column');
+          if (!col) return;
+          let next = col.nextElementSibling;
+          while (next) {
+            // STOP if the next column contains another accordion trigger wrapper
+            if (next.querySelector('.k-accordion-trigger-field')) break;
+            next.style.display = this.isOpen ? '' : 'none';
+            next = next.nextElementSibling;
+          }
+        }
+      },
+      template: `
+        <div class="k-accordion-trigger-field" @click="toggle" style="cursor:pointer; user-select:none; display:flex; align-items:center; gap:0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem; margin-top: 1rem;" title="Déplier/Replier la section">
+          <k-icon :type="isOpen ? 'angle-down' : 'angle-right'" style="color: var(--color-text-dimmed); margin-top: 2px;" />
+          <h2 style="font-size: var(--text-base, 1rem); font-weight: 600;">{{ label }}</h2>
+        </div>
+      `
+    },
   },
 });
