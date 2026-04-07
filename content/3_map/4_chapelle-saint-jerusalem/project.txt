@@ -6,7 +6,7 @@ Description: Chapelle médiévale conservée et numérisée par photogrammétrie
 
 ----
 
-Text: [{"content":{"hotspot_id":"hotspot_01","poi_title":"Titre test pour voir si ça marche là","poi_content":"[{\"content\":{\"level\":\"h2\",\"text\":\"Wow et bien oui on dirait\"},\"id\":\"af1bdba5-a4d0-4a8b-ad2a-6e2f5e8e97e5\",\"isHidden\":false,\"type\":\"heading\"},{\"content\":{\"text\":\"<p>c'est génial wow</p>\"},\"id\":\"7ba33d7f-11d9-48a3-9ab2-e9e93662a4de\",\"isHidden\":false,\"type\":\"text\"},{\"content\":{\"location\":\"kirby\",\"image\":[\"file://v3nwobsdnh1w6esr\"],\"src\":\"\",\"alt\":\"\",\"caption\":\"\",\"link\":\"\",\"ratio\":\"\",\"crop\":\"false\"},\"id\":\"4bd47436-262f-496c-b621-733f57f3e280\",\"isHidden\":false,\"type\":\"image\"},{\"content\":{\"text\":\"La guerre ce gagne seulement quand on est sec\",\"citation\":\"Sun Tzu\"},\"id\":\"9a8797cb-0bc8-4a6d-9010-20113b4087fc\",\"isHidden\":false,\"type\":\"quote\"}]"},"id":"9be6461b-6ab4-4d81-b5c7-a4d2cabe8eb0","isHidden":false,"type":"poi"},{"content":{"section_title":"Celle là elle différente je crois","section_content":"[{\"content\":{\"level\":\"h2\",\"text\":\"Voyons-Voir\"},\"id\":\"c92539c5-f71c-49f3-9994-11fa8e95f98b\",\"isHidden\":false,\"type\":\"heading\"},{\"content\":{\"level\":\"h2\",\"text\":\"Qu'est ce que ça dit là\"},\"id\":\"2952b8e6-1a67-4d5c-8691-8d7f9ffd8df7\",\"isHidden\":false,\"type\":\"heading\"},{\"content\":{\"text\":\"<p>attents</p>\"},\"id\":\"f99a7104-c296-4d2c-a4cb-19180105d7bd\",\"isHidden\":false,\"type\":\"text\"},{\"content\":{\"location\":\"kirby\",\"image\":[\"file://xs9cuwe7txkyj7bo\"],\"src\":\"\",\"alt\":\"\",\"caption\":\"\",\"link\":\"\",\"ratio\":\"\",\"crop\":\"false\"},\"id\":\"46b83c14-c20d-4fe4-bf0c-0943dfa79d39\",\"isHidden\":false,\"type\":\"image\"}]"},"id":"ee29b1f6-129d-4b9e-9ce0-f390660e1e3c","isHidden":false,"type":"section"},{"content":{"hotspot_id":"hotspot_02","poi_title":"dit moi tout (3d) N3","poi_content":""},"id":"8c4d6ff4-436b-4f6e-ad0a-a42dd7b4cacd","isHidden":false,"type":"poi"},{"content":{"hotspot_id":"hotspot_03","label":"Texte de malaade ouaiiiis"},"id":"6f4aa430-412a-4f87-84ef-aa9a11724549","isHidden":false,"type":"hotspot"}]
+Text: [{"content":{"section_title":"Celle là elle différente je crois","hotspot_id":"","section_content":"[{\"content\":{\"level\":\"h2\",\"text\":\"Voyons-Voir\"},\"id\":\"c92539c5-f71c-49f3-9994-11fa8e95f98b\",\"isHidden\":false,\"type\":\"heading\"},{\"content\":{\"level\":\"h2\",\"text\":\"Qu'est ce que ça dit là\"},\"id\":\"2952b8e6-1a67-4d5c-8691-8d7f9ffd8df7\",\"isHidden\":false,\"type\":\"heading\"},{\"content\":{\"text\":\"<p>attents</p>\"},\"id\":\"f99a7104-c296-4d2c-a4cb-19180105d7bd\",\"isHidden\":false,\"type\":\"text\"},{\"content\":{\"location\":\"kirby\",\"image\":[\"file://xs9cuwe7txkyj7bo\"],\"src\":\"\",\"alt\":\"\",\"caption\":\"\",\"link\":\"\",\"ratio\":\"\",\"crop\":\"false\"},\"id\":\"46b83c14-c20d-4fe4-bf0c-0943dfa79d39\",\"isHidden\":false,\"type\":\"image\"}]"},"id":"ee29b1f6-129d-4b9e-9ce0-f390660e1e3c","isHidden":false,"type":"section"},{"content":{"section_title":"","hotspot_id":"","section_content":""},"id":"fea3fbc6-6961-4d82-9d77-f7cac6c844d4","isHidden":false,"type":"section"},{"content":{"section_title":"","hotspot_id":"","section_content":""},"id":"030e92cc-530f-4777-ac01-aa6b92a703fb","isHidden":false,"type":"section"}]
 
 ----
 
@@ -62,6 +62,10 @@ Viewer-url:
 
 ----
 
+Model-toggle: true
+
+----
+
 Model-obj: []
 
 ----
@@ -70,36 +74,25 @@ Model-texture: []
 
 ----
 
-Model-mtl: []
+Compress-textures: false
 
 ----
 
-Compress-textures: true
+Compress-textures-interior: false
 
 ----
 
 Annotations:
 
 -
-  hotspot_id: hotspot_01
-  title: 'La Dame'
+  hotspot_id: ''
+  title: ''
   camera_mode: fly
-  description: "Sculpture d'une figure féminine sur l'une des colonnes."
--
-  hotspot_id: hotspot_02
-  title: 'Le Tombeau'
-  camera_mode: orbit
-  description: 'Tombeau médiéval situé dans la nef.'
--
-  hotspot_id: hotspot_03
-  title: 'La Chaire'
-  camera_mode: fly
-  description: 'Chaire en pierre travaillée.'
--
-  hotspot_id: hotspot_04
-  title: 'Sommet de la Voûte'
-  camera_mode: fly
-  description: 'Clé de voûte ornée.'
+  description: ''
+
+----
+
+Model-mtl: []
 
 ----
 
@@ -108,3 +101,7 @@ Additional-images: - 'file://v3nwobsdnh1w6esr'
 ----
 
 Uuid: chapel-saint-jerusalem-001
+
+----
+
+Model-type-upload: true

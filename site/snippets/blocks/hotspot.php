@@ -18,18 +18,6 @@ if (!$hotspotId) return;
   type="button"
   class="hotspot-link"
   data-hotspot-id="<?= htmlspecialchars($hotspotId) ?>"
-  onclick="(function(btn){
-    var id = btn.dataset.hotspotId;
-    var container = document.getElementById('viewer-3d');
-    if (container) {
-      container.dispatchEvent(new CustomEvent('goheritage:activate', {
-        detail: { id: id },
-        bubbles: true
-      }));
-      // scroll the viewer into view
-      container.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  })(this)"
   aria-label="Voir le point d'intérêt dans le modèle 3D"
 >
   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
