@@ -187,7 +187,6 @@ Kirby::plugin('goheritage/model-converter', [
                         // custom route bypasses Kirby's file.create:after hook.
                         if ($ext === 'glb' && $page->compress_textures()->toBool()) {
                             compressGlbTextures($newFile);
-                            $newFile = $page->file($filename); // reload after replace
                         } elseif (in_array($ext, ['png', 'jpg', 'jpeg'])
                             && $page->compress_textures()->toBool()) {
                             compressTexture($newFile);

@@ -1,0 +1,35 @@
+Title: GoHéritage
+
+----
+
+Featured-project: []
+
+----
+
+Featured-article: - 'page://r67stD5AUZwqCIlL'
+
+----
+
+Footer-tagline: Découvrez notre patrimoine numérisé en 3D.
+
+----
+
+Footer-email: 
+
+----
+
+Social:
+
+-
+  platform: ''
+  url: ''
+-
+  platform: ''
+  url: ''
+-
+  platform: 'linked in'
+  url: ''
+
+----
+
+Lock: 6E8KgJkG
