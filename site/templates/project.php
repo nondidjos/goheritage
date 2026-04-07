@@ -64,7 +64,7 @@ $hasModel   = ($glbUrl !== null || $objUrl !== null || $interiorGlbUrl !== null 
 
 $posterUrl = ($cover = $page->cover()->toFile())
     ? $cover->crop(1600, 700)->url()
-    : url('assets/hero-images/Seattle-Art-Museum-good-scan-60070.jpg');
+    : null;
 
 $gallery = $page->gallery()->toFiles();
 if ($gallery->count() === 0) {
@@ -164,7 +164,11 @@ if ($gallery->count() === 0) {
 
         <?php if ($hasIframe): ?>
             <div id="model-poster" class="absolute inset-0 cursor-pointer z-10 transition-opacity duration-500">
-                <img src="<?= $posterUrl ?>" alt="<?= $page->title()->esc() ?>" class="w-full h-full object-cover">
+                <?php if ($posterUrl): ?>
+                    <img src="<?= $posterUrl ?>" alt="<?= $page->title()->esc() ?>" class="w-full h-full object-cover">
+                <?php else: ?>
+                    <div class="w-full h-full bg-mid"></div>
+                <?php endif ?>
                 <div class="absolute inset-0 bg-ink/30 flex items-center justify-center transition-colors group-hover:bg-ink/40">
                     <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-full w-20 h-20 flex items-center justify-center transform transition-transform duration-300 group-hover:scale-110">
                         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white" class="ml-2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
@@ -226,7 +230,11 @@ if ($gallery->count() === 0) {
             </style>
 
         <?php else: ?>
-            <img src="<?= $posterUrl ?>" alt="<?= $page->title()->esc() ?>" class="w-full h-full object-cover">
+            <?php if ($posterUrl): ?>
+                <img src="<?= $posterUrl ?>" alt="<?= $page->title()->esc() ?>" class="w-full h-full object-cover">
+            <?php else: ?>
+                <div class="w-full h-full bg-mid"></div>
+            <?php endif ?>
             <div class="absolute inset-0 bg-ink/30 flex items-center justify-center pointer-events-none">
                 <span class="font-mono text-sm uppercase tracking-widest text-white px-6 py-2 border border-white/30 backdrop-blur-md rounded-sm">Vue 3D prochainement</span>
             </div>

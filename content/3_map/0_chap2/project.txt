@@ -14,10 +14,6 @@ Gallery: []
 
 ----
 
-Additional-images: []
-
-----
-
 Cover: - 'file://jewjmv4wfouok7cj'
 
 ----
@@ -42,7 +38,7 @@ Dimensions:
 
 ----
 
-Protection-status: 
+Protection-status: regional
 
 ----
 
@@ -62,6 +58,10 @@ Tags:
 
 ----
 
+Viewer-url: 
+
+----
+
 Model-obj: []
 
 ----
@@ -74,15 +74,15 @@ Model-mtl: []
 
 ----
 
-Viewer-url: 
-
-----
-
 Compress-textures: true
 
 ----
 
 Annotations: []
+
+----
+
+Additional-images: []
 
 ----
 
