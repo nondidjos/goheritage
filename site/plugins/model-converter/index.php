@@ -55,6 +55,7 @@ Kirby::plugin('goheritage/model-converter', [
                 },
             ],
         ],
+        'accordion-trigger' => [],
     ],
 
     // ── Custom API routes ─────────────────────────────────────────────────────
