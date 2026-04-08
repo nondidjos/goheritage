@@ -22,16 +22,16 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 // ── Main init ────────────────────────────────────────────────────────────────
 
 function initViewer(container) {
-  const objUrl      = container.dataset.obj || null;
-  const glbUrl      = container.dataset.glb || null;
-  const texUrl      = container.dataset.texture || null;
-  const normUrl     = container.dataset.normal || null;
-  const dracoPath   = container.dataset.dracoPath || null;
-  const interiorObjUrl  = container.dataset.objInterior       || null;
-  const interiorGlbUrl  = container.dataset.glbInterior       || null;
-  const interiorTexUrl  = container.dataset.textureInterior   || null;
-  const interiorNormUrl = container.dataset.normalInterior    || null;
-  const hotspotsJsonUrl = container.dataset.hotspotsJson     || null;
+  const objUrl = container.dataset.obj || null;
+  const glbUrl = container.dataset.glb || null;
+  const texUrl = container.dataset.texture || null;
+  const normUrl = container.dataset.normal || null;
+  const dracoPath = container.dataset.dracoPath || null;
+  const interiorObjUrl = container.dataset.objInterior || null;
+  const interiorGlbUrl = container.dataset.glbInterior || null;
+  const interiorTexUrl = container.dataset.textureInterior || null;
+  const interiorNormUrl = container.dataset.normalInterior || null;
+  const hotspotsJsonUrl = container.dataset.hotspotsJson || null;
 
   // CMS annotations passed as JSON data attribute
   let cmsAnnotations = [];
@@ -66,7 +66,7 @@ function initViewer(container) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1a1a1a);
   scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-  
+
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
   dirLight.position.set(5, 10, 7.5);
   scene.add(dirLight);
@@ -136,14 +136,58 @@ function initViewer(container) {
   var flyAnimation = null; // active fly-to RAF id
 
   // ── Dual-model state ─────────────────────────────────────────────────────
-  var currentSide  = 'exterior';
+  var currentSide = 'exterior';
   var modelObjects = { exterior: null, interior: null };
-  var hotspotSets  = { exterior: [], interior: [] };
+  var hotspotSets = { exterior: [], interior: [] };
 
   // ── Fade overlay (used when switching models) ────────────────────────────
   var fadeEl = document.createElement('div');
   fadeEl.className = 'viewer-fade';
   container.appendChild(fadeEl);
+
+  // ── Controls hint (desktop only) ─────────────────────────────────────────
+  if (!isMobile) {
+    var hint = document.createElement('div');
+    hint.className = 'viewer-controls-hint';
+    hint.innerHTML =
+      '<span class="viewer-controls-hint__label">Rotation</span>' +
+      '<svg width="22" height="32" viewBox="0 0 22 32" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="1" y="1" width="20" height="30" rx="10" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>' +
+      '<path d="M1 12 L1 9 Q1 2 11 2 L11 15 L1 15 Z" fill="rgba(255,255,255,0.15)"/>' +
+      '<path d="M21 12 L21 9 Q21 2 11 2 L11 15 L21 15 Z" fill="rgba(255,255,255,0.15)"/>' +
+      '<line x1="11" y1="2" x2="11" y2="15" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>' +
+      '<rect x="9.5" y="5" width="3" height="6" rx="1.5" fill="rgba(255,255,255,0.5)"/>' +
+      '</svg>' +
+      '<span class="viewer-controls-hint__label">Déplacer</span>';
+    container.appendChild(hint);
+
+    var hintTimer = null;
+    var pointerDown = false;
+    function scheduleHint() {
+      clearTimeout(hintTimer);
+      if (!pointerDown) {
+        hintTimer = setTimeout(function () { hint.classList.add('is-visible'); }, 1000);
+      }
+    }
+    function onPointerDown() {
+      pointerDown = true;
+      clearTimeout(hintTimer);
+      hint.classList.remove('is-visible');
+    }
+    function onPointerUp() {
+      pointerDown = false;
+      scheduleHint();
+    }
+    scheduleHint();
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+    renderer.domElement.addEventListener('pointerup', onPointerUp);
+    renderer.domElement.addEventListener('pointercancel', onPointerUp);
+    renderer.domElement.addEventListener('wheel', function () {
+      clearTimeout(hintTimer);
+      hint.classList.remove('is-visible');
+      scheduleHint();
+    }, { passive: true });
+  }
 
   // ── Frame camera to fit model ────────────────────────────────────────────
   function frameModel(object) {
@@ -192,7 +236,7 @@ function initViewer(container) {
 
     // Store exterior model; build toggle once ready if any interior model is set
     modelObjects.exterior = object;
-    hotspotSets.exterior  = hotspots.slice();
+    hotspotSets.exterior = hotspots.slice();
     if (interiorUrl || interiorObjUrl) buildToggle();
   }
 
@@ -283,7 +327,7 @@ function initViewer(container) {
     hotspots.forEach(function (hs) {
       var cms = cmsAnnotations.find(function (a) { return a.id === hs.id; });
       if (!cms) return;
-      if (cms.title)       hs.title      = cms.title;
+      if (cms.title) hs.title = cms.title;
       if (cms.camera_mode) hs.cameraMode = cms.camera_mode;
     });
   }
@@ -378,12 +422,12 @@ function initViewer(container) {
 
   // ── Update model bounds without re-framing the camera ───────────────────
   function updateModelBounds(object) {
-    var box  = new THREE.Box3().setFromObject(object);
+    var box = new THREE.Box3().setFromObject(object);
     var size = box.getSize(new THREE.Vector3());
     modelCenter.copy(box.getCenter(new THREE.Vector3()));
-    modelRadius  = size.length() / 2;
-    camera.near  = size.length() * 0.001;
-    camera.far   = size.length() * 10;
+    modelRadius = size.length() / 2;
+    camera.near = size.length() * 0.001;
+    camera.far = size.length() * 10;
     camera.updateProjectionMatrix();
   }
 
@@ -395,7 +439,7 @@ function initViewer(container) {
     btns.forEach(function (b) { b.disabled = true; });
 
     // Capture camera so the angle is preserved across the swap
-    var savedPos    = camera.position.clone();
+    var savedPos = camera.position.clone();
     var savedTarget = controls.target.clone();
 
     // Fade to black
@@ -465,7 +509,7 @@ function initViewer(container) {
     var text = prog.querySelector('.viewer-progress-text');
 
     var objLoader = new OBJLoader();
-    var basePath   = interiorObjUrl.substring(0, interiorObjUrl.lastIndexOf('/') + 1);
+    var basePath = interiorObjUrl.substring(0, interiorObjUrl.lastIndexOf('/') + 1);
     var objFilename = interiorObjUrl.substring(interiorObjUrl.lastIndexOf('/') + 1);
     objLoader.setPath(basePath);
 
@@ -494,8 +538,11 @@ function initViewer(container) {
 
         // Same hotspot extraction pattern as loadInteriorGlb
         var prevHotspots = hotspots;
-        var prevRadius   = modelRadius;
-        var prevCenter   = modelCenter.clone();
+        var prevRadius = modelRadius;
+        var prevCenter = modelCenter.clone();
+
+        // Blender exports Z-up; correct to Three.js Y-up
+        model.rotation.x = -Math.PI / 2;
 
         var box = new THREE.Box3().setFromObject(model);
         modelRadius = box.getSize(new THREE.Vector3()).length() / 2;
@@ -506,7 +553,7 @@ function initViewer(container) {
         buildLabels(false);
         hotspotSets.interior = hotspots;
 
-        hotspots    = prevHotspots;
+        hotspots = prevHotspots;
         modelRadius = prevRadius;
         modelCenter.copy(prevCenter);
 
@@ -559,10 +606,13 @@ function initViewer(container) {
           }
         });
 
+        // Blender exports Z-up; correct to Three.js Y-up
+        model.rotation.x = -Math.PI / 2;
+
         // Temporarily borrow globals to build hotspot labels without touching the scene
         var prevHotspots = hotspots;
-        var prevRadius   = modelRadius;
-        var prevCenter   = modelCenter.clone();
+        var prevRadius = modelRadius;
+        var prevCenter = modelCenter.clone();
 
         var box = new THREE.Box3().setFromObject(model);
         modelRadius = box.getSize(new THREE.Vector3()).length() / 2;
@@ -574,7 +624,7 @@ function initViewer(container) {
         hotspotSets.interior = hotspots;
 
         // Restore exterior state
-        hotspots    = prevHotspots;
+        hotspots = prevHotspots;
         modelRadius = prevRadius;
         modelCenter.copy(prevCenter);
 
@@ -588,8 +638,8 @@ function initViewer(container) {
       function (xhr) {
         if (xhr.total > 0) {
           var pct = Math.round((xhr.loaded / xhr.total) * 100);
-          fill.style.width  = pct + '%';
-          text.textContent  = 'chargement\u2026 ' + pct + '%';
+          fill.style.width = pct + '%';
+          text.textContent = 'chargement\u2026 ' + pct + '%';
         }
       },
       function (err) {
@@ -709,9 +759,9 @@ function initViewer(container) {
 
     var radius = camera.position.distanceTo(pivot);
     var offset = camera.position.clone().sub(pivot);
-    var angle  = Math.atan2(offset.x, offset.z);
-    var elevY  = offset.y;
-    var speed  = 0.3; // radians per second
+    var angle = Math.atan2(offset.x, offset.z);
+    var elevY = offset.y;
+    var speed = 0.3; // radians per second
 
     var lastTime = performance.now();
 
@@ -754,9 +804,9 @@ function initViewer(container) {
   }
 
   // ── Mobile POI popup ─────────────────────────────────────────────────────
-  var poiPopup      = document.getElementById('poi-popup');
+  var poiPopup = document.getElementById('poi-popup');
   var poiPopupTitle = document.getElementById('poi-popup-title');
-  var poiPopupBody  = document.getElementById('poi-popup-body');
+  var poiPopupBody = document.getElementById('poi-popup-body');
   var poiPopupClose = document.getElementById('poi-popup-close');
 
   function showPoiPopup(hotspotId) {
@@ -767,10 +817,10 @@ function initViewer(container) {
     if (!section) return;
 
     var titleEl = section.querySelector('.poi-section__title');
-    var bodyEl  = section.querySelector('.poi-section__body');
+    var bodyEl = section.querySelector('.poi-section__body');
 
     poiPopupTitle.textContent = titleEl ? titleEl.textContent : hotspotId;
-    poiPopupBody.innerHTML    = bodyEl ? bodyEl.innerHTML : '';
+    poiPopupBody.innerHTML = bodyEl ? bodyEl.innerHTML : '';
 
     poiPopup.classList.add('is-visible');
     poiPopup.setAttribute('aria-hidden', 'false');
@@ -806,6 +856,8 @@ function initViewer(container) {
       exteriorGlbUrl,
       function (gltf) {
         var model = gltf.scene;
+        // Blender exports Z-up; correct to Three.js Y-up
+        if (objUrl) model.rotation.x = -Math.PI / 2;
         prepareModel(model, 'exterior');
       },
       function (xhr) { updateProgress(xhr.loaded, xhr.total); },
@@ -848,6 +900,8 @@ function initViewer(container) {
           var fallback = new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.DoubleSide });
           object.traverse(function (child) { if (child.isMesh) child.material = fallback; });
         }
+        // Blender exports Z-up; correct to Three.js Y-up
+        object.rotation.x = -Math.PI / 2;
         prepareModel(object, 'exterior');
       },
       function (xhr) { updateProgress(xhr.loaded, xhr.total); },
@@ -906,8 +960,8 @@ function initViewer(container) {
     var dist = camera.position.distanceTo(controls.target);
     var ratio = Math.max(dist / Math.max(modelRadius, 1), 0.05);
     controls.dampingFactor = 0.08 * Math.max(ratio, 0.3);
-    controls.panSpeed     = Math.max(ratio * 0.8, 0.15);
-    controls.zoomSpeed    = Math.max(ratio * 1.0, 0.25);
+    controls.panSpeed = Math.max(ratio * 0.8, 0.15);
+    controls.zoomSpeed = Math.max(ratio * 1.0, 0.25);
 
     controls.update();
     renderer.render(scene, camera);
