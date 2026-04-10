@@ -40,7 +40,8 @@ function initViewer(container) {
   // Hotspot positions loaded from JSON file (set after fetch)
   var jsonHotspots = null; // { exterior: { hotspots: [...] }, interior: { hotspots: [...] } }
 
-  if (!objUrl && !glbUrl) return;
+  var interiorGlbDerivedUrl = interiorGlbUrl || (interiorObjUrl ? interiorObjUrl.replace(/\.obj$/i, '.glb') : null);
+  if (!objUrl && !glbUrl && !interiorGlbDerivedUrl && !interiorObjUrl) return;
 
   // ── Mobile detection ─────────────────────────────────────────────────────
   var isMobile = window.innerWidth <= 768 || ('ontouchstart' in window);
@@ -210,6 +211,18 @@ function initViewer(container) {
     camera.far = maxDim * 10;
     camera.updateProjectionMatrix();
     controls.update();
+  }
+
+  // ── Texture loader helper ────────────────────────────────────────────────
+  // Disables mipmaps to prevent UV-island edge bleeding (dark seam lines).
+  function loadTexture(url, flipY) {
+    var tex = new THREE.TextureLoader().load(url);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.flipY = (flipY === undefined) ? true : flipY;
+    tex.generateMipmaps = false;
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    return tex;
   }
 
   // ── Prepare model materials ──────────────────────────────────────────────
@@ -483,7 +496,8 @@ function initViewer(container) {
 
   // ── Dispatch to GLB or OBJ interior loader ───────────────────────────────
   // Prefer the converted GLB (same basename as OBJ); fall back to OBJ
-  var interiorGlbDerivedUrl = interiorGlbUrl || (interiorObjUrl
+  // (interiorGlbDerivedUrl already declared above for the early-return check)
+  interiorGlbDerivedUrl = interiorGlbUrl || (interiorObjUrl
     ? interiorObjUrl.replace(/\.obj$/i, '.glb')
     : null);
 
@@ -499,11 +513,12 @@ function initViewer(container) {
 
   // ── Lazy-load interior OBJ (first switch only) ────────────────────────────
   function loadInteriorObj(onReady) {
+    container.querySelectorAll('.viewer-progress').forEach(function (el) { el.remove(); });
     var prog = document.createElement('div');
     prog.className = 'viewer-progress';
     prog.innerHTML =
       '<div class="viewer-progress-bar"><div class="viewer-progress-fill"></div></div>' +
-      '<span class="viewer-progress-text">chargement de l\u2019int\u00e9rieur\u2026</span>';
+      '<span class="viewer-progress-text">chargement\u2026</span>';
     container.appendChild(prog);
     var fill = prog.querySelector('.viewer-progress-fill');
     var text = prog.querySelector('.viewer-progress-text');
@@ -517,11 +532,9 @@ function initViewer(container) {
       objFilename,
       function (model) {
         if (interiorTexUrl) {
-          var tex = new THREE.TextureLoader().load(interiorTexUrl);
-          tex.colorSpace = THREE.SRGBColorSpace;
-          var matParams = { map: tex, side: THREE.FrontSide };
+          var matParams = { map: loadTexture(interiorTexUrl), side: THREE.FrontSide };
           if (interiorNormUrl) {
-            matParams.normalMap = new THREE.TextureLoader().load(interiorNormUrl);
+            matParams.normalMap = loadTexture(interiorNormUrl);
           }
           var mat = interiorNormUrl
             ? new THREE.MeshStandardMaterial(matParams)
@@ -579,11 +592,12 @@ function initViewer(container) {
 
   // ── Lazy-load the interior GLB (first switch only) ───────────────────────
   function loadInteriorGlb(url, onReady, onFail) {
+    container.querySelectorAll('.viewer-progress').forEach(function (el) { el.remove(); });
     var prog = document.createElement('div');
     prog.className = 'viewer-progress';
     prog.innerHTML =
       '<div class="viewer-progress-bar"><div class="viewer-progress-fill"></div></div>' +
-      '<span class="viewer-progress-text">chargement de l\u2019int\u00e9rieur\u2026</span>';
+      '<span class="viewer-progress-text">chargement\u2026</span>';
     container.appendChild(prog);
     var fill = prog.querySelector('.viewer-progress-fill');
     var text = prog.querySelector('.viewer-progress-text');
@@ -600,11 +614,25 @@ function initViewer(container) {
       function (gltf) {
         var model = gltf.scene;
 
-        model.traverse(function (child) {
-          if (child.isMesh && child.material) {
-            [].concat(child.material).forEach(function (m) { m.side = THREE.FrontSide; });
+        // Apply texture if provided (GLB converted from OBJ won't have embedded texture)
+        if (interiorTexUrl) {
+          var matParams = { map: loadTexture(interiorTexUrl, false), side: THREE.FrontSide };
+          if (interiorNormUrl) {
+            matParams.normalMap = loadTexture(interiorNormUrl, false);
           }
-        });
+          var mat = interiorNormUrl
+            ? new THREE.MeshStandardMaterial(matParams)
+            : new THREE.MeshBasicMaterial(matParams);
+          model.traverse(function (child) {
+            if (child.isMesh) child.material = mat;
+          });
+        } else {
+          model.traverse(function (child) {
+            if (child.isMesh && child.material) {
+              [].concat(child.material).forEach(function (m) { m.side = THREE.FrontSide; });
+            }
+          });
+        }
 
         // Blender exports Z-up; correct to Three.js Y-up
         model.rotation.x = -Math.PI / 2;
@@ -858,6 +886,19 @@ function initViewer(container) {
         var model = gltf.scene;
         // Blender exports Z-up; correct to Three.js Y-up
         if (objUrl) model.rotation.x = -Math.PI / 2;
+        // Apply texture when GLB was converted from OBJ (no embedded texture)
+        if (texUrl && objUrl) {
+          var matParams = { map: loadTexture(texUrl, false), side: THREE.DoubleSide };
+          if (normUrl) {
+            matParams.normalMap = loadTexture(normUrl, false);
+          }
+          var mat = normUrl
+            ? new THREE.MeshStandardMaterial(matParams)
+            : new THREE.MeshBasicMaterial(matParams);
+          model.traverse(function (child) {
+            if (child.isMesh) child.material = mat;
+          });
+        }
         prepareModel(model, 'exterior');
       },
       function (xhr) { updateProgress(xhr.loaded, xhr.total); },
@@ -884,11 +925,9 @@ function initViewer(container) {
       objFilename,
       function (object) {
         if (texUrl) {
-          var tex = new THREE.TextureLoader().load(texUrl);
-          tex.colorSpace = THREE.SRGBColorSpace;
-          var matParams = { map: tex, side: THREE.DoubleSide };
+          var matParams = { map: loadTexture(texUrl), side: THREE.DoubleSide };
           if (normUrl) {
-            matParams.normalMap = new THREE.TextureLoader().load(normUrl);
+            matParams.normalMap = loadTexture(normUrl);
           }
           var mat = normUrl
             ? new THREE.MeshStandardMaterial(matParams)
@@ -914,6 +953,14 @@ function initViewer(container) {
       loadExteriorGlb(objUrl ? loadExteriorObj : null);
     } else if (objUrl) {
       loadExteriorObj();
+    } else if (interiorGlbDerivedUrl || interiorObjUrl) {
+      // No exterior model — load interior directly as the starting view
+      loadInteriorModel(function (object) {
+        modelObjects['interior'] = object;
+        scene.add(object);
+        frameModel(object);
+        hideProgress();
+      });
     }
   }
 
