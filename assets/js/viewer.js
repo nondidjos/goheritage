@@ -25,12 +25,12 @@ function initViewer(container) {
   const objUrl = container.dataset.obj || null;
   const glbUrl = container.dataset.glb || null;
   const texUrl = container.dataset.texture || null;
-  const normUrl = container.dataset.normal || null;
+
   const dracoPath = container.dataset.dracoPath || null;
   const interiorObjUrl = container.dataset.objInterior || null;
   const interiorGlbUrl = container.dataset.glbInterior || null;
   const interiorTexUrl = container.dataset.textureInterior || null;
-  const interiorNormUrl = container.dataset.normalInterior || null;
+
   const hotspotsJsonUrl = container.dataset.hotspotsJson || null;
 
   // CMS annotations passed as JSON data attribute
@@ -94,11 +94,15 @@ function initViewer(container) {
     e.preventDefault();
     var dir  = new THREE.Vector3().subVectors(camera.position, controls.target);
     var dist = dir.length();
-    // Step: 8% of model radius per scroll tick, clamped so it can't overshoot
-    var step = Math.max(modelRadius * 0.08, 0.5);
+    // Smoothly combines distance scaling (fast from afar) and structural radius (brisk up close).
+    // Original static rate was 0.08 * R. The new baseline here is gently bumped to 0.10 * R.
+    var step = (dist * 0.08) + (modelRadius * 0.10);
+    
+    // Restore original gentle floor
+    if (step < 0.5) step = 0.5;
     var sign = (e.deltaY > 0) ? 1 : -1;
     var newDist = dist + sign * step;
-    if (newDist < 0.5) newDist = 0.5; // don't go through the target
+    if (newDist < 0.1) newDist = 0.1; 
     camera.position.copy(controls.target).addScaledVector(dir.normalize(), newDist);
     controls.update();
   }
@@ -541,12 +545,7 @@ function initViewer(container) {
       function (model) {
         if (interiorTexUrl) {
           var matParams = { map: loadTexture(interiorTexUrl), side: THREE.FrontSide };
-          if (interiorNormUrl) {
-            matParams.normalMap = loadTexture(interiorNormUrl);
-          }
-          var mat = interiorNormUrl
-            ? new THREE.MeshStandardMaterial(matParams)
-            : new THREE.MeshBasicMaterial(matParams);
+          var mat = new THREE.MeshBasicMaterial(matParams);
           model.traverse(function (child) {
             if (child.isMesh) child.material = mat;
           });
@@ -625,12 +624,7 @@ function initViewer(container) {
         // Apply texture if provided (GLB converted from OBJ won't have embedded texture)
         if (interiorTexUrl) {
           var matParams = { map: loadTexture(interiorTexUrl, false), side: THREE.FrontSide };
-          if (interiorNormUrl) {
-            matParams.normalMap = loadTexture(interiorNormUrl, false);
-          }
-          var mat = interiorNormUrl
-            ? new THREE.MeshStandardMaterial(matParams)
-            : new THREE.MeshBasicMaterial(matParams);
+          var mat = new THREE.MeshBasicMaterial(matParams);
           model.traverse(function (child) {
             if (child.isMesh) child.material = mat;
           });
@@ -897,12 +891,7 @@ function initViewer(container) {
         // Apply texture when GLB was converted from OBJ (no embedded texture)
         if (texUrl && objUrl) {
           var matParams = { map: loadTexture(texUrl, false), side: THREE.DoubleSide };
-          if (normUrl) {
-            matParams.normalMap = loadTexture(normUrl, false);
-          }
-          var mat = normUrl
-            ? new THREE.MeshStandardMaterial(matParams)
-            : new THREE.MeshBasicMaterial(matParams);
+          var mat = new THREE.MeshBasicMaterial(matParams);
           model.traverse(function (child) {
             if (child.isMesh) child.material = mat;
           });
@@ -934,12 +923,7 @@ function initViewer(container) {
       function (object) {
         if (texUrl) {
           var matParams = { map: loadTexture(texUrl), side: THREE.DoubleSide };
-          if (normUrl) {
-            matParams.normalMap = loadTexture(normUrl);
-          }
-          var mat = normUrl
-            ? new THREE.MeshStandardMaterial(matParams)
-            : new THREE.MeshBasicMaterial(matParams);
+          var mat = new THREE.MeshBasicMaterial(matParams);
           object.traverse(function (child) {
             if (child.isMesh) child.material = mat;
           });
