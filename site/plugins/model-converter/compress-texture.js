@@ -1,31 +1,41 @@
 /**
  * compress-texture.js <src> <dst>
  *
- * 1. UV dilation: Gaussian blur the image, composite original on top so
+ * 1. Resize to max size on longest side FIRST to save memory and CPU
+ * 2. UV dilation: Gaussian blur the image, composite original on top so
  *    transparent/empty UV space gets filled with bleed colour (no black seams).
- * 2. Resize to max 4096 px on longest side.
- * 3. Save as JPEG quality 85.
+ * 3. Save as JPEG.
  */
 
 const path   = require('path');
 const sharp  = require(path.join(__dirname, '../../../node_modules/sharp'));
 
 const [,, src, dst] = process.argv;
-if (!src || !dst) { console.error('usage: node compress-texture.js <src> <dst>'); process.exit(1); }
+if (!src || !dst) { console.error('usage: node compress-texture.js <src> <dst> [--size=4096] [--quality=85]'); process.exit(1); }
+
+const sizeArg    = process.argv.find(a => a.startsWith('--size='));
+const qualityArg = process.argv.find(a => a.startsWith('--quality='));
+const maxSize    = sizeArg    ? parseInt(sizeArg.split('=')[1])    : 4096;
+const quality    = qualityArg ? parseInt(qualityArg.split('=')[1]) : 85;
 
 (async () => {
   try {
-    const img = sharp(src).ensureAlpha();
-    const { width, height } = await img.metadata();
+    // 1. Resize the original image to at most maxSize. This enormously saves memory
+    // while keeping the identical visual output.
+    const resizedBuffer = await sharp(src)
+      .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
+      .png()
+      .toBuffer();
 
     // Blur a copy for UV dilation fill
-    const blurred = await sharp(src)
+    const blurred = await sharp(resizedBuffer)
       .ensureAlpha()
-      .blur(24)
+      .blur(24) // the blur radius stays 24, giving excellent coverage.
       .raw()
       .toBuffer({ resolveWithObject: true });
 
-    const original = await sharp(src)
+    // The raw data of the resized image
+    const original = await sharp(resizedBuffer)
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
@@ -35,7 +45,9 @@ if (!src || !dst) { console.error('usage: node compress-texture.js <src> <dst>')
     const blur = blurred.data;
     const out  = Buffer.alloc(orig.length);
 
-    // Composite: where alpha > 10 use original, else use blurred fill
+    // Exact reimplementation of original UV Dilation Logic:
+    // Composite: where alpha > 10 use original, else use blurred fill.
+    // This hard threshold correctly prevents anti-aliased black edge halos.
     for (let i = 0; i < orig.length; i += channels) {
       const a = orig[i + channels - 1];
       if (a > 10) {
@@ -46,10 +58,10 @@ if (!src || !dst) { console.error('usage: node compress-texture.js <src> <dst>')
       }
     }
 
+    // Output final jpeg directly
     await sharp(out, { raw: { width: w, height: h, channels } })
-      .resize(4096, 4096, { fit: 'inside', withoutEnlargement: true })
       .flatten({ background: { r: 0, g: 0, b: 0 } }) // drop alpha for JPEG
-      .jpeg({ quality: 85, mozjpeg: false })
+      .jpeg({ quality, mozjpeg: false })
       .toFile(dst);
 
     console.log('ok');

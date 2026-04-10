@@ -44,17 +44,32 @@ panel.plugin('goheritage/model-converter', {
                 <span v-if="f.size" class="k-upload-overwrite-list__size" style="font-size: 0.8rem; color: var(--color-text-dimmed); margin-right: 0.5rem;">
                   {{ f.size }}
                 </span>
-                <button
-                  v-if="f.filename.endsWith('.png')"
-                  type="button"
-                  class="k-upload-overwrite-list__delete"
-                  title="Compresser en JPEG"
-                  :disabled="f.compressing"
-                  @click="compress(f)"
-                  style="margin-right:0.25rem;"
-                >
-                  <k-icon :type="f.compressing ? 'loader' : 'image'" />
-                </button>
+                <div v-if="/\.png$/i.test(f.filename)" style="display:flex; flex-direction:column; align-items:flex-start; margin-right:0.25rem; flex-shrink:0; gap:3px;">
+                  <span style="font-family:var(--font-mono, monospace); text-transform:uppercase; font-size:0.55rem; color:var(--color-text-dimmed); letter-spacing:0.05em; line-height:1; font-weight:600; padding-left:2px;">Compression</span>
+                  <div style="display:inline-flex; align-items:stretch; border:1px solid var(--color-border); border-radius:4px; overflow:hidden;">
+                    <div style="position:relative; display:flex; align-items:center;">
+                    <select
+                      :value="selectedPresets[f.filename] !== undefined ? selectedPresets[f.filename] : 2"
+                      @change="$set(selectedPresets, f.filename, parseInt($event.target.value))"
+                      style="font-size:0.72rem; padding:2px 22px 2px 6px; border:none; background:transparent; color:var(--color-text); appearance:none; -webkit-appearance:none; cursor:pointer; outline:none; min-width:0;"
+                    >
+                      <option v-for="(p, i) in compressPresets(f)" :key="i" :value="p.idx">{{ p.label }} ~{{ estimateSize(f, p) }}</option>
+                    </select>
+                    <k-icon type="angle-down" style="position:absolute; right:5px; pointer-events:none; color:var(--color-text-dimmed);" />
+                  </div>
+                  <div style="width:1px; background:var(--color-border); flex-shrink:0;"></div>
+                  <button
+                    type="button"
+                    title="Compresser en JPEG"
+                    :disabled="f.compressing || presetFor(f) === 0"
+                    @click="compress(f)"
+                    style="padding:2px 7px; border:none; background:transparent; cursor:pointer; display:flex; align-items:center; color:var(--color-text-dimmed);"
+                    :style="{ opacity: (f.compressing || presetFor(f) === 0) ? 0.4 : 1 }"
+                  >
+                    <k-icon :type="f.compressing ? 'loader' : 'arrow-right'" />
+                  </button>
+                  </div>
+                </div>
                 <button
                   type="button"
                   class="k-upload-overwrite-list__delete"
@@ -92,13 +107,22 @@ panel.plugin('goheritage/model-converter', {
           message: '',
           messageType: 'success',
           localFiles: [],
+          selectedPresets: {},
+          presets: [
+            { label: 'Original', size: 8192, quality: 100, bpp: 8.0 },
+            { label: 'Haute', size: 8192, quality: 90, bpp: 1.875 },
+            { label: 'Standard', size: 4096, quality: 88, bpp: 3.75 },
+            { label: 'Légère', size: 2048, quality: 80, bpp: 4.0 },
+          ],
         };
       },
 
       watch: {
         files: {
           immediate: true,
-          handler(val) { this.localFiles = Array.isArray(val) ? [...val] : []; },
+          handler(val) {
+            this.localFiles = Array.isArray(val) ? [...val] : [];
+          },
         },
       },
 
@@ -219,24 +243,65 @@ panel.plugin('goheritage/model-converter', {
         async compress(file) {
           const idx = this.localFiles.findIndex(f => f.filename === file.filename);
           if (idx < 0) return;
+
+          const presetIdx = this.presetFor(file);
+          // "Original" (index 0) means no compression — button is disabled for this case anyway
+          if (presetIdx === 0) return;
+
+          const preset = this.presets[presetIdx];
+
           this.$set(this.localFiles, idx, { ...file, compressing: true });
+
           try {
-            const params = new URLSearchParams({ pageId: this.pageId || '', filename: file.filename });
+            const params = new URLSearchParams({
+              pageId: this.pageId || '',
+              filename: file.filename,
+              size: preset.size,
+              quality: preset.quality,
+            });
             const resp = await fetch(`/api/goheritage/compress-file?${params}`, {
               method: 'POST',
               headers: { 'X-CSRF': panel.csrf },
             });
             const json = await resp.json().catch(() => ({}));
             if (resp.ok) {
+              this.showMessage('Compressé ✓', 'success');
               this.$panel.view.reload();
             } else {
               this.showMessage('Erreur : ' + (json.error || resp.statusText), 'error');
-              this.$set(this.localFiles, idx, file);
+              this.$set(this.localFiles, idx, { ...file, compressing: false });
             }
           } catch (err) {
             this.showMessage('Erreur : ' + err.message, 'error');
-            this.$set(this.localFiles, idx, file);
+            this.$set(this.localFiles, idx, { ...file, compressing: false });
           }
+        },
+
+        presetFor(f) {
+          const v = this.selectedPresets[f.filename];
+          return v !== undefined ? parseInt(v) : 2; // default Standard
+        },
+
+        // Returns only compressed file presets (JPG),
+        // but all presets for PNG files.
+        compressPresets(f) {
+          const isJpg = /\.jpe?g$/i.test(f.filename);
+          return this.presets
+            .map((p, i) => ({ ...p, idx: i }))
+            .filter(p => !isJpg || p.idx !== 0);
+        },
+
+        estimateSize(f, preset) {
+          let w = preset.size, h = preset.size;
+          if (f.width && f.height) {
+            const scale = Math.min(preset.size / f.width, preset.size / f.height, 1);
+            w = Math.round(f.width * scale);
+            h = Math.round(f.height * scale);
+          }
+          const bytes = w * h * preset.bpp / 8;
+          return bytes >= 1048576
+            ? (bytes / 1048576).toFixed(1) + ' Mo'
+            : Math.round(bytes / 1024) + ' Ko';
         },
 
         showMessage(text, type) {
@@ -250,7 +315,7 @@ panel.plugin('goheritage/model-converter', {
     'page-files-list': {
       props: {
         pageId: { type: String, default: '' },
-        rows:   { type: Array,  default: () => [] },
+        rows: { type: Array, default: () => [] },
       },
       data() {
         return { localFiles: [], busyAll: false };
