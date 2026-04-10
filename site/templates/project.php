@@ -1,38 +1,23 @@
 <?php
 snippet('header');
 
-// auto-detect 3d model files from this page's directory
-// explicit field reference (stored by upload-overwrite after each upload) takes
-// priority; falls back to the most-recently-modified file of the right type.
-$objFile  = $page->model_obj()->toFile()
-    ?? $page->files()->filterBy('extension', 'obj')->sortBy('modified', 'desc')->first();
-$interiorObjFile  = $page->model_obj_interior()->toFile();
-$interiorTexFile  = $page->model_texture_interior()->toFile();
-$interiorNormFile = $page->model_normal_interior()->toFile();
-$texFile  = $page->model_texture()->toFile()
-    ?? $page->files()->filterBy('extension', 'in', ['png', 'jpg', 'jpeg'])
-               ->filter(fn($f) => str_ends_with($f->name(), '-compressed'))->first()
-    ?? $page->files()->filterBy('extension', 'in', ['png', 'jpg', 'jpeg'])
-               ->filter(function($f) {
-                   $name = strtolower($f->filename());
-                   return str_starts_with($name, 'texture_')
-                       || strpos($name, 'diffuse') !== false
-                       || strpos($name, 'color') !== false;
-               })
-               ->first();
+// Canonical filenames are set by the upload-overwrite plugin at upload time.
+// We prefer the canonical name; field UUID is kept as secondary fallback.
+// Canonical names set on upload; fall back to field UUID, then any file by extension/type
+$objFile          = $page->file('exterior.obj')         ?? $page->model_obj()->toFile();
+$interiorObjFile  = $page->file('interior.obj')         ?? $page->model_obj_interior()->toFile();
 
-$normFile = $page->model_normal()->toFile()
-    ?? $page->files()->filterBy('extension', 'in', ['png', 'jpg', 'jpeg'])
-               ->filter(function($f) {
-                   $name = strtolower($f->filename());
-                   return str_starts_with($name, 'normal_')
-                       || strpos($name, 'normal') !== false;
-               })
-               ->first();
+$texFile          = $page->file('exterior-texture.jpg') ?? $page->file('exterior-texture.png')
+                    ?? $page->file('exterior-texture.jpeg') ?? $page->model_texture()->toFile();
+$normFile         = $page->file('exterior-normal.jpg')  ?? $page->file('exterior-normal.png')
+                    ?? $page->file('exterior-normal.jpeg') ?? $page->model_normal()->toFile();
+$interiorTexFile  = $page->file('interior-texture.jpg') ?? $page->file('interior-texture.png')
+                    ?? $page->file('interior-texture.jpeg') ?? $page->model_texture_interior()->toFile();
+$interiorNormFile = $page->file('interior-normal.jpg')  ?? $page->file('interior-normal.png')
+                    ?? $page->file('interior-normal.jpeg') ?? $page->model_normal_interior()->toFile();
 
-$hotspotsJsonFile = $page->model_hotspots_json()->toFile()
-    ?? $page->files()->filterBy('extension', 'json')->sortBy('modified', 'desc')->first();
-$hotspotsJsonUrl = $hotspotsJsonFile ? $hotspotsJsonFile->url() : null;
+$hotspotsJsonFile = $page->file('hotspots.json') ?? $page->model_hotspots_json()->toFile();
+$hotspotsJsonUrl  = $hotspotsJsonFile ? $hotspotsJsonFile->url() : null;
 
 $viewerUrl = $page->viewer_url()->isNotEmpty() ? $page->viewer_url()->esc() : null;
 $viewerLabel = $page->viewer_label()->isNotEmpty() ? $page->viewer_label()->esc() : 'Explorer le Modèle 3D';
@@ -58,20 +43,19 @@ $interiorNormUrl  = $interiorNormFile ? $interiorNormFile->url() : null;
 $texUrl           = $texFile ? $texFile->url() : null;
 $normUrl          = $normFile ? $normFile->url() : null;
 
-// The OBJ→GLB converter creates a same-named .glb file on the page.
-// Point the viewer at it so it loads the compressed version.
-$glbFile          = $objFile
-    ? $page->files()->filterBy('filename', $objFile->name() . '.glb')->first()
-    : null;
-$glbUrl           = $glbFile ? $glbFile->url() : null;
+// GLB: prefer canonical name, fall back to field UUID, then any GLB not already used as interior
+$interiorGlbFile = $page->file('interior.glb');
+$interiorGlbUrl  = $interiorGlbFile ? $interiorGlbFile->url() : null;
 
-$interiorGlbFile  = $interiorObjFile
-    ? $page->files()->filterBy('filename', $interiorObjFile->name() . '.glb')->first()
-    : null;
-$interiorGlbUrl   = $interiorGlbFile ? $interiorGlbFile->url() : null;
+$glbFile = $page->file('exterior.glb') ?? ($objFile ? null
+    : $page->files()->filterBy('extension', 'glb')
+        ->filter(fn($f) => !$interiorObjFile || $f->id() !== $interiorObjFile->id())
+        ->filter(fn($f) => !$interiorGlbFile || $f->id() !== $interiorGlbFile->id())
+        ->sortBy('modified', 'desc')->first());
+$glbUrl = $glbFile ? $glbFile->url() : null;
 
 $hasIframe  = ($viewerUrl !== null);
-$hasModel   = ($objUrl !== null || $interiorObjUrl !== null);
+$hasModel   = ($objUrl !== null || $interiorObjUrl !== null || $glbUrl !== null || $interiorGlbUrl !== null);
 
 $posterUrl = ($cover = $page->cover()->toFile())
     ? $cover->crop(1600, 700)->url()

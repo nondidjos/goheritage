@@ -32,30 +32,43 @@ Kirby::plugin('goheritage/model-converter', [
                     return $this->name();
                 },
                 'files' => function () {
-                    $page     = $this->model();
-                    $fieldVal = $page->content()->get($this->name())->value();
+                    $page      = $this->model();
+                    $canonical = goheritageCanonicalBase($this->name());
+                    if (!$canonical) return [];
 
-                    // If this field has a stored file UUID or filename, show only that file.
-                    if ($fieldVal) {
-                        $file = kirby()->file($fieldVal) ?? $page->file($fieldVal);
-                        if ($file && $file->parent()->id() === $page->id()) {
-                            return [[
-                                'filename'   => $file->filename(),
-                                'url'        => $file->url(),
-                                'id'         => $file->id(),
-                                'size'       => $file->niceSize(),
-                                'isSelected' => true,
-                            ]];
-                        }
-                    }
+                    // Find any file whose name (without extension) matches the canonical base
+                    $matches = $page->files()->filter(
+                        fn($f) => pathinfo($f->filename(), PATHINFO_FILENAME) === $canonical
+                    );
 
-                    // No stored value yet — return empty array so we don't accidentally
-                    // list all page files (like cover images).
-                    return [];
+                    return $matches->values(fn($f) => [
+                        'filename' => $f->filename(),
+                        'url'      => $f->url(),
+                        'id'       => $f->id(),
+                        'size'     => $f->niceSize(),
+                    ]);
                 },
             ],
         ],
         'accordion-trigger' => [],
+        'page-files-list'   => [
+            'computed' => [
+                'pageId' => function () {
+                    return $this->model()->id();
+                },
+                'rows' => function () {
+                    $rows = [];
+                    foreach ($this->model()->files()->sortBy('filename', 'asc') as $f) {
+                        $rows[] = [
+                            'filename' => $f->filename(),
+                            'url'      => $f->url(),
+                            'size'     => $f->niceSize(),
+                        ];
+                    }
+                    return $rows;
+                },
+            ],
+        ],
     ],
 
     // ── Custom API routes ─────────────────────────────────────────────────────
@@ -100,6 +113,42 @@ Kirby::plugin('goheritage/model-converter', [
                 },
             ],
             [
+                'pattern' => 'goheritage/compress-file',
+                'method'  => 'POST',
+                'auth'    => false,
+                'action'  => function () {
+                    $kirby   = kirby();
+                    $request = $kirby->request();
+
+                    if (!$kirby->user()) {
+                        return Response::json(['error' => 'Unauthorized'], 401);
+                    }
+
+                    $pageId   = $request->get('pageId');
+                    $filename = $request->get('filename');
+
+                    if (!$pageId || !$filename) {
+                        return Response::json(['error' => 'pageId and filename required'], 400);
+                    }
+
+                    $page = $kirby->page($pageId);
+                    if (!$page) {
+                        return Response::json(['error' => 'Page not found'], 404);
+                    }
+
+                    $file = $page->file(basename($filename));
+                    if (!$file) {
+                        return Response::json(['error' => 'File not found'], 404);
+                    }
+
+                    set_time_limit(120);
+                    $kirby->impersonate('kirby');
+                    compressTexture($file);
+
+                    return Response::json(['status' => 'ok']);
+                },
+            ],
+            [
                 'pattern' => 'goheritage/upload-overwrite',
                 'method'  => 'POST',
                 'auth'    => false,
@@ -136,8 +185,12 @@ Kirby::plugin('goheritage/model-converter', [
                         return Response::json(['error' => 'Upload error code: ' . $code], 400);
                     }
 
-                    $filename = basename($uploaded['name']);
-                    $ext      = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                    $originalFilename = basename($uploaded['name']);
+                    $ext              = strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION));
+
+                    // If the field maps to a canonical name, use it (e.g. exterior.obj)
+                    $canonicalBase = goheritageCanonicalBase($fieldName);
+                    $filename      = $canonicalBase ? $canonicalBase . '.' . $ext : $originalFilename;
 
                     // PHP's tmp file has no extension — move to a named temp
                     // file so Kirby's extension validator sees the right type.
@@ -155,18 +208,6 @@ Kirby::plugin('goheritage/model-converter', [
                             // Overwrite in-place — bypasses FileRules::notExistingFile()
                             $newFile = $existing->replace($tmpPath);
                         } else {
-                            // New filename: delete any previous file of the same
-                            // extension that was linked to this field, then create.
-                            if ($fieldName) {
-                                $prevUuid = $page->content()->get($fieldName)->value();
-                                if ($prevUuid) {
-                                    $prevFile = $kirby->file($prevUuid);
-                                    if ($prevFile && $prevFile->parent()->id() === $page->id()) {
-                                        try { $prevFile->delete(); } catch (\Throwable $_) {}
-                                    }
-                                }
-                            }
-
                             $newFile = $page->createFile([
                                 'source'   => $tmpPath,
                                 'filename' => $filename,
@@ -182,12 +223,18 @@ Kirby::plugin('goheritage/model-converter', [
 
                         // Manually trigger post-upload processing since the
                         // custom route bypasses Kirby's file.create:after hook.
+                        $isInterior = in_array($fieldName, [
+                            'model_obj_interior', 'model_texture_interior', 'model_normal_interior'
+                        ]);
+                        $shouldCompress = $isInterior
+                            ? $page->compress_textures_interior()->toBool()
+                            : $page->compress_textures()->toBool();
+
                         if ($ext === 'obj') {
                             convertObjToGlb($newFile);
-                        } elseif ($ext === 'glb' && $page->compress_textures()->toBool()) {
+                        } elseif ($ext === 'glb' && $shouldCompress) {
                             compressGlbTextures($newFile);
-                        } elseif (in_array($ext, ['png', 'jpg', 'jpeg'])
-                            && $page->compress_textures()->toBool()) {
+                        } elseif (in_array($ext, ['png', 'jpg', 'jpeg']) && $shouldCompress) {
                             compressTexture($newFile);
                         }
 
@@ -195,6 +242,7 @@ Kirby::plugin('goheritage/model-converter', [
                             'status'   => $existing ? 'replaced' : 'created',
                             'filename' => $newFile->filename(),
                             'url'      => $newFile->url(),
+                            'id'       => $newFile->uuid(),
                         ]);
 
                     } catch (\Throwable $e) {
@@ -249,11 +297,36 @@ Kirby::plugin('goheritage/model-converter', [
 ]);
 
 /**
+ * Maps a blueprint field name to the canonical filename base used on disk.
+ * Returns null for fields that should keep the original upload name.
+ */
+function goheritageCanonicalBase($fieldName) {
+    static $map = [
+        'model_obj'              => 'exterior',
+        'model_obj_interior'     => 'interior',
+        'model_texture'          => 'exterior-texture',
+        'model_texture_interior' => 'interior-texture',
+        'model_normal'           => 'exterior-normal',
+        'model_normal_interior'  => 'interior-normal',
+        'model_hotspots_json'    => 'hotspots',
+    ];
+    return $map[$fieldName] ?? null;
+}
+
+/**
  * Convert an OBJ file to Draco-compressed GLB using node CLI tools.
  * The resulting GLB replaces (or creates) a same-named .glb file on the page.
  */
 function convertObjToGlb($file) {
+    // Use full path so PHP's exec() finds npx regardless of web-server PATH
+    $candidates = [
+        'C:\\Program Files\\nodejs\\npx.cmd',
+        'C:\\Program Files (x86)\\nodejs\\npx.cmd',
+    ];
     $npx = 'npx';
+    foreach ($candidates as $c) {
+        if (file_exists($c)) { $npx = $c; break; }
+    }
 
     $objPath  = $file->root();
     $dir      = dirname($objPath);
@@ -317,23 +390,31 @@ function convertObjToGlb($file) {
  * convert a large texture to optimised jpeg using sharp-cli
  */
 function compressTexture($file) {
-    $npx      = 'npx';
+    $nodeCandidates = [
+        'C:\\Program Files\\nodejs\\node.exe',
+        'C:\\Program Files (x86)\\nodejs\\node.exe',
+    ];
+    $node = null;
+    foreach ($nodeCandidates as $c) {
+        if (file_exists($c)) { $node = $c; break; }
+    }
+    if (!$node) {
+        error_log('[model-converter] node.exe not found');
+        return;
+    }
+
+    $script   = __DIR__ . '/compress-texture.js';
     $srcPath  = $file->root();
     $dir      = dirname($srcPath);
     $basename = pathinfo($srcPath, PATHINFO_FILENAME);
-    $destPath = $dir . '/' . $basename . '-compressed.jpg';
+    $tmpPath  = $dir . '/' . $basename . '-tmp.jpg';
 
-    $cmd = sprintf(
-        '%s sharp -i %s -o %s format jpeg --quality 80 resize 8192 8192 --fit inside --withoutEnlargement 2>&1',
-        $npx,
-        escapeshellarg($srcPath),
-        escapeshellarg($destPath)
-    );
+    $cmd = sprintf('%s %s %s %s 2>&1', $node, escapeshellarg($script), escapeshellarg($srcPath), escapeshellarg($tmpPath));
     $output = []; $code = 0;
     exec($cmd, $output, $code);
 
-    if ($code !== 0 || !file_exists($destPath)) {
-        error_log('[model-converter] sharp-cli texture compression failed: ' . implode("\n", $output));
+    if ($code !== 0 || !file_exists($tmpPath)) {
+        error_log('[model-converter] compress-texture.js failed: ' . implode("\n", $output));
         return;
     }
 
@@ -341,20 +422,29 @@ function compressTexture($file) {
         $page = $file->parent();
         if ($page) {
             kirby()->impersonate('kirby');
-            $destFilename = $basename . '-compressed.jpg';
-            $existing = $page->file($destFilename);
+            $jpgFilename = $basename . '.jpg';
+            $jpgRoot     = $dir . '/' . $jpgFilename;
+            $existing    = $page->file($jpgFilename);
             if ($existing) {
-                $existing->replace($destPath);
+                $existing->replace($tmpPath);
+            } elseif (file_exists($jpgRoot)) {
+                // File on disk but not in Kirby registry (created manually) — overwrite directly
+                copy($tmpPath, $jpgRoot);
             } else {
                 $page->createFile([
-                    'source'   => $destPath,
-                    'filename' => $destFilename,
+                    'source'   => $tmpPath,
+                    'filename' => $jpgFilename,
                     'template' => 'image',
                 ]);
             }
+            if (strtolower($file->extension()) !== 'jpg') {
+                try { $file->delete(); } catch (\Throwable $_) {}
+            }
         }
     } catch (\Exception $e) {
-        error_log('[model-converter] compressed texture registration: ' . $e->getMessage());
+        error_log('[model-converter] compress texture registration: ' . $e->getMessage());
+    } finally {
+        @unlink($tmpPath);
     }
 }
 
@@ -364,7 +454,14 @@ function compressTexture($file) {
  * Modifies the file in-place (tmp → replace).
  */
 function compressGlbTextures($file) {
-    $npx     = 'npx';
+    $candidates = [
+        'C:\\Program Files\\nodejs\\npx.cmd',
+        'C:\\Program Files (x86)\\nodejs\\npx.cmd',
+    ];
+    $npx = 'npx';
+    foreach ($candidates as $c) {
+        if (file_exists($c)) { $npx = $c; break; }
+    }
     $glbPath = $file->root();
     $tmpPath = $glbPath . '.compressing.glb';
 
