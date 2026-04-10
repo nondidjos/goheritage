@@ -231,6 +231,16 @@ tabs:
             default: true
 
 
+  # ── Tab 4 : Fichiers ──────────────────────────────────────────────────────
+  files:
+    label: Fichiers
+    icon: file
+    columns:
+      - width: 1/1
+        fields:
+          page_files:
+            type: page-files-list
+
   # ── Tab 5 : Points d'intérêt ──────────────────────────────────────────────
   annotations:
     label: Points d'intérêt
@@ -279,12 +289,10 @@ tabs:
                 type: text
                 label: Identifiant
                 placeholder: "hotspot_01"
-                required: true
                 help: Doit correspondre au nom de l'Empty dans Blender.
               title:
                 type: text
                 label: Titre
-                required: true
                 placeholder: "ex. Voûte principale"
               camera_mode:
                 type: select
