@@ -5,6 +5,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // mobile hamburger menu
     const toggle = document.getElementById('mobile-menu-toggle');
     const nav = document.getElementById('site-nav');
+    const closeBtn = document.getElementById('mobile-menu-close');
+
+    function closeMenu() {
+        toggle.setAttribute('aria-expanded', 'false');
+        nav.classList.remove('is-open');
+        document.body.classList.remove('nav-open');
+    }
 
     if (toggle && nav) {
         toggle.addEventListener('click', function () {
@@ -12,6 +19,23 @@ document.addEventListener('DOMContentLoaded', function () {
             toggle.setAttribute('aria-expanded', String(!expanded));
             nav.classList.toggle('is-open');
             document.body.classList.toggle('nav-open');
+        });
+
+        // Close menu when clicking a link
+        nav.querySelectorAll('a').forEach(function (link) {
+            link.addEventListener('click', closeMenu);
+        });
+
+        // Close menu when clicking the close button
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeMenu);
+        }
+
+        // Close menu when clicking the overlay
+        document.addEventListener('click', function (e) {
+            if (nav.classList.contains('is-open') && !nav.contains(e.target) && !toggle.contains(e.target)) {
+                closeMenu();
+            }
         });
     }
 
