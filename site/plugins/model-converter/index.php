@@ -46,6 +46,8 @@ Kirby::plugin('goheritage/model-converter', [
                         'url'      => $f->url(),
                         'id'       => $f->id(),
                         'size'     => $f->niceSize(),
+                        'width'    => $f->type() === 'image' ? ($f->dimensions()->width()  ?? null) : null,
+                        'height'   => $f->type() === 'image' ? ($f->dimensions()->height() ?? null) : null,
                     ]);
                 },
             ],
@@ -141,11 +143,17 @@ Kirby::plugin('goheritage/model-converter', [
                         return Response::json(['error' => 'File not found'], 404);
                     }
 
-                    set_time_limit(120);
-                    $kirby->impersonate('kirby');
-                    compressTexture($file);
+                    $size    = max(256, min(8192, (int)($request->get('size',    4096))));
+                    $quality = max(10,  min(100,  (int)($request->get('quality', 85))));
 
-                    return Response::json(['status' => 'ok']);
+                    try {
+                        set_time_limit(300);
+                        $kirby->impersonate('kirby');
+                        compressTexture($file, $size, $quality);
+                        return Response::json(['status' => 'ok']);
+                    } catch (\Throwable $e) {
+                        return Response::json(['error' => $e->getMessage()], 500);
+                    }
                 },
             ],
             [
@@ -223,19 +231,10 @@ Kirby::plugin('goheritage/model-converter', [
 
                         // Manually trigger post-upload processing since the
                         // custom route bypasses Kirby's file.create:after hook.
-                        $isInterior = in_array($fieldName, [
-                            'model_obj_interior', 'model_texture_interior', 'model_normal_interior'
-                        ]);
-                        $shouldCompress = $isInterior
-                            ? $page->compress_textures_interior()->toBool()
-                            : $page->compress_textures()->toBool();
-
+                        // OBJ → GLB conversion runs automatically; texture compression
+                        // is triggered manually via the quality picker in the panel.
                         if ($ext === 'obj') {
                             convertObjToGlb($newFile);
-                        } elseif ($ext === 'glb' && $shouldCompress) {
-                            compressGlbTextures($newFile);
-                        } elseif (in_array($ext, ['png', 'jpg', 'jpeg']) && $shouldCompress) {
-                            compressTexture($newFile);
                         }
 
                         return Response::json([
@@ -260,38 +259,14 @@ Kirby::plugin('goheritage/model-converter', [
     'hooks' => [
         // fires after a file has been created (uploaded) in the panel
         'file.create:after' => function ($file) {
-            $page = $file->parent();
-            $ext  = strtolower($file->extension());
-
-            if ($ext === 'obj') {
-                convertObjToGlb($file);
-            } elseif ($ext === 'glb') {
-                if ($page && $page->compress_textures()->toBool()) {
-                    compressGlbTextures($file);
-                }
-            } elseif (in_array($ext, ['png', 'jpg', 'jpeg'])) {
-                if ($page && $page->compress_textures()->toBool()) {
-                    compressTexture($file);
-                }
-            }
+            $ext = strtolower($file->extension());
+            if ($ext === 'obj') convertObjToGlb($file);
         },
 
         // fires after a file has been replaced (re-uploaded via panel default)
         'file.replace:after' => function ($newFile, $oldFile) {
-            $page = $newFile->parent();
-            $ext  = strtolower($newFile->extension());
-
-            if ($ext === 'obj') {
-                convertObjToGlb($newFile);
-            } elseif ($ext === 'glb') {
-                if ($page && $page->compress_textures()->toBool()) {
-                    compressGlbTextures($newFile);
-                }
-            } elseif (in_array($ext, ['png', 'jpg', 'jpeg'])) {
-                if ($page && $page->compress_textures()->toBool()) {
-                    compressTexture($newFile);
-                }
-            }
+            $ext = strtolower($newFile->extension());
+            if ($ext === 'obj') convertObjToGlb($newFile);
         },
     ],
 ]);
@@ -336,7 +311,7 @@ function convertObjToGlb($file) {
 
     // step 1: obj → glb
     $cmd1 = sprintf(
-        '%s obj2gltf -i %s -o %s --binary --unlit 2>&1',
+        '"%s" obj2gltf -i %s -o %s --binary --unlit 2>&1',
         $npx,
         escapeshellarg($objPath),
         escapeshellarg($tmpGlb)
@@ -351,7 +326,7 @@ function convertObjToGlb($file) {
 
     // step 2: draco compression
     $cmd2 = sprintf(
-        '%s gltf-transform draco %s %s 2>&1',
+        '"%s" gltf-transform draco %s %s 2>&1',
         $npx,
         escapeshellarg($tmpGlb),
         escapeshellarg($finalGlb)
@@ -389,7 +364,7 @@ function convertObjToGlb($file) {
 /**
  * convert a large texture to optimised jpeg using sharp-cli
  */
-function compressTexture($file) {
+function compressTexture($file, $size = 4096, $quality = 85) {
     $nodeCandidates = [
         'C:\\Program Files\\nodejs\\node.exe',
         'C:\\Program Files (x86)\\nodejs\\node.exe',
@@ -399,8 +374,7 @@ function compressTexture($file) {
         if (file_exists($c)) { $node = $c; break; }
     }
     if (!$node) {
-        error_log('[model-converter] node.exe not found');
-        return;
+        throw new \Exception('[model-converter] node.exe not found');
     }
 
     $script   = __DIR__ . '/compress-texture.js';
@@ -409,13 +383,12 @@ function compressTexture($file) {
     $basename = pathinfo($srcPath, PATHINFO_FILENAME);
     $tmpPath  = $dir . '/' . $basename . '-tmp.jpg';
 
-    $cmd = sprintf('%s %s %s %s 2>&1', $node, escapeshellarg($script), escapeshellarg($srcPath), escapeshellarg($tmpPath));
+    $cmd = sprintf('"%s" %s %s %s --size=%d --quality=%d 2>&1', $node, escapeshellarg($script), escapeshellarg($srcPath), escapeshellarg($tmpPath), $size, $quality);
     $output = []; $code = 0;
     exec($cmd, $output, $code);
 
     if ($code !== 0 || !file_exists($tmpPath)) {
-        error_log('[model-converter] compress-texture.js failed: ' . implode("\n", $output));
-        return;
+        throw new \Exception('[model-converter] compress-texture.js failed: ' . implode("\n", $output));
     }
 
     try {
@@ -437,12 +410,9 @@ function compressTexture($file) {
                     'template' => 'image',
                 ]);
             }
-            if (strtolower($file->extension()) !== 'jpg') {
-                try { $file->delete(); } catch (\Throwable $_) {}
-            }
         }
     } catch (\Exception $e) {
-        error_log('[model-converter] compress texture registration: ' . $e->getMessage());
+        throw new \Exception('[model-converter] compress texture registration: ' . $e->getMessage());
     } finally {
         @unlink($tmpPath);
     }
@@ -467,7 +437,7 @@ function compressGlbTextures($file) {
 
     // Step 1: resize embedded textures to max 4096 px
     $cmd1 = sprintf(
-        '%s gltf-transform resize %s %s --width 4096 --height 4096 2>&1',
+        '"%s" gltf-transform resize %s %s --width 4096 --height 4096 2>&1',
         $npx,
         escapeshellarg($glbPath),
         escapeshellarg($tmpPath)
@@ -483,7 +453,7 @@ function compressGlbTextures($file) {
     // Step 2: convert textures to WebP at quality 80
     $tmpPath2 = $glbPath . '.webp.glb';
     $cmd2 = sprintf(
-        '%s gltf-transform webp %s %s --quality 80 2>&1',
+        '"%s" gltf-transform webp %s %s --quality 80 2>&1',
         $npx,
         escapeshellarg($tmpPath),
         escapeshellarg($tmpPath2)
