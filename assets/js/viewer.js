@@ -85,25 +85,33 @@ function initViewer(container) {
   controls.dampingFactor = 0.08;
   controls.screenSpacePanning = true;
   controls.maxDistance = 5000;
-  controls.zoomSpeed = 1.2;
+  controls.enableZoom = false; // replaced with additive zoom below
 
-  // Forward wheel events from labels so zooming still works without scrolling the page
+  // Additive zoom — fixed step based on model size so speed is consistent
+  // regardless of how close the camera is (OrbitControls' built-in multiplicative
+  // dolly slows to a crawl at close range).
+  function handleZoom(e) {
+    e.preventDefault();
+    var dir  = new THREE.Vector3().subVectors(camera.position, controls.target);
+    var dist = dir.length();
+    // Step: 8% of model radius per scroll tick, clamped so it can't overshoot
+    var step = Math.max(modelRadius * 0.08, 0.5);
+    var sign = (e.deltaY > 0) ? 1 : -1;
+    var newDist = dist + sign * step;
+    if (newDist < 0.5) newDist = 0.5; // don't go through the target
+    camera.position.copy(controls.target).addScaledVector(dir.normalize(), newDist);
+    controls.update();
+  }
+
+  // Forward wheel from label overlay + apply custom zoom everywhere on the canvas
   container.addEventListener('wheel', function (e) {
     if (e.target.closest('.viewer-label')) {
       e.preventDefault();
-      var clone = new WheelEvent('wheel', {
-        clientX: e.clientX,
-        clientY: e.clientY,
-        deltaX: e.deltaX,
-        deltaY: e.deltaY,
-        deltaZ: e.deltaZ,
-        deltaMode: e.deltaMode,
-        bubbles: true,
-        cancelable: true
-      });
-      renderer.domElement.dispatchEvent(clone);
+      handleZoom(e);
     }
   }, { passive: false });
+
+  renderer.domElement.addEventListener('wheel', handleZoom, { passive: false });
 
   // ── Progress overlay ─────────────────────────────────────────────────────
   const progress = document.createElement('div');
@@ -1008,7 +1016,6 @@ function initViewer(container) {
     var ratio = Math.max(dist / Math.max(modelRadius, 1), 0.05);
     controls.dampingFactor = 0.08 * Math.max(ratio, 0.3);
     controls.panSpeed = Math.max(ratio * 0.8, 0.15);
-    controls.zoomSpeed = Math.max(ratio * 1.0, 0.25);
 
     controls.update();
     renderer.render(scene, camera);
