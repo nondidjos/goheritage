@@ -110,9 +110,9 @@ panel.plugin('goheritage/model-converter', {
           selectedPresets: {},
           presets: [
             { label: 'Original', size: 8192, quality: 100, bpp: 8.0 },
-            { label: 'Haute', size: 8192, quality: 90, bpp: 1.875 },
-            { label: 'Standard', size: 4096, quality: 88, bpp: 3.75 },
-            { label: 'Légère', size: 2048, quality: 80, bpp: 4.0 },
+            { label: 'Haute', size: 8192, quality: 85, bpp: 1.875 },
+            { label: 'Standard', size: 4096, quality: 88, bpp: 2.5 },
+            { label: 'Légère', size: 2048, quality: 80, bpp: 3.0 },
           ],
         };
       },
