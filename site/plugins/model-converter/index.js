@@ -37,14 +37,24 @@ panel.plugin('goheritage/model-converter', {
             <!-- File list -->
             <ul v-if="matchingFiles.length" class="k-upload-overwrite-list">
               <li v-for="f in matchingFiles" :key="f.filename" class="k-upload-overwrite-list__item">
-                <k-icon type="file" class="k-upload-overwrite-list__icon" />
+                <k-icon :type="f.filename.endsWith('.glb') ? 'box' : 'file'" class="k-upload-overwrite-list__icon" />
                 <a :href="f.url" target="_blank" rel="noopener" class="k-upload-overwrite-list__name">
                   {{ f.filename }}
                 </a>
                 <span v-if="f.size" class="k-upload-overwrite-list__size" style="font-size: 0.8rem; color: var(--color-text-dimmed); margin-right: 0.5rem;">
                   {{ f.size }}
                 </span>
-                <k-icon v-if="f.isSelected" type="check" style="color: var(--color-green); margin-right: 0.5rem;" title="Fichier assigné" />
+                <button
+                  v-if="f.filename.endsWith('.png')"
+                  type="button"
+                  class="k-upload-overwrite-list__delete"
+                  title="Compresser en JPEG"
+                  :disabled="f.compressing"
+                  @click="compress(f)"
+                  style="margin-right:0.25rem;"
+                >
+                  <k-icon :type="f.compressing ? 'loader' : 'image'" />
+                </button>
                 <button
                   type="button"
                   class="k-upload-overwrite-list__delete"
@@ -72,6 +82,7 @@ panel.plugin('goheritage/model-converter', {
         prefix: String,
         template: { type: String, default: 'default' },
         pageId: String,
+        fieldName: String,
         files: { type: Array, default: () => [] },
       },
 
@@ -80,24 +91,20 @@ panel.plugin('goheritage/model-converter', {
           uploading: false,
           message: '',
           messageType: 'success',
+          localFiles: [],
         };
+      },
+
+      watch: {
+        files: {
+          immediate: true,
+          handler(val) { this.localFiles = Array.isArray(val) ? [...val] : []; },
+        },
       },
 
       computed: {
         matchingFiles() {
-          if (!this.files || !this.accept) return [];
-          const exts = this.accept
-            .split(',')
-            .map(e => e.trim().replace(/^\./, '').toLowerCase());
-          return this.files.filter(f => {
-            const ext = f.filename.split('.').pop().toLowerCase();
-            const extMatch = exts.includes(ext);
-            if (!extMatch) return false;
-            if (this.prefix) {
-              return f.filename.toLowerCase().startsWith(this.prefix.toLowerCase());
-            }
-            return true;
-          });
+          return this.localFiles;
         },
 
         // Kirby API encodes nested page IDs with "+" instead of "/"
@@ -153,6 +160,11 @@ panel.plugin('goheritage/model-converter', {
             } else {
               const verb = json.status === 'replaced' ? 'Remplacé' : 'Ajouté';
               this.showMessage(`${verb} : ${json.filename}`, 'success');
+              // Update local list immediately so the file shows without waiting for reload
+              const entry = { filename: json.filename, url: json.url, id: json.id };
+              const idx = this.localFiles.findIndex(f => f.filename === json.filename);
+              if (idx >= 0) this.localFiles.splice(idx, 1, entry);
+              else this.localFiles.push(entry);
               this.$panel.view.reload();
             }
           } catch (err) {
@@ -204,12 +216,123 @@ panel.plugin('goheritage/model-converter', {
           }
         },
 
+        async compress(file) {
+          const idx = this.localFiles.findIndex(f => f.filename === file.filename);
+          if (idx < 0) return;
+          this.$set(this.localFiles, idx, { ...file, compressing: true });
+          try {
+            const params = new URLSearchParams({ pageId: this.pageId || '', filename: file.filename });
+            const resp = await fetch(`/api/goheritage/compress-file?${params}`, {
+              method: 'POST',
+              headers: { 'X-CSRF': panel.csrf },
+            });
+            const json = await resp.json().catch(() => ({}));
+            if (resp.ok) {
+              this.$panel.view.reload();
+            } else {
+              this.showMessage('Erreur : ' + (json.error || resp.statusText), 'error');
+              this.$set(this.localFiles, idx, file);
+            }
+          } catch (err) {
+            this.showMessage('Erreur : ' + err.message, 'error');
+            this.$set(this.localFiles, idx, file);
+          }
+        },
+
         showMessage(text, type) {
           this.message = text;
           this.messageType = type;
           setTimeout(() => { this.message = ''; }, 3500);
         },
       },
+    },
+
+    'page-files-list': {
+      props: {
+        pageId: { type: String, default: '' },
+        rows:   { type: Array,  default: () => [] },
+      },
+      data() {
+        return { localFiles: [], busyAll: false };
+      },
+      watch: {
+        rows: { immediate: true, handler(v) { this.localFiles = Array.isArray(v) ? [...v] : []; } },
+      },
+      methods: {
+        async _delete(filename) {
+          const params = new URLSearchParams({ pageId: this.pageId, filename });
+          const resp = await fetch(`/api/goheritage/delete-file?${params}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF': panel.csrf },
+          });
+          if (!resp.ok) {
+            const json = await resp.json().catch(() => ({}));
+            throw new Error(json.error || `HTTP ${resp.status}`);
+          }
+        },
+        confirmDelete(file) {
+          this.$panel.dialog.open({
+            component: 'k-remove-dialog',
+            props: { text: `Supprimer "${file.filename}" ?` },
+            on: {
+              submit: () => {
+                this.$panel.dialog.close();
+                this._delete(file.filename)
+                  .then(() => {
+                    this.localFiles = this.localFiles.filter(f => f.filename !== file.filename);
+                    this.$panel.view.reload();
+                  })
+                  .catch(err => this.$panel.notification.error(err.message));
+              },
+            },
+          });
+        },
+        confirmDeleteAll() {
+          this.$panel.dialog.open({
+            component: 'k-remove-dialog',
+            props: { text: 'Supprimer tous les fichiers de cette page ?' },
+            on: { submit: () => { this.$panel.dialog.close(); this.deleteAll(); } },
+          });
+        },
+        async deleteAll() {
+          this.busyAll = true;
+          try {
+            for (const f of [...this.localFiles]) {
+              await this._delete(f.filename);
+              this.localFiles = this.localFiles.filter(x => x.filename !== f.filename);
+            }
+            this.$panel.view.reload();
+          } catch (err) {
+            this.$panel.notification.error(err.message);
+          } finally {
+            this.busyAll = false;
+          }
+        },
+      },
+      template: `
+        <div class="k-field">
+          <k-field-header label="Fichiers">
+            <template #options>
+              <k-button-group v-if="localFiles.length">
+                <k-button icon="files" size="sm" :disabled="busyAll" @click="confirmDeleteAll">
+                  {{ busyAll ? 'Suppression…' : 'Tout supprimer' }}
+                </k-button>
+              </k-button-group>
+            </template>
+          </k-field-header>
+          <ul v-if="localFiles.length" class="k-upload-overwrite-list">
+            <li v-for="f in localFiles" :key="f.filename" class="k-upload-overwrite-list__item">
+              <k-icon type="file" class="k-upload-overwrite-list__icon" />
+              <a :href="f.url" target="_blank" rel="noopener" class="k-upload-overwrite-list__name">{{ f.filename }}</a>
+              <span style="font-size:var(--text-sm); color:var(--color-text-dimmed); flex-shrink:0;">{{ f.size }}</span>
+              <button type="button" class="k-upload-overwrite-list__delete" @click="confirmDelete(f)">
+                <k-icon type="trash" />
+              </button>
+            </li>
+          </ul>
+          <k-empty v-else icon="file">Aucun fichier sur cette page.</k-empty>
+        </div>
+      `,
     },
 
     'accordion-trigger': {
@@ -252,4 +375,5 @@ panel.plugin('goheritage/model-converter', {
       `
     },
   },
+
 });
