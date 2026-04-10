@@ -281,8 +281,6 @@ function goheritageCanonicalBase($fieldName) {
         'model_obj_interior'     => 'interior',
         'model_texture'          => 'exterior-texture',
         'model_texture_interior' => 'interior-texture',
-        'model_normal'           => 'exterior-normal',
-        'model_normal_interior'  => 'interior-normal',
         'model_hotspots_json'    => 'hotspots',
     ];
     return $map[$fieldName] ?? null;
@@ -309,36 +307,38 @@ function convertObjToGlb($file) {
     $tmpGlb   = $dir . '/' . $basename . '-tmp.glb';
     $finalGlb = $dir . '/' . $basename . '.glb';
 
-    // step 1: obj → glb
-    $cmd1 = sprintf(
-        '"%s" obj2gltf -i %s -o %s --binary --unlit 2>&1',
-        $npx,
-        escapeshellarg($objPath),
-        escapeshellarg($tmpGlb)
-    );
-    $output1 = []; $code1 = 0;
-    exec($cmd1, $output1, $code1);
-
-    if ($code1 !== 0 || !file_exists($tmpGlb)) {
-        error_log('[model-converter] obj2gltf failed: ' . implode("\n", $output1));
-        return;
-    }
-
-    // step 2: draco compression
-    $cmd2 = sprintf(
-        '"%s" gltf-transform draco %s %s 2>&1',
-        $npx,
-        escapeshellarg($tmpGlb),
-        escapeshellarg($finalGlb)
-    );
-    $output2 = []; $code2 = 0;
-    exec($cmd2, $output2, $code2);
-
-    if (file_exists($tmpGlb)) unlink($tmpGlb);
-
-    if ($code2 !== 0 || !file_exists($finalGlb)) {
-        error_log('[model-converter] gltf-transform draco failed: ' . implode("\n", $output2));
-        return;
+    try {
+        // step 1: obj → glb
+        $cmd1 = sprintf(
+            '"%s" obj2gltf -i %s -o %s --binary --unlit 2>&1',
+            $npx,
+            escapeshellarg($objPath),
+            escapeshellarg($tmpGlb)
+        );
+        $output1 = []; $code1 = 0;
+        exec($cmd1, $output1, $code1);
+    
+        if ($code1 !== 0 || !file_exists($tmpGlb)) {
+            error_log('[model-converter] obj2gltf failed: ' . implode("\n", $output1));
+            return;
+        }
+    
+        // step 2: draco compression
+        $cmd2 = sprintf(
+            '"%s" gltf-transform draco %s %s 2>&1',
+            $npx,
+            escapeshellarg($tmpGlb),
+            escapeshellarg($finalGlb)
+        );
+        $output2 = []; $code2 = 0;
+        exec($cmd2, $output2, $code2);
+    
+        if ($code2 !== 0 || !file_exists($finalGlb)) {
+            error_log('[model-converter] gltf-transform draco failed: ' . implode("\n", $output2));
+            return;
+        }
+    } finally {
+        if (file_exists($tmpGlb)) @unlink($tmpGlb);
     }
 
     try {
@@ -383,15 +383,15 @@ function compressTexture($file, $size = 4096, $quality = 85) {
     $basename = pathinfo($srcPath, PATHINFO_FILENAME);
     $tmpPath  = $dir . '/' . $basename . '-tmp.jpg';
 
-    $cmd = sprintf('"%s" %s %s %s --size=%d --quality=%d 2>&1', $node, escapeshellarg($script), escapeshellarg($srcPath), escapeshellarg($tmpPath), $size, $quality);
-    $output = []; $code = 0;
-    exec($cmd, $output, $code);
-
-    if ($code !== 0 || !file_exists($tmpPath)) {
-        throw new \Exception('[model-converter] compress-texture.js failed: ' . implode("\n", $output));
-    }
-
     try {
+        $cmd = sprintf('"%s" %s %s %s --size=%d --quality=%d 2>&1', $node, escapeshellarg($script), escapeshellarg($srcPath), escapeshellarg($tmpPath), $size, $quality);
+        $output = []; $code = 0;
+        exec($cmd, $output, $code);
+
+        if ($code !== 0 || !file_exists($tmpPath)) {
+            throw new \Exception('[model-converter] compress-texture.js failed: ' . implode("\n", $output));
+        }
+
         $page = $file->parent();
         if ($page) {
             kirby()->impersonate('kirby');
@@ -401,7 +401,6 @@ function compressTexture($file, $size = 4096, $quality = 85) {
             if ($existing) {
                 $existing->replace($tmpPath);
             } elseif (file_exists($jpgRoot)) {
-                // File on disk but not in Kirby registry (created manually) — overwrite directly
                 copy($tmpPath, $jpgRoot);
             } else {
                 $page->createFile([
@@ -412,9 +411,9 @@ function compressTexture($file, $size = 4096, $quality = 85) {
             }
         }
     } catch (\Exception $e) {
-        throw new \Exception('[model-converter] compress texture registration: ' . $e->getMessage());
+        throw new \Exception('[model-converter] compress texture exception: ' . $e->getMessage());
     } finally {
-        @unlink($tmpPath);
+        if (file_exists($tmpPath)) @unlink($tmpPath);
     }
 }
 
