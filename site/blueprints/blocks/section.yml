@@ -8,7 +8,6 @@ fields:
   section_title:
     type: text
     label: Titre de la section
-    required: true
     placeholder: "ex. Historique, Description architecturale…"
     width: 2/3
 

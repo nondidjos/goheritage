@@ -43,7 +43,7 @@
         <?php foreach ($tags as $tag): ?>
           <li>
             <a class="tag border border-border text-mid bg-surface no-underline hover:border-mid hover:text-ink hover:bg-surface/80 hover:no-underline transition-all duration-150"
-              href="<?= $page->parent()->url(['params' => ['tag' => $tag]]) ?>">
+              href="<?= $page->parent()->url() ?>?tag=<?= urlencode(trim($tag)) ?>">
               <?= esc($tag) ?>
             </a>
           </li>
