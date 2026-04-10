@@ -1,10 +1,11 @@
 /**
  * compress-texture.js <src> <dst>
  *
- * 1. Resize to max size on longest side FIRST to save memory and CPU
- * 2. UV dilation: Gaussian blur the image, composite original on top so
+ * 1. UV dilation: Gaussian blur the image, composite original on top so
  *    transparent/empty UV space gets filled with bleed colour (no black seams).
- * 3. Save as JPEG.
+ *    Crucially, this MUST be done before resizing to prevent black edge interpolation!
+ * 2. Resize to max 4096 px on longest side.
+ * 3. Save as JPEG quality 85.
  */
 
 const path   = require('path');
@@ -20,22 +21,17 @@ const quality    = qualityArg ? parseInt(qualityArg.split('=')[1]) : 85;
 
 (async () => {
   try {
-    // 1. Resize the original image to at most maxSize. This enormously saves memory
-    // while keeping the identical visual output.
-    const resizedBuffer = await sharp(src)
-      .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
-      .png()
-      .toBuffer();
+    const img = sharp(src).ensureAlpha();
+    const { width, height } = await img.metadata();
 
     // Blur a copy for UV dilation fill
-    const blurred = await sharp(resizedBuffer)
+    const blurred = await sharp(src)
       .ensureAlpha()
-      .blur(24) // the blur radius stays 24, giving excellent coverage.
+      .blur(24)
       .raw()
       .toBuffer({ resolveWithObject: true });
 
-    // The raw data of the resized image
-    const original = await sharp(resizedBuffer)
+    const original = await sharp(src)
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
@@ -45,9 +41,8 @@ const quality    = qualityArg ? parseInt(qualityArg.split('=')[1]) : 85;
     const blur = blurred.data;
     const out  = Buffer.alloc(orig.length);
 
-    // Exact reimplementation of original UV Dilation Logic:
     // Composite: where alpha > 10 use original, else use blurred fill.
-    // This hard threshold correctly prevents anti-aliased black edge halos.
+    // Done PRE-resize. If done post-resize, the interpolator bleeds black into semi-transparent edges, ruining the seams.
     for (let i = 0; i < orig.length; i += channels) {
       const a = orig[i + channels - 1];
       if (a > 10) {
@@ -58,8 +53,8 @@ const quality    = qualityArg ? parseInt(qualityArg.split('=')[1]) : 85;
       }
     }
 
-    // Output final jpeg directly
     await sharp(out, { raw: { width: w, height: h, channels } })
+      .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
       .flatten({ background: { r: 0, g: 0, b: 0 } }) // drop alpha for JPEG
       .jpeg({ quality, mozjpeg: false })
       .toFile(dst);
