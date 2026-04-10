@@ -165,13 +165,7 @@ tabs:
             template: model
             help: Fichier OBJ exporté depuis Blender.
 
-          model_normal:
-            width: 1/2
-            type: upload-overwrite
-            label: Normal Map
-            accept: ".jpg,.jpeg,.png"
-            template: image
-            help: Optionnel.
+
 
           model_texture:
             width: 1/2
@@ -196,13 +190,7 @@ tabs:
             template: model
             help: Fichier OBJ exporté depuis Blender.
 
-          model_normal_interior:
-            width: 1/2
-            type: upload-overwrite
-            label: Normal Map
-            accept: ".jpg,.jpeg,.png"
-            template: image
-            help: Optionnel.
+
 
           model_texture_interior:
             width: 1/2
