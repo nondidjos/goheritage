@@ -66,20 +66,24 @@ Kirby::plugin('goheritage/hotspot-detector', [
     // ── Hooks: auto-detect when a JSON lands on a project page ─────────────
     'hooks' => [
         'file.create:after' => function ($file) {
-            if (strtolower($file->extension()) === 'json') {
-                $page = $file->parent();
-                if ($page && $page->template()->name() === 'project') {
-                    // Only auto-trigger if this file was specifically assigned
-                    // to model_hotspots_json, OR let detectAndSaveHotspots find it.
-                    detectAndSaveHotspots($page, $file->root());
+            $ext = strtolower($file->extension());
+            $page = $file->parent();
+            if ($page && $page->template()->name() === 'project') {
+                if ($ext === 'json') {
+                    detectAndSaveHotspots($page, $file->root(), 'json');
+                } elseif ($ext === 'glb') {
+                    detectAndSaveHotspots($page, $file->root(), 'glb');
                 }
             }
         },
         'file.replace:after' => function ($newFile, $oldFile) {
-            if (strtolower($newFile->extension()) === 'json') {
-                $page = $newFile->parent();
-                if ($page && $page->template()->name() === 'project') {
-                    detectAndSaveHotspots($page, $newFile->root());
+            $ext = strtolower($newFile->extension());
+            $page = $newFile->parent();
+            if ($page && $page->template()->name() === 'project') {
+                if ($ext === 'json') {
+                    detectAndSaveHotspots($page, $newFile->root(), 'json');
+                } elseif ($ext === 'glb') {
+                    detectAndSaveHotspots($page, $newFile->root(), 'glb');
                 }
             }
         },
@@ -94,27 +98,47 @@ Kirby::plugin('goheritage/hotspot-detector', [
  * annotations structure field, preserving any existing descriptions.
  *
  * @param \Kirby\Cms\Page $page
- * @param string|null     $jsonPath explicit path; if null, auto-detected from page field
+ * @param string|null     $filePath explicit path; if null, auto-detected from page field
  * @return array  { count: int, added: int, skipped: int, hotspots: [] }
  */
-function detectAndSaveHotspots($page, $jsonPath = null) {
+function detectAndSaveHotspots($page, $filePath = null, $type = null) {
 
-    // ── find the JSON file ─────────────────────────────────────────────────
-    if (!$jsonPath) {
+    // ── find the file ─────────────────────────────────────────────────
+    if (!$filePath) {
         $uuid = $page->content()->get('model_hotspots_json')->value();
         if ($uuid) {
             $file = kirby()->file($uuid) ?? $page->file($uuid);
-            if ($file) $jsonPath = $file->root();
+            if ($file) {
+                $filePath = $file->root();
+                $type = 'json';
+            }
         }
         
-        if (!$jsonPath) {
+        // Fallback to searching for the exterior GLB
+        if (!$filePath) {
+            $glb = $page->files()->filterBy('extension', 'glb')->first();
+            if ($glb) {
+                $filePath = $glb->root();
+                $type = 'glb';
+            }
+        }
+        
+        if (!$filePath) {
             return ['status' => 'ok', 'count' => 0, 'added' => 0, 'skipped' => 0,
-                    'message' => 'Veuillez d\'abord téléverser un fichier Hotspots JSON.', 'hotspots' => []];
+                    'message' => 'Veuillez d\'abord téléverser un GLB ou un Hotspots JSON.', 'hotspots' => []];
         }
     }
 
-    // ── parse hotspots from the JSON ──────────────────────────────────────
-    $hotspots = parseJsonHotspots($jsonPath);
+    if (!$type) {
+        $type = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+    }
+
+    // ── parse hotspots ──────────────────────────────────────
+    if ($type === 'glb') {
+        $hotspots = parseGlbHotspots($filePath);
+    } else {
+        $hotspots = parseJsonHotspots($filePath);
+    }
 
     if (empty($hotspots)) {
         return ['status' => 'ok', 'count' => 0, 'added' => 0, 'skipped' => 0,
@@ -230,4 +254,34 @@ function parseJsonHotspots($jsonPath) {
     }
 
     return $hotspots;
+}
+
+/**
+ * Executes an internal Node script to read GLB binary structure looking for
+ * user data / names indicating hotspots.
+ */
+function parseGlbHotspots($glbPath) {
+    if (!file_exists($glbPath)) return [];
+    
+    $nodeCandidates = [
+        'C:\\Program Files\\nodejs\\node.exe',
+        'C:\\Program Files (x86)\\nodejs\\node.exe',
+    ];
+    $node = 'node';
+    foreach ($nodeCandidates as $c) {
+        if (file_exists($c)) { $node = $c; break; }
+    }
+    
+    $script = __DIR__ . '/extract-glb.js';
+    $cmd = sprintf('"%s" %s %s 2>&1', $node, escapeshellarg($script), escapeshellarg($glbPath));
+    
+    $output = []; $code = 0;
+    exec($cmd, $output, $code);
+    
+    if ($code !== 0) return [];
+    
+    $json = implode("", $output);
+    $data = json_decode($json, true);
+    
+    return is_array($data) ? $data : [];
 }
