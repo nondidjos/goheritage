@@ -27,8 +27,9 @@ snippet('header');
   <div class="col-5">
     <!-- removing aspect ratio constraints and just letting the image fill its natural column height natively -->
     <div class="w-full h-full bg-surface rounded-md overflow-hidden min-h-[50vh]">
-      <img src="<?= url('assets/hero-images/Wien-Museum-Online-Sammlung-311154-1-4.jpeg') ?>" alt="Patrimoine numérisé"
-        class="w-full h-full object-cover" loading="eager">
+      <?php if ($heroImg = $page->heroImage()->toFile()): ?>
+        <img src="<?= $heroImg->url() ?>" alt="<?= $heroImg->alt()->esc() ?>" class="w-full h-full object-cover" loading="eager">
+      <?php endif ?>
     </div>
   </div>
 
@@ -181,32 +182,32 @@ snippet('header');
 
     <!-- Manifesto header -->
     <div class="px-6 md:px-16 pt-10 md:pt-14 pb-10 md:pb-12 border-b border-white/10">
-      <p class="font-mono text-xs uppercase tracking-wider text-white/40 mb-6">Conservation par le numérique</p>
+      <p class="font-mono text-xs uppercase tracking-wider text-white/40 mb-6"><?= $page->manifestoTag()->esc() ?></p>
       <h2 class="font-thyssen text-[clamp(2.75rem,7vw,5.5rem)] text-white leading-[0.95]">
-        Le temps efface.<br>Nous préservons l'irremplaçable.
+        <?= $page->manifestoHeading()->nl2br() ?>
       </h2>
     </div>
 
     <!-- Stats row -->
     <div class="grid grid-cols-1 md:grid-cols-3 px-6 md:px-16 py-10 md:py-12 gap-8 md:gap-0 border-b border-white/10">
       <div class="md:border-r md:border-white/10 md:pr-12">
-        <p class="font-thyssen text-[4.5rem] text-white leading-none mb-3">10×</p>
-        <p class="font-sans text-sm text-white/50 leading-relaxed">plus rapide qu'un relevé terrain traditionnel pour une couverture complète d'un site</p>
+        <p class="font-thyssen text-[4.5rem] text-white leading-none mb-3"><?= $page->stat1Value()->esc() ?></p>
+        <p class="font-sans text-sm text-white/50 leading-relaxed"><?= $page->stat1Desc()->nl2br() ?></p>
       </div>
       <div class="md:border-r md:border-white/10 md:px-12">
-        <p class="font-thyssen text-[4.5rem] text-white leading-none mb-3">0.1mm</p>
-        <p class="font-sans text-sm text-white/50 leading-relaxed">de précision sur les mesures et relevés extraits du modèle photogrammétrique</p>
+        <p class="font-thyssen text-[4.5rem] text-white leading-none mb-3"><?= $page->stat2Value()->esc() ?></p>
+        <p class="font-sans text-sm text-white/50 leading-relaxed"><?= $page->stat2Desc()->nl2br() ?></p>
       </div>
       <div class="md:pl-12">
-        <p class="font-thyssen text-[4.5rem] text-white leading-none mb-3">∞</p>
-        <p class="font-sans text-sm text-white/50 leading-relaxed">accès au modèle, sans déplacement, sans risque pour le site original</p>
+        <p class="font-thyssen text-[4.5rem] text-white leading-none mb-3"><?= $page->stat3Value()->esc() ?></p>
+        <p class="font-sans text-sm text-white/50 leading-relaxed"><?= $page->stat3Desc()->nl2br() ?></p>
       </div>
     </div>
 
     <!-- Footer: description + CTA -->
     <div class="px-6 md:px-16 py-8 md:py-10 flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8">
       <p class="font-sans text-base text-white/60 leading-relaxed max-w-lg">
-        Un jumeau numérique détecte les dégradations invisibles, prépare les interventions de restauration et ouvre votre patrimoine au monde entier.
+        <?= $page->manifestoFooterText()->nl2br() ?>
       </p>
       <a href="<?= url('contact') ?>" class="btn border-white/40 text-white hover:bg-white hover:text-ink hover:border-white flex-shrink-0 transition-colors duration-150">
         Protéger votre site
@@ -285,14 +286,14 @@ snippet('header');
   <!-- Left: intro + CTA (3 cols) -->
   <div class="col-3 flex flex-col justify-between">
     <div>
-      <p class="font-mono text-xs uppercase tracking-wider text-faint mb-3">Métrologie & livrables</p>
+      <p class="font-mono text-xs uppercase tracking-wider text-faint mb-3"><?= $page->deliverablesTag()->esc() ?></p>
       <h2 class="font-thyssen text-[clamp(2rem,4vw,3.5rem)] text-ink leading-tight mt-1">
-        Du terrain<br>au plan côté.
+        <?= $page->deliverablesHeading()->nl2br() ?>
       </h2>
     </div>
     <div>
       <p class="font-sans text-base text-mid leading-relaxed mb-6">
-        Chaque numérisation produit des livrables exploitables immédiatement — plans, mesures précises, données brutes — compatibles avec les outils de votre équipe.
+        <?= $page->deliverablesText()->nl2br() ?>
       </p>
       <a href="<?= url('contact') ?>" class="btn self-start">
         Demander un devis
@@ -310,8 +311,9 @@ snippet('header');
 
   <!-- Right: image (3 cols, portrait) -->
   <div class="col-3 overflow-hidden rounded-md bg-surface" style="min-height: 320px;">
-    <img src="<?= url('assets/hero-images/Wien-Museum-Online-Sammlung-311154-1-4.jpeg') ?>"
-      alt="Relevé architectural" class="w-full h-full object-cover">
+    <?php if ($delivImg = $page->deliverablesImage()->toFile()): ?>
+      <img src="<?= $delivImg->url() ?>" alt="<?= $delivImg->alt()->esc() ?>" class="w-full h-full object-cover">
+    <?php endif ?>
   </div>
 
   <!-- Full-width rule -->
@@ -320,20 +322,20 @@ snippet('header');
   <!-- Three deliverables: col-2 | col-2 | col-3 -->
   <div class="col-2 pt-8 md:pr-8">
     <p class="font-mono text-xs text-faint mb-3">01</p>
-    <h3 class="font-sans font-semibold text-base text-ink mb-2">Plans & élévations</h3>
-    <p class="font-sans text-sm text-mid leading-relaxed">Coupes, façades, vues en élévation. Export DXF/DWG, précision millimétrique.</p>
+    <h3 class="font-sans font-semibold text-base text-ink mb-2"><?= $page->deliv1Title()->esc() ?></h3>
+    <p class="font-sans text-sm text-mid leading-relaxed"><?= $page->deliv1Text()->nl2br() ?></p>
   </div>
 
   <div class="col-2 pt-8 md:px-8 md:border-l md:border-border">
     <p class="font-mono text-xs text-faint mb-3">02</p>
-    <h3 class="font-sans font-semibold text-base text-ink mb-2">Analyse dimensionnelle</h3>
-    <p class="font-sans text-sm text-mid leading-relaxed">Distances, angles et superficies mesurés directement dans le modèle interactif.</p>
+    <h3 class="font-sans font-semibold text-base text-ink mb-2"><?= $page->deliv2Title()->esc() ?></h3>
+    <p class="font-sans text-sm text-mid leading-relaxed"><?= $page->deliv2Text()->nl2br() ?></p>
   </div>
 
   <div class="col-3 pt-8 md:pl-8 md:border-l md:border-border">
     <p class="font-mono text-xs text-faint mb-3">03</p>
-    <h3 class="font-sans font-semibold text-base text-ink mb-2">Intégration BIM & SIG</h3>
-    <p class="font-sans text-sm text-mid leading-relaxed">Formats IFC, Revit, QGIS. Données brutes E57/LAS disponibles. Le jumeau s'intègre directement dans vos workflows existants.</p>
+    <h3 class="font-sans font-semibold text-base text-ink mb-2"><?= $page->deliv3Title()->esc() ?></h3>
+    <p class="font-sans text-sm text-mid leading-relaxed"><?= $page->deliv3Text()->nl2br() ?></p>
   </div>
 
 </section>
@@ -347,6 +349,9 @@ snippet('header');
     <?php endif ?>
 
     <div class="relative z-10 flex flex-col items-center text-center max-w-3xl col-start-2 col-end-7 mx-auto">
+      <?php if ($page->impactTag()->isNotEmpty()): ?>
+        <p class="font-mono text-xs uppercase tracking-wider text-white/40 mb-6"><?= $page->impactTag()->esc() ?></p>
+      <?php endif ?>
       <h2 class="font-thyssen text-4xl sm:text-5xl md:text-7xl text-white leading-tight mb-6 mt-8">
         <?= $page->impactHeading()->or('Préserver pour l\'éternité.') ?>
       </h2>
