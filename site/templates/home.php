@@ -120,7 +120,7 @@ snippet('header');
     <?= $page->procedeHeading()->or('Le procédé GOVR') ?>
   </h2>
 
-  <div class="col-7 overflow-hidden rounded-md aspect-[3/1] relative" id="procede-images">
+  <div class="col-7 overflow-hidden rounded-md aspect-[4/1] relative" id="procede-images">
     <?php if ($step1Img = $page->step1Image()->toFile()): ?>
       <img src="<?= $step1Img->url() ?>" alt="Acquisition" class="procede-image" data-step="0">
     <?php endif ?>
@@ -145,7 +145,7 @@ snippet('header');
       <div
         class="bg-white rounded-md p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start w-full md:absolute md:top-0 md:w-[27%] md:left-0"
         data-step="0">
-        <span class="font-sans text-5xl leading-none text-ink mb-3 block">1</span>
+        <span class="font-sans text-5xl leading-none text-ink mb-3 block">01</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step1Title()->or('Acquisition') ?></h3>
         <p class="font-sans text-sm text-ink leading-normal">
           <?= $page->step1Text()->nl2br() ?>
@@ -155,7 +155,7 @@ snippet('header');
       <div
         class="bg-white rounded-md p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start w-full md:absolute md:top-0 md:w-[27%] md:left-[42%]"
         data-step="1">
-        <span class="font-sans text-5xl leading-none text-faint mb-3 block">2</span>
+        <span class="font-sans text-5xl leading-none text-faint mb-3 block">02</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step2Title()->or('Traitement') ?></h3>
         <p class="font-sans text-sm text-ink leading-normal">
           <?= $page->step2Text()->nl2br() ?>
@@ -165,7 +165,7 @@ snippet('header');
       <div
         class="bg-white rounded-md p-6 cursor-pointer transition-all duration-200 ease-in-out hover:bg-[#f8f7f3] h-full flex flex-col justify-start w-full md:absolute md:top-0 md:w-[27%] md:left-[72%]"
         data-step="2">
-        <span class="font-sans text-5xl leading-none text-faint mb-3 block">3</span>
+        <span class="font-sans text-5xl leading-none text-faint mb-3 block">03</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step3Title()->or('Production') ?></h3>
         <p class="font-sans text-sm text-ink leading-normal">
           <?= $page->step3Text()->nl2br() ?>
