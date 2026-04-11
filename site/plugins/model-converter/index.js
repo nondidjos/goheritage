@@ -400,6 +400,88 @@ panel.plugin('goheritage/model-converter', {
       `,
     },
 
+    'location-search': {
+      props: {
+        label: String,
+        pageId: String,
+      },
+      data() {
+        return {
+          query: '',
+          results: [],
+          searching: false,
+          debounceTimer: null,
+          saved: false,
+        };
+      },
+      methods: {
+        onInput() {
+          clearTimeout(this.debounceTimer);
+          this.results = [];
+          if (!this.query.trim()) return;
+          this.debounceTimer = setTimeout(() => this.search(), 400);
+        },
+        async search() {
+          this.searching = true;
+          try {
+            const resp = await fetch('/api/goheritage/geocode?q=' + encodeURIComponent(this.query), {
+              headers: { 'X-CSRF': panel.csrf },
+            });
+            const json = await resp.json();
+            this.results = (json.features || []).map(f => ({
+              label: f.place_name || f.text || '',
+              lat:   f.geometry.coordinates[1],
+              lng:   f.geometry.coordinates[0],
+            }));
+          } catch (e) {
+            this.results = [];
+          } finally {
+            this.searching = false;
+          }
+        },
+        async pick(result) {
+          this.query   = result.label;
+          this.results = [];
+          const id = (this.pageId || '').replace(/\//g, '+');
+          await this.$panel.api.patch('pages/' + id, {
+            lat: String(result.lat),
+            lng: String(result.lng),
+          });
+          this.saved = true;
+          setTimeout(() => { this.saved = false; }, 2500);
+          this.$panel.view.reload();
+        },
+      },
+      template: `
+        <k-field v-bind="$props" style="position:relative;">
+          <div style="display:flex; gap:0.4rem; align-items:center;">
+            <input
+              type="text"
+              v-model="query"
+              @input="onInput"
+              placeholder="Rechercher un lieu…"
+              style="flex:1; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-background); color:var(--color-text); font-size:var(--text-sm); outline:none;"
+            />
+            <span v-if="searching" style="font-size:0.7rem; color:var(--color-text-dimmed);">…</span>
+            <span v-if="saved" style="font-size:0.7rem; color:var(--color-green);">✓ Enregistré</span>
+          </div>
+          <ul v-if="results.length" style="position:absolute; z-index:100; left:0; right:0; margin:2px 0 0; padding:0; list-style:none; background:var(--color-background); border:1px solid var(--color-border); border-radius:var(--rounded); box-shadow:0 4px 12px rgba(0,0,0,0.15); overflow:hidden;">
+            <li
+              v-for="(r, i) in results"
+              :key="i"
+              @click="pick(r)"
+              style="padding:0.4rem 0.65rem; font-size:var(--text-sm); cursor:pointer; border-bottom:1px solid var(--color-border);"
+              @mouseenter="$event.target.style.background='var(--color-border)'"
+              @mouseleave="$event.target.style.background=''"
+            >
+              {{ r.label }}
+              <span style="float:right; font-size:0.65rem; color:var(--color-text-dimmed); font-family:var(--font-mono);">{{ r.lat.toFixed(5) }}, {{ r.lng.toFixed(5) }}</span>
+            </li>
+          </ul>
+        </k-field>
+      `,
+    },
+
     'accordion-trigger': {
       props: {
         label: String,
