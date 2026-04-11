@@ -80,16 +80,11 @@ snippet('header');
       <div class="compare-slider__before">
         <?php if ($beforeImg = $page->compareImageBefore()->toFile()): ?>
           <img src="<?= $beforeImg->url() ?>" alt="<?= $beforeImg->alt()->esc() ?>" loading="lazy">
-        <?php else: ?>
-          <img src="<?= url('assets/hero-images/Seattle-Art-Museum-good-scan-60070.jpg') ?>" alt="Avant — photo"
-            loading="lazy">
         <?php endif ?>
       </div>
       <div class="compare-slider__after">
         <?php if ($afterImg = $page->compareImageAfter()->toFile()): ?>
           <img src="<?= $afterImg->url() ?>" alt="<?= $afterImg->alt()->esc() ?>" loading="lazy">
-        <?php else: ?>
-          <img src="<?= url('assets/hero-images/threewomensquatting.jpg') ?>" alt="Après — modèle 3D" loading="lazy">
         <?php endif ?>
       </div>
       <div class="compare-slider__handle" id="compare-handle">
@@ -113,13 +108,7 @@ snippet('header');
       <?= $page->compareHeading()->or('Un jumeau numérique') ?>
     </h2>
     <p class="font-sans text-base text-ink leading-normal">
-      <?php if ($page->compareText()->isNotEmpty()): ?>
-        <?= $page->compareText()->nl2br() ?>
-      <?php else: ?>
-        Grâce à la photogrammétrie et au scan 3D, nous créons des répliques numériques fidèles du patrimoine en danger.
-        Ces modèles permettent une documentation précise, une analyse détaillée et une diffusion accessible à tous,
-        chercheurs comme grand public.
-      <?php endif ?>
+      <?= $page->compareText()->nl2br() ?>
     </p>
   </div>
 
@@ -133,23 +122,14 @@ snippet('header');
   <div class="col-7 overflow-hidden rounded-md aspect-[3/1] relative" id="procede-images">
     <?php if ($step1Img = $page->step1Image()->toFile()): ?>
       <img src="<?= $step1Img->url() ?>" alt="Acquisition" class="procede-image" data-step="0">
-    <?php else: ?>
-      <img src="<?= url('assets/hero-images/Илья_Репин_-_Какой_простор.jpeg') ?>" alt="Acquisition" class="procede-image"
-        data-step="0">
     <?php endif ?>
 
     <?php if ($step2Img = $page->step2Image()->toFile()): ?>
       <img src="<?= $step2Img->url() ?>" alt="Traitement" class="procede-image is-hidden" data-step="1">
-    <?php else: ?>
-      <img src="<?= url('assets/hero-images/Wien-Museum-Online-Sammlung-311154-1-4.jpeg') ?>" alt="Traitement"
-        class="procede-image is-hidden" data-step="1">
     <?php endif ?>
 
     <?php if ($step3Img = $page->step3Image()->toFile()): ?>
       <img src="<?= $step3Img->url() ?>" alt="Production" class="procede-image is-hidden" data-step="2">
-    <?php else: ?>
-      <img src="<?= url('assets/hero-images/Seattle-Art-Museum-good-scan-60070.jpg') ?>" alt="Production"
-        class="procede-image is-hidden" data-step="2">
     <?php endif ?>
   </div>
 
@@ -167,7 +147,7 @@ snippet('header');
         <span class="font-sans text-5xl leading-none text-ink mb-3 block">1</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step1Title()->or('Acquisition') ?></h3>
         <p class="font-sans text-sm text-ink leading-normal">
-          <?= $page->step1Text()->isNotEmpty() ? $page->step1Text()->nl2br() : 'Capture photographique haute résolution du patrimoine. Des centaines de clichés couvrent chaque angle et chaque détail.' ?>
+          <?= $page->step1Text()->nl2br() ?>
         </p>
       </div>
 
@@ -177,7 +157,7 @@ snippet('header');
         <span class="font-sans text-5xl leading-none text-faint mb-3 block">2</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step2Title()->or('Traitement') ?></h3>
         <p class="font-sans text-sm text-ink leading-normal">
-          <?= $page->step2Text()->isNotEmpty() ? $page->step2Text()->nl2br() : 'Reconstruction photogrammétrique et nettoyage des nuages de points pour former un modèle 3D fidèle.' ?>
+          <?= $page->step2Text()->nl2br() ?>
         </p>
       </div>
 
@@ -187,7 +167,7 @@ snippet('header');
         <span class="font-sans text-5xl leading-none text-faint mb-3 block">3</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step3Title()->or('Production') ?></h3>
         <p class="font-sans text-sm text-ink leading-normal">
-          <?= $page->step3Text()->isNotEmpty() ? $page->step3Text()->nl2br() : 'Optimisation pour le web, textures réalistes et mise en ligne sur la plateforme, accessible à tous.' ?>
+          <?= $page->step3Text()->nl2br() ?>
         </p>
       </div>
 
@@ -250,106 +230,39 @@ snippet('header');
   <div class="col-7 grid grid-cols-1 md:grid-cols-7 gap-6 md:gap-3">
     <?php
     $projects = page('map') ? page('map')->children()->listed()->sortBy('date', 'desc')->limit(3) : pages();
-    if ($projects->count()):
-      foreach ($projects as $project):
-        ?>
-        <a href="<?= $project->url() ?>"
-          class="col-span-1 md:col-span-2 block no-underline hover:no-underline group transition-transform duration-200">
-          <div class="overflow-hidden rounded-md aspect-[16/7] mb-3 bg-surface">
-            <?php if ($cover = $project->cover()->toFile()): ?>
-              <img src="<?= $cover->crop(800, 350)->url() ?>" alt="<?= $cover->alt()->esc() ?>" loading="lazy"
-                class="w-full h-full object-cover">
-            <?php else: ?>
-              <img src="<?= url('assets/hero-images/Seattle-Art-Museum-good-scan-60070.jpg') ?>" alt="Project preview"
-                loading="lazy" class="w-full h-full object-cover">
-            <?php endif ?>
-          </div>
-          <?php if ($project->location()->isNotEmpty()): ?>
-            <p class="font-mono text-xs uppercase text-faint mb-2 flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
-              <?= $project->location()->esc() ?>
-            </p>
-          <?php endif ?>
-          <h3 class="font-thyssen text-4xl text-ink leading-snug mb-3 group-hover:underline">
-            <?= $project->title()->esc() ?>
-          </h3>
-
-          <div class="flex flex-wrap gap-2">
-            <?php foreach ($project->tags()->split(',') as $tag): ?>
-              <span class="tag"><?= trim($tag) ?></span>
-            <?php endforeach ?>
-          </div>
-        </a>
-        <?php
-      endforeach;
-    else:
+    foreach ($projects as $project):
       ?>
-      <!-- fallback cards when no projects exist -->
-      <a href="<?= url('map') ?>"
+      <a href="<?= $project->url() ?>"
         class="col-span-1 md:col-span-2 block no-underline hover:no-underline group transition-transform duration-200">
         <div class="overflow-hidden rounded-md aspect-[16/7] mb-3 bg-surface">
-          <img src="<?= url('assets/hero-images/Wien-Museum-Online-Sammlung-311154-1-4.jpeg') ?>" alt="Projet"
-            loading="lazy" class="w-full h-full object-cover">
+          <?php if ($cover = $project->cover()->toFile()): ?>
+            <img src="<?= $cover->crop(800, 350)->url() ?>" alt="<?= $cover->alt()->esc() ?>" loading="lazy"
+              class="w-full h-full object-cover">
+          <?php endif ?>
         </div>
-        <p class="font-mono text-xs uppercase text-faint mb-2 flex items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-            <circle cx="12" cy="10" r="3"></circle>
-          </svg>
-          Vienne, Autriche
-        </p>
+        <?php if ($project->location()->isNotEmpty()): ?>
+          <p class="font-mono text-xs uppercase text-faint mb-2 flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <?= $project->location()->esc() ?>
+          </p>
+        <?php endif ?>
         <h3 class="font-thyssen text-4xl text-ink leading-snug mb-3 group-hover:underline">
-          Musée de Vienne</h3>
+          <?= $project->title()->esc() ?>
+        </h3>
+
         <div class="flex flex-wrap gap-2">
-          <span class="tag">Architecture</span>
+          <?php foreach ($project->tags()->split(',') as $tag): ?>
+            <span class="tag"><?= trim($tag) ?></span>
+          <?php endforeach ?>
         </div>
       </a>
-      <a href="<?= url('map') ?>"
-        class="col-span-1 md:col-span-2 block no-underline hover:no-underline group transition-transform duration-200">
-        <div class="overflow-hidden rounded-md aspect-[16/7] mb-3 bg-surface">
-          <img src="<?= url('assets/hero-images/Seattle-Art-Museum-good-scan-60070.jpg') ?>" alt="Projet" loading="lazy"
-            class="w-full h-full object-cover">
-        </div>
-        <p class="font-mono text-xs uppercase text-faint mb-2 flex items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-            <circle cx="12" cy="10" r="3"></circle>
-          </svg>
-          Seattle, USA
-        </p>
-        <h3 class="font-thyssen text-4xl text-ink leading-snug mb-3 group-hover:underline">
-          Seattle Art Museum</h3>
-        <div class="flex flex-wrap gap-2">
-          <span class="tag">Sculpture</span>
-        </div>
-      </a>
-      <a href="<?= url('map') ?>"
-        class="col-span-1 md:col-span-2 block no-underline hover:no-underline group transition-transform duration-200">
-        <div class="overflow-hidden rounded-md aspect-[16/7] mb-3 bg-surface">
-          <img src="<?= url('assets/hero-images/s-l1600-2.jpg') ?>" alt="Projet" loading="lazy"
-            class="w-full h-full object-cover">
-        </div>
-        <p class="font-mono text-xs uppercase text-faint mb-2 flex items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-            <circle cx="12" cy="10" r="3"></circle>
-          </svg>
-          Paris, France
-        </p>
-        <h3 class="font-thyssen text-4xl text-ink leading-snug mb-3 group-hover:underline">
-          Cathédrale Saint-Denis</h3>
-        <div class="flex flex-wrap gap-2">
-          <span class="tag">Patrimoine</span>
-        </div>
-      </a>
-    <?php endif ?>
+      <?php
+    endforeach;
+    ?>
 
     <!-- "Tous nos projets" Button acting as the 4th card in col-7 -->
     <a href="<?= url('map') ?>"
@@ -427,25 +340,18 @@ snippet('header');
 
 <section class="py-12 mb-16">
   <div class="col-7 relative rounded-md overflow-hidden min-h-[50vh] flex items-center justify-center p-12 bg-ink">
-    <div class="absolute inset-0 opacity-20 mix-blend-luminosity pointer-events-none">
-      <?php if ($impactImg = $page->impactImage()->toFile()): ?>
+    <?php if ($impactImg = $page->impactImage()->toFile()): ?>
+      <div class="absolute inset-0 opacity-20 mix-blend-luminosity pointer-events-none">
         <img src="<?= $impactImg->url() ?>" alt="Statistiques" class="w-full h-full object-cover">
-      <?php else: ?>
-        <img src="<?= url('assets/hero-images/s-l1600-2.jpg') ?>" alt="Statistiques" class="w-full h-full object-cover">
-      <?php endif ?>
-    </div>
+      </div>
+    <?php endif ?>
 
     <div class="relative z-10 flex flex-col items-center text-center max-w-3xl col-start-2 col-end-7 mx-auto">
       <h2 class="font-thyssen text-4xl sm:text-5xl md:text-7xl text-white leading-tight mb-6 mt-8">
         <?= $page->impactHeading()->or('Préserver pour l\'éternité.') ?>
       </h2>
       <p class="font-sans text-lg text-white/80 mb-10 leading-relaxed">
-        <?php if ($page->impactText()->isNotEmpty()): ?>
-          <?= $page->impactText()->nl2br() ?>
-        <?php else: ?>
-          Chaque modèle numérisé est une victoire contre le temps et l'oubli. Rejoignez notre base de données mondiale ou
-          signalez-nous des éléments architecturaux en péril immédiat.
-        <?php endif ?>
+        <?= $page->impactText()->nl2br() ?>
       </p>
       <div class="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
         <a href="<?= url('contact') ?>"
