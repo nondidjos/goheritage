@@ -48,18 +48,24 @@ return [
     'panel' => [
         'menu' => [
             'site' => [
-                'icon' => 'home',
+                'icon' => 'cog',
                 'label' => 'Site',
                 'link' => 'site',
                 'current' => function () {
-                    $path = \kirby()->request()->path()->toString();
-                    $isOtherPage = str_contains($path, 'pages') && !str_contains($path, 'pages/map') && !str_contains($path, 'pages/blog');
-                    return str_contains($path, 'site') || $isOtherPage;
+                    return str_contains(\kirby()->request()->path()->toString(), 'site');
+                }
+            ],
+            'home' => [
+                'icon'  => 'home',
+                'label' => 'Accueil',
+                'link'  => 'pages/home',
+                'current' => function () {
+                    return str_contains(\kirby()->request()->path()->toString(), 'pages/home');
                 }
             ],
             'projects' => [
                 'icon'  => 'box',
-                'label' => 'Projets',
+                'label' => 'Carte',
                 'link'  => 'pages/map',
                 'current' => function () {
                     return str_contains(\kirby()->request()->path()->toString(), 'pages/map');
@@ -67,7 +73,7 @@ return [
             ],
             'blog' => [
                 'icon'  => 'book',
-                'label' => 'Articles',
+                'label' => 'Blog',
                 'link'  => 'pages/blog',
                 'current' => function () {
                     return str_contains(\kirby()->request()->path()->toString(), 'pages/blog');

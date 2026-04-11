@@ -31,12 +31,12 @@ columns:
         type: pages
         label: Pages principales
         layout: list
+        sortBy: title asc
         templates:
           - home
           - map
           - blog
           - contact
-          - about
 
   - width: 1/1
     sections:
