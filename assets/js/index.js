@@ -105,6 +105,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         function startDrag(x) {
             dragging = true;
+            slider.classList.add('is-dragging');
             updatePosition(x);
             document.body.style.cursor = 'col-resize';
         }
@@ -117,6 +118,7 @@ document.addEventListener('DOMContentLoaded', function () {
         function stopDrag() {
             if (!dragging) return;
             dragging = false;
+            slider.classList.remove('is-dragging');
             document.body.style.cursor = '';
         }
 
