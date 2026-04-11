@@ -15,6 +15,7 @@ tabs:
         label: Image hero
         type: files
         max: 1
+        help: Image affichée dans la colonne de droite du hero
 
   compare:
     label: Jumeau numérique
@@ -83,6 +84,105 @@ tabs:
         type: files
         max: 1
 
+  manifesto:
+    label: Manifeste
+    fields:
+      manifestoTag:
+        label: Étiquette
+        type: text
+        placeholder: Conservation par le numérique
+      manifestoHeading:
+        label: Titre
+        type: textarea
+        size: small
+        placeholder: "Le temps efface.\nNous préservons l'irremplaçable."
+      statsInfo:
+        type: info
+        theme: info
+        text: Statistiques
+      stat1Value:
+        label: "Stat 1 — Valeur"
+        type: text
+        width: 1/2
+        placeholder: "10×"
+      stat1Desc:
+        label: "Stat 1 — Description"
+        type: textarea
+        size: small
+        width: 1/2
+      stat2Value:
+        label: "Stat 2 — Valeur"
+        type: text
+        width: 1/2
+        placeholder: "0.1mm"
+      stat2Desc:
+        label: "Stat 2 — Description"
+        type: textarea
+        size: small
+        width: 1/2
+      stat3Value:
+        label: "Stat 3 — Valeur"
+        type: text
+        width: 1/2
+        placeholder: "∞"
+      stat3Desc:
+        label: "Stat 3 — Description"
+        type: textarea
+        size: small
+        width: 1/2
+      manifestoFooterText:
+        label: Texte bas de section
+        type: textarea
+        size: small
+
+  deliverables:
+    label: Livrables
+    fields:
+      deliverablesTag:
+        label: Étiquette
+        type: text
+        placeholder: Métrologie & livrables
+      deliverablesHeading:
+        label: Titre
+        type: textarea
+        size: small
+        placeholder: "Du terrain\nau plan côté."
+      deliverablesText:
+        label: Description
+        type: textarea
+        size: small
+      deliverablesImage:
+        label: Image (portrait, colonne droite)
+        type: files
+        max: 1
+      deliv1Title:
+        label: "Livrable 1 — Titre"
+        type: text
+        width: 1/2
+      deliv1Text:
+        label: "Livrable 1 — Texte"
+        type: textarea
+        size: small
+        width: 1/2
+      deliv2Title:
+        label: "Livrable 2 — Titre"
+        type: text
+        width: 1/2
+      deliv2Text:
+        label: "Livrable 2 — Texte"
+        type: textarea
+        size: small
+        width: 1/2
+      deliv3Title:
+        label: "Livrable 3 — Titre"
+        type: text
+        width: 1/2
+      deliv3Text:
+        label: "Livrable 3 — Texte"
+        type: textarea
+        size: small
+        width: 1/2
+
   projects:
     label: Projets
     fields:
@@ -94,8 +194,9 @@ tabs:
     label: Mission
     fields:
       impactTag:
-        label: Étiquette (ex. Notre Mission)
+        label: Étiquette
         type: text
+        placeholder: Notre mission
       impactHeading:
         label: Titre
         type: text
