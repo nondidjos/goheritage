@@ -34,7 +34,7 @@
     // ── Init MapLibre ────────────────────────────────────────────────────────
     var mapEl = document.getElementById('heritage-map');
     var MAPTILER_KEY = atob(mapEl.dataset.key || '');
-    var STYLE_URL = 'https://api.maptiler.com/maps/backdrop/style.json?key=' + MAPTILER_KEY;
+    var STYLE_URL = 'https://api.maptiler.com/maps/streets-v2/style.json?key=' + MAPTILER_KEY;
     var SITES = JSON.parse(mapEl.dataset.sites || '[]');
 
     var map = new maplibregl.Map({

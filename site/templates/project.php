@@ -75,8 +75,8 @@ if ($gallery->count() === 0) {
 <div class="items-start pt-0 pb-10">
 
     <!-- Project Header (spans full 7 cols) -->
-    <div class="col-7 flex flex-col items-center mb-4 px-4 pt-8 project-header relative">
-        <h1 class="font-thyssen text-[clamp(2.5rem,8vw,6rem)] text-center leading-[0.9] mb-2 border-none no-underline"><?= $page->title()->esc() ?></h1>
+    <div class="col-7 flex flex-col items-center mb-4 px-4 pt-4 project-header relative">
+        <h1 class="font-thyssen text-[clamp(2.5rem,8vw,6rem)] text-center leading-[0.9] mb-5 border-none no-underline"><?= $page->title()->esc() ?></h1>
         
         <!-- Location (right aligned, but closer in flow) -->
         <div class="flex justify-end w-full max-w-6xl pr-6">
@@ -114,7 +114,7 @@ if ($gallery->count() === 0) {
         ?>
         <?php if ($hasSpecs): ?>
             <div class="spec-card">
-                <h3 class="spec-card__heading">Fiche technique</h3>
+                <h3 class="font-mono text-xs uppercase tracking-widest text-ink mb-3">Fiche technique</h3>
                 <dl class="spec-card__grid">
                     <?php foreach ($specFields as $sf): ?>
                         <?php if ($sf['value']->isNotEmpty()): ?>
@@ -138,7 +138,7 @@ if ($gallery->count() === 0) {
         <!-- Gallery -->
         <?php if ($gallery->count()): ?>
             <div>
-                <h3 class="font-mono text-xs uppercase tracking-widest text-faint mb-3">Galerie</h3>
+                <h3 class="font-mono text-xs uppercase tracking-widest text-ink mb-3">Galerie</h3>
                 <div class="grid grid-cols-2 gap-2">
                     <?php foreach ($gallery as $image): ?>
                         <a href="<?= $image->url() ?>" data-lightbox

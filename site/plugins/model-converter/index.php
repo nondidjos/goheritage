@@ -53,6 +53,11 @@ Kirby::plugin('goheritage/model-converter', [
             ],
         ],
         'accordion-trigger' => [],
+        'location-search'   => [
+            'computed' => [
+                'pageId' => function () { return $this->model()->id(); },
+            ],
+        ],
         'page-files-list'   => [
             'computed' => [
                 'pageId' => function () {
@@ -154,6 +159,31 @@ Kirby::plugin('goheritage/model-converter', [
                     } catch (\Throwable $e) {
                         return Response::json(['error' => $e->getMessage()], 500);
                     }
+                },
+            ],
+            [
+                'pattern' => 'goheritage/geocode',
+                'method'  => 'GET',
+                'auth'    => false,
+                'action'  => function () {
+                    $kirby = kirby();
+                    if (!$kirby->user()) {
+                        return Response::json(['error' => 'Unauthorized'], 401);
+                    }
+                    $q = trim($kirby->request()->get('q', ''));
+                    if (!$q) {
+                        return Response::json(['features' => []]);
+                    }
+                    $key = $kirby->option('maptiler.key');
+                    if (!$key) {
+                        return Response::json(['error' => 'maptiler.key not configured'], 500);
+                    }
+                    $url = 'https://api.maptiler.com/geocoding/' . urlencode($q) . '.json?key=' . urlencode($key) . '&limit=6&language=fr';
+                    $json = @file_get_contents($url);
+                    if ($json === false) {
+                        return Response::json(['error' => 'Geocoding request failed'], 502);
+                    }
+                    return Response::json(json_decode($json, true));
                 },
             ],
             [

@@ -89,6 +89,11 @@ tabs:
               regional: Inventaire Régional
               none: Non protégé
 
+          location_search:
+            type: location-search
+            label: Recherche de coordonnées
+            help: Tapez un nom de lieu pour remplir automatiquement la latitude et la longitude.
+
           lat:
             type: number
             label: Latitude
