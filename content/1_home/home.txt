@@ -2,11 +2,129 @@ Title: Accueil
 
 ----
 
-Headline: Préserver le passé, numériquement
+Heroheading: Notre patrimoine, modélisé et accessible en 3D
 
 ----
 
-Subheadline: GoHéritage utilise la photogrammétrie et le scan 3D LiDAR pour créer des archives numériques permanentes de sites patrimoniaux menacés à travers la France.
+Compareheading: Un jumeau numérique
+
+----
+
+Comparetext: Grâce à la photogrammétrie et au scan 3D, nous créons des répliques numériques fidèles du patrimoine en danger. Ces modèles permettent une documentation précise, une analyse détaillée et une diffusion accessible à tous, chercheurs comme grand public.
+
+----
+
+Procedeheading: Le procédé GOVR
+
+----
+
+Step1title: Acquisition
+
+----
+
+Step1text: Capture photographique haute résolution du patrimoine. Des centaines de clichés couvrent chaque angle et chaque détail.
+
+----
+
+Step2title: Traitement
+
+----
+
+Step2text: Reconstruction photogrammétrique et nettoyage des nuages de points pour former un modèle 3D fidèle.
+
+----
+
+Step3title: Production
+
+----
+
+Step3text: Optimisation pour le web, textures réalistes et mise en ligne sur la plateforme, accessible à tous.
+
+----
+
+Manifestotag: Conservation par le numérique
+
+----
+
+Manifestoheading: Le temps efface.
+Nous préservons l'irremplaçable.
+
+----
+
+Stat1value: 10×
+
+----
+
+Stat1desc: plus rapide qu'un relevé terrain traditionnel pour une couverture complète d'un site
+
+----
+
+Stat2value: 0.1mm
+
+----
+
+Stat2desc: de précision sur les mesures et relevés extraits du modèle photogrammétrique
+
+----
+
+Stat3value: ∞
+
+----
+
+Stat3desc: accès au modèle, sans déplacement, sans risque pour le site original
+
+----
+
+Manifestofootertext: Un jumeau numérique détecte les dégradations invisibles, prépare les interventions de restauration et ouvre votre patrimoine au monde entier.
+
+----
+
+Projectsheading: Nos derniers projets
+
+----
+
+Deliverablestag: Métrologie & livrables
+
+----
+
+Deliverablesheading: Du terrain
+au plan côté.
+
+----
+
+Deliverablestext: Chaque numérisation produit des livrables exploitables immédiatement — plans, mesures précises, données brutes — compatibles avec les outils de votre équipe.
+
+----
+
+Deliv1title: Plans & élévations
+
+----
+
+Deliv1text: Coupes, façades, vues en élévation. Export DXF/DWG, précision millimétrique.
+
+----
+
+Deliv2title: Analyse dimensionnelle
+
+----
+
+Deliv2text: Distances, angles et superficies mesurés directement dans le modèle interactif.
+
+----
+
+Deliv3title: Intégration BIM & SIG
+
+----
+
+Deliv3text: Formats IFC, Revit, QGIS. Données brutes E57/LAS disponibles. Le jumeau s'intègre directement dans vos workflows existants.
+
+----
+
+Impactheading: Préserver pour l'éternité.
+
+----
+
+Impacttext: Chaque modèle numérisé est une victoire contre le temps et l'oubli. Rejoignez notre base de données mondiale ou signalez-nous des éléments architecturaux en péril immédiat.
 
 ----
 
