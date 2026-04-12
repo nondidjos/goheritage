@@ -383,7 +383,8 @@ babylon {
 }
 
 /* ── Mobile menu ──────────────────────────────────────── */
-.mobile-menu-toggle {
+.mobile-menu-toggle,
+.mobile-menu-close {
     display: none;
     flex-direction: column;
     gap: 4px;
@@ -415,29 +416,38 @@ babylon {
 
     .site-nav {
         position: fixed;
-        top: 60px;
+        top: 0;
         left: 0;
         right: 0;
         background: #fff;
         flex-direction: column;
         align-items: stretch;
         padding: 0;
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.3s ease-out;
-        z-index: 40;
+        z-index: 60;
         gap: 0;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
+        max-height: 85vh;
+        overflow-y: auto;
+
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-8px) scale(0.98);
+        transform-origin: top center;
+        transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.4s;
     }
 
     .site-nav.is-open {
-        max-height: 50vh;
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0) scale(1);
+        transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s;
     }
 
     .site-nav a {
         display: block;
         width: 100%;
-        padding: 0.85rem 1.25rem;
+        padding: 1.1rem 1.5rem;
+        font-size: 1rem;
         background: #fff;
         border: none;
     }
@@ -447,10 +457,10 @@ babylon {
     }
 
     .mobile-menu-close {
-        display: none;
+        display: flex;
         order: -1;
         width: 100%;
-        padding: 0.65rem 1.25rem;
+        padding: 1.1rem 1.5rem;
         background: #f0f0f0;
         border: none;
         cursor: pointer;
@@ -468,22 +478,13 @@ babylon {
         background: #e8e8e8;
     }
 
-    .site-nav.is-open .mobile-menu-close {
-        display: flex;
-    }
-
-    /* Overlay behind header when menu is open */
-    body:has(.site-nav.is-open) {
-        position: relative;
-    }
-
+    /* Overlay behind menu when open */
     body:has(.site-nav.is-open)::before {
         content: '';
         position: fixed;
         inset: 0;
-        top: 60px;
         background: rgba(0, 0, 0, 0.1);
-        z-index: 39;
+        z-index: 59;
         animation: fadeIn 0.3s ease-out;
     }
 
@@ -750,24 +751,21 @@ model-viewer .update-bar {
 
     /* Compact breadcrumb */
     .breadcrumb {
-        padding: 0.4rem 1rem;
-        margin-bottom: 0;
+        padding: 0.75rem 1.25rem;
+        margin-bottom: 1rem;
     }
 
     .breadcrumb__inner {
-        font-size: 1rem;
+        font-size: 1.25rem;
     }
 
     /* Ensure main has no extra padding on mobile project/map pages */
-    main {
+    main:has(#project-content),
+    #map-main {
         padding-inline: 0 !important;
     }
 
-    /* Tags row compact */
-    .tag {
-        font-size: 0.625rem;
-        padding: 0.25rem 0.625rem;
-    }
+
 }
 
 /* ── Mobile: map page — hide breadcrumb to save space ── */
@@ -950,6 +948,6 @@ model-viewer .update-bar {
 
     /* Compare slider: squarer on mobile */
     .compare-slider {
-        aspect-ratio: 1/1;
+        aspect-ratio: 4/5;
     }
 }

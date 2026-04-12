@@ -27,9 +27,9 @@ function resolveAuthor($field): string {
 <?php snippet('header') ?>
 
   <?php if ($flagship): ?>
-    <div class="mb-10 lg:mb-16">
+    <div class="mb-6 lg:mb-16">
 
-      <article class="col-4 group mb-16 lg:mb-0">
+      <article class="col-4 group mb-6 lg:mb-0">
         <a href="<?= $flagship->url() ?>" class="block w-full overflow-hidden bg-surface relative aspect-[16/9] transition-transform duration-300 ease-out">
           <?php if ($cover = $flagship->cover()->toFile()): ?>
             <img src="<?= $cover->resize(1200, 675)->url() ?>" alt="<?= $cover->alt()->esc() ?>"
@@ -44,8 +44,8 @@ function resolveAuthor($field): string {
           <div class="flex flex-wrap gap-2">
             <?php
               $tags = $flagship->tags()->split(',');
-              $displayTags = array_slice($tags, 0, 2);
-              $extra = count($tags) - 2;
+              $displayTags = array_slice($tags, 0, 1);
+              $extra = count($tags) - 1;
             ?>
             <?php foreach ($displayTags as $tag): ?>
               <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($tag)) ?>" class="tag"><?= esc(trim($tag)) ?></a>
@@ -57,7 +57,7 @@ function resolveAuthor($field): string {
           <span class="byline"><?= resolveAuthor($flagship->author()) ?></span>
         </div>
 
-        <div class="text-center w-full px-4">
+        <div class="text-center w-full">
           <h2 class="font-sans font-medium text-3xl md:text-4xl text-ink leading-tight mb-4 transition-colors tracking-tight">
             <a href="<?= $flagship->url() ?>"><?= $flagship->title()->esc() ?></a>
           </h2>
@@ -80,9 +80,15 @@ function resolveAuthor($field): string {
             <article class="pt-5 pb-7 first:pt-0 group">
               <div class="flex justify-between items-center mb-3">
                 <div class="flex flex-wrap gap-1.5">
-                  <?php foreach (array_slice($article->tags()->split(','), 0, 2) as $tag): ?>
+                  <?php 
+                    $aTags = $article->tags()->split(',');
+                    foreach (array_slice($aTags, 0, 1) as $tag): 
+                  ?>
                     <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($tag)) ?>" class="tag"><?= esc(trim($tag)) ?></a>
                   <?php endforeach ?>
+                  <?php if (count($aTags) > 1): ?>
+                    <span class="tag" style="background-color:transparent;border:1px solid var(--color-border);">+<?= count($aTags) - 1 ?></span>
+                  <?php endif ?>
                 </div>
                 <span class="byline"><?= resolveAuthor($article->author()) ?></span>
               </div>
@@ -121,7 +127,7 @@ function resolveAuthor($field): string {
     <div class="border-t border-border pt-8 md:pt-12 mb-12">
 
       <!-- Left sidebar: 2 columns (Search, Tags) -->
-      <aside class="col-2 flex flex-col gap-10 pr-0 md:pr-8 mb-8 md:mb-0 order-2 border-t border-border pt-8 md:border-t-0 md:pt-0 md:mt-0">
+      <aside class="col-2 flex flex-col gap-10 pr-0 md:pr-8 mb-8 md:mb-0 border-b border-border pb-8 md:border-b-0 md:pb-0 md:mt-0">
 
         <form action="<?= $page->url() ?>" method="GET">
           <div class="blog-search-bar">
@@ -155,7 +161,7 @@ function resolveAuthor($field): string {
       </aside>
 
       <!-- Right content: 5 columns (Articles) -->
-      <div class="col-5 flex flex-col order-1">
+      <div class="col-5 flex flex-col">
 
         <?php foreach ($mainList as $item): ?>
           <?php $itemTagsJson = htmlspecialchars(json_encode($item->tags()->split(',')), ENT_QUOTES, 'UTF-8') ?>
@@ -176,9 +182,15 @@ function resolveAuthor($field): string {
             <!-- 3 columns of 5 for text -->
             <div class="md:col-span-3 flex flex-col justify-start">
               <div class="flex flex-wrap gap-2 mb-3">
-                <?php foreach (array_slice($item->tags()->split(','), 0, 3) as $tag): ?>
+                <?php 
+                  $iTags = $item->tags()->split(',');
+                  foreach (array_slice($iTags, 0, 1) as $tag): 
+                ?>
                   <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($tag)) ?>" class="tag"><?= esc(trim($tag)) ?></a>
                 <?php endforeach ?>
+                <?php if (count($iTags) > 1): ?>
+                  <span class="tag" style="background-color:transparent;border:1px solid var(--color-border);">+<?= count($iTags) - 1 ?></span>
+                <?php endif ?>
               </div>
               <h3 class="font-sans font-semibold text-2xl text-ink leading-tight mb-3 transition-colors tracking-tight">
                 <a href="<?= $item->url() ?>" class="hover:underline"><?= $item->title()->esc() ?></a>

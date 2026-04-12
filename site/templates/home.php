@@ -83,7 +83,7 @@ snippet('header');
 </section>
 <?php endif ?>
 
-<section class="py-20">
+<section class="py-12 md:py-20">
 
   <div class="col-4">
     <div class="compare-slider" id="compare-slider">
@@ -123,7 +123,7 @@ snippet('header');
 
   <div class="col-1 hidden md:block"></div>
 
-  <div class="col-2 flex flex-col justify-end">
+  <div class="col-2 flex flex-col justify-end mt-6 md:mt-0">
     <h2 class="font-sans text-[clamp(1.25rem,2vw,1.75rem)] text-ink leading-snug mb-4">
       <?= $page->compareHeading()->or('Un jumeau numérique') ?>
     </h2>
@@ -134,7 +134,7 @@ snippet('header');
 
 </section>
 
-<section class="pt-12 pb-20">
+<section class="pt-12 pb-12 md:pb-20">
   <h2 class="col-7 font-sans text-[clamp(1.25rem,2vw,1.75rem)] text-ink leading-tight mb-6">
     <?= $page->procedeHeading()->or('Le procédé GOVR') ?>
   </h2>
@@ -195,7 +195,7 @@ snippet('header');
   </div>
 </section>
 
-<section class="py-20">
+<section class="py-12 md:py-20">
 
   <div class="col-7 bg-ink rounded-md overflow-hidden">
 
@@ -242,7 +242,7 @@ snippet('header');
 
 </section>
 
-<section class="py-20">
+<section class="py-12 md:py-20">
   <h2 class="col-7 font-sans text-[clamp(1.25rem,2vw,1.75rem)] text-ink leading-tight mb-6">
     <?= $page->projectsHeading()->or('Nos derniers projets') ?>
   </h2>
@@ -300,7 +300,7 @@ snippet('header');
 
 </section>
 
-<section class="py-20">
+<section class="py-12 md:py-20">
 
   <!-- Left: intro + CTA (3 cols) -->
   <div class="col-3 flex flex-col justify-between">
