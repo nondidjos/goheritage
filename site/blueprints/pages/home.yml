@@ -12,14 +12,14 @@ tabs:
         label: Titre principal
         type: text
       heroImage:
-        label: Image ou vidéo hero (bureau)
+        label: Image ou vidéo hero (paysage)
         type: files
         max: 1
         width: 1/2
         query: page.files.filterBy('type', 'in', ['image', 'video'])
         help: Vidéo = muette et en boucle
       heroImageMobile:
-        label: Image hero (mobile, optionnel)
+        label: Image hero (portrait, optionnel)
         type: files
         max: 1
         width: 1/2
@@ -35,22 +35,22 @@ tabs:
         label: Texte d'accompagnement
         type: textarea
       compareImageBefore:
-        label: Avant — Bureau (photo)
+        label: Avant — Paysage (photo)
         type: files
         max: 1
         width: 1/2
       compareImageBeforeMobile:
-        label: Avant — Mobile (optionnel)
+        label: Avant — Portrait (optionnel)
         type: files
         max: 1
         width: 1/2
       compareImageAfter:
-        label: Après — Bureau (modèle 3D)
+        label: Après — Paysage (modèle 3D)
         type: files
         max: 1
         width: 1/2
       compareImageAfterMobile:
-        label: Après — Mobile (optionnel)
+        label: Après — Portrait (optionnel)
         type: files
         max: 1
         width: 1/2
