@@ -81,6 +81,10 @@ kirby/
 .env.test.local
 .env.production.local
 
+# Logs
+/site/logs/*
+!/site/logs/index.html
+
 # PHP / Tools
 .phpunit.result.cache
 *.log

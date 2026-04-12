@@ -10,7 +10,7 @@
 use Kirby\Data\Data;
 
 return [
-    'debug' => true,
+    'debug' => false,
     'yaml.handler' => 'symfony',
     'mime' => [
         'types' => [
@@ -21,7 +21,7 @@ return [
     ],
     'auth' => [
         'methods' => [
-            'password' => ['min' => 4]
+            'password' => ['min' => 8]
         ]
     ],
     'blueprints' => [
