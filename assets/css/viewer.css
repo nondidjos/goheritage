@@ -490,6 +490,11 @@
 
 /* ── Mobile: project page — viewer-first layout ───────────────────────────── */
 @media (max-width: 640px) {
+    /* Prevent body scroll — drawer/viewer are fixed/full-height */
+    body:has(#viewer-container) {
+        overflow: hidden;
+    }
+
     /* Stack everything vertically */
     .items-start {
         display: flex;
@@ -509,6 +514,14 @@
 
     .project-header h1 {
         font-size: clamp(1.75rem, 7vw, 3rem) !important;
+        margin-bottom: 0.375rem !important;
+    }
+
+    /* Center location tag to match the centered title */
+    .project-header > div {
+        justify-content: center !important;
+        padding-right: 0 !important;
+        max-width: 100% !important;
     }
 
     /* ── Viewer fills the remaining screen ── */

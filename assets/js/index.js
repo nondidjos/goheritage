@@ -167,12 +167,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         function renderStep(idx) {
             currentStepIdx = idx;
+            isMobileSteps = window.innerWidth <= 640;
             // crossfade images
             images.forEach(function (img) {
                 img.classList.toggle('is-hidden', parseInt(img.dataset.step) !== idx);
             });
 
-            // slide cards + update number colors
+            // slide cards + update number colors + mobile active class
             steps.forEach(function (s, i) {
                 var isActive = parseInt(s.dataset.step) === idx;
                 var num = s.querySelector('span');
@@ -181,6 +182,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         .replace(/text-(ink|faint)/g, '')
                         .trim() + (isActive ? ' text-ink' : ' text-faint');
                 }
+                s.classList.toggle('is-active', isActive);
                 if (!isMobileSteps) s.style.left = positions[idx][i];
             });
         }
