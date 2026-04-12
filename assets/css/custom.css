@@ -383,7 +383,8 @@ babylon {
 }
 
 /* ── Mobile menu ──────────────────────────────────────── */
-.mobile-menu-toggle {
+.mobile-menu-toggle,
+.mobile-menu-close {
     display: none;
     flex-direction: column;
     gap: 4px;
@@ -415,7 +416,7 @@ babylon {
 
     .site-nav {
         position: fixed;
-        top: 60px;
+        top: 0;
         left: 0;
         right: 0;
         background: #fff;
@@ -425,19 +426,20 @@ babylon {
         max-height: 0;
         overflow: hidden;
         transition: max-height 0.3s ease-out;
-        z-index: 40;
+        z-index: 60;
         gap: 0;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .site-nav.is-open {
-        max-height: 50vh;
+        max-height: 60vh;
     }
 
     .site-nav a {
         display: block;
         width: 100%;
-        padding: 0.85rem 1.25rem;
+        padding: 1.1rem 1.5rem;
+        font-size: 1rem;
         background: #fff;
         border: none;
     }
@@ -450,7 +452,7 @@ babylon {
         display: none;
         order: -1;
         width: 100%;
-        padding: 0.65rem 1.25rem;
+        padding: 1.1rem 1.5rem;
         background: #f0f0f0;
         border: none;
         cursor: pointer;
@@ -472,18 +474,13 @@ babylon {
         display: flex;
     }
 
-    /* Overlay behind header when menu is open */
-    body:has(.site-nav.is-open) {
-        position: relative;
-    }
-
+    /* Overlay behind menu when open */
     body:has(.site-nav.is-open)::before {
         content: '';
         position: fixed;
         inset: 0;
-        top: 60px;
         background: rgba(0, 0, 0, 0.1);
-        z-index: 39;
+        z-index: 59;
         animation: fadeIn 0.3s ease-out;
     }
 
