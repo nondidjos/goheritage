@@ -48,7 +48,7 @@ if ($isMapPage) {
     <!-- logo -->
     <div class="col-2">
       <a class="no-underline hover:no-underline" href="<?= $site->url() ?>" aria-label="<?= $site->title()->html() ?>">
-        <img src="<?= url('assets/logos/goheritage.svg') ?>" alt="GoHéritage" class="h-7 w-auto">
+        <img src="<?= url('assets/logos/goheritage.svg') ?>" alt="GoHéritage" class="h-7 w-auto rounded-none">
       </a>
     </div>
 
