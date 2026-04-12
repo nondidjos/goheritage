@@ -12,10 +12,11 @@ tabs:
         label: Titre principal
         type: text
       heroImage:
-        label: Image hero
+        label: Image ou vidéo hero
         type: files
         max: 1
-        help: Image affichée dans la colonne de droite du hero
+        query: page.files.filterBy('type', 'in', ['image', 'video'])
+        help: Image ou vidéo affichée dans la colonne de droite du hero (la vidéo sera muette et en boucle)
 
   compare:
     label: Jumeau numérique
