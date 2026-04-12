@@ -27,8 +27,12 @@ snippet('header');
   <div class="col-5">
     <!-- removing aspect ratio constraints and just letting the image fill its natural column height natively -->
     <div class="w-full h-full bg-surface rounded-md overflow-hidden min-h-[50vh]">
-      <?php if ($heroImg = $page->heroImage()->toFile()): ?>
-        <img src="<?= $heroImg->url() ?>" alt="<?= $heroImg->alt()->esc() ?>" class="w-full h-full object-cover" loading="eager">
+      <?php if ($heroMedia = $page->heroImage()->toFile()): ?>
+        <?php if ($heroMedia->type() === 'video'): ?>
+          <video src="<?= $heroMedia->url() ?>" class="w-full h-full object-cover" autoplay muted loop playsinline></video>
+        <?php else: ?>
+          <img src="<?= $heroMedia->url() ?>" alt="<?= $heroMedia->alt()->esc() ?>" class="w-full h-full object-cover" loading="eager">
+        <?php endif ?>
       <?php endif ?>
     </div>
   </div>
