@@ -17,6 +17,11 @@ F::$types['document'][] = 'obj';
 F::$types['document'][] = 'mtl';
 F::$types['document'][] = 'glb';
 F::$types['document'][] = 'gltf';
+
+// JSON is "code" by default in Kirby — move it to document so uploads aren't rejected
+if (isset(F::$types['code'])) {
+    F::$types['code'] = array_values(array_diff(F::$types['code'], ['json']));
+}
 F::$types['document'][] = 'json';
 
 Kirby::plugin('goheritage/model-converter', [
@@ -240,6 +245,9 @@ Kirby::plugin('goheritage/model-converter', [
 
                     try {
                         $kirby->impersonate('kirby');
+
+                        // Re-fetch page after impersonation — pre-impersonate object is immutable
+                        $page     = $kirby->page($pageId);
                         $existing = $page->file($filename);
 
                         if ($existing) {
@@ -255,8 +263,9 @@ Kirby::plugin('goheritage/model-converter', [
 
                         // Store the file UUID back into the page content field so that
                         // $page->model_glb()->toFile() (etc.) resolves correctly.
+                        // Re-fetch page again — createFile/replace returns a new page version
                         if ($fieldName) {
-                            $page->update([$fieldName => $newFile->uuid()]);
+                            $kirby->page($pageId)->update([$fieldName => $newFile->uuid()]);
                         }
 
                         // Manually trigger post-upload processing since the
@@ -307,11 +316,12 @@ Kirby::plugin('goheritage/model-converter', [
  */
 function goheritageCanonicalBase($fieldName) {
     static $map = [
-        'model_obj'              => 'exterior',
-        'model_obj_interior'     => 'interior',
-        'model_texture'          => 'exterior-texture',
-        'model_texture_interior' => 'interior-texture',
-        'model_hotspots_json'    => 'hotspots',
+        'model_obj'                    => 'exterior',
+        'model_obj_interior'           => 'interior',
+        'model_texture'                => 'exterior-texture',
+        'model_texture_interior'       => 'interior-texture',
+        'model_hotspots_json'          => 'hotspots-exterior',
+        'model_hotspots_json_interior' => 'hotspots-interior',
     ];
     return $map[$fieldName] ?? null;
 }

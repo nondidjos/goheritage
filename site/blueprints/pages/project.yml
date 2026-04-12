@@ -234,18 +234,22 @@ tabs:
 
           model_hotspots_json:
             type: upload-overwrite
-            label: Hotspots JSON
+            label: Hotspots JSON — Extérieur
             accept: ".json"
             template: default
-            help: "Fichier JSON exporté par l'addon Blender. Contient les positions des points d'intérêt (extérieur + intérieur)."
+            help: "JSON exporté par l'addon Blender pour le modèle extérieur."
 
-          hotspot_detect:
-            type: hotspot-detect
-            label: Détection automatique
+          model_hotspots_json_interior:
+            type: upload-overwrite
+            label: Hotspots JSON — Intérieur
+            accept: ".json"
+            template: default
+            help: "JSON exporté par l'addon Blender pour le modèle intérieur."
+
 
           annotations:
             type: structure
-            label: Liste des hotspots
+            label: Hotspots — Extérieur
             columns:
               hotspot_id:
                 width: 1/6
@@ -269,6 +273,46 @@ tabs:
                 type: text
                 label: Titre
                 placeholder: "ex. Voûte principale"
+              camera_mode:
+                type: select
+                label: Comportement au clic
+                default: fly
+                options:
+                  fly: Voler vers le point
+                  orbit: Orbiter autour du point
+                  auto-orbit: Orbite automatique (360°)
+                help: "Voler : anime la caméra vers la position. Orbiter : idem, puis permet d'orbiter autour. Auto : vol + rotation 360° automatique."
+              description:
+                type: writer
+                label: Description
+                help: Texte affiché dans le panneau latéral quand ce point est sélectionné.
+
+          annotations_interior:
+            type: structure
+            label: Hotspots — Intérieur
+            columns:
+              hotspot_id:
+                width: 1/6
+                label: ID
+              title:
+                width: 1/4
+                label: Titre
+              camera_mode:
+                width: 1/6
+                label: Mode
+              description:
+                width: 5/12
+                label: Description
+            fields:
+              hotspot_id:
+                type: text
+                label: Identifiant
+                placeholder: "hotspot_01"
+                help: Doit correspondre au nom de l'Empty dans Blender.
+              title:
+                type: text
+                label: Titre
+                placeholder: "ex. Tombe"
               camera_mode:
                 type: select
                 label: Comportement au clic

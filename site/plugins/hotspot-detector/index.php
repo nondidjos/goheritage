@@ -3,11 +3,11 @@
 /**
  * GoHéritage — Hotspot Detector plugin
  *
- * Parses GLB files (pure PHP, no Node.js) and populates the annotations
- * structure field on the project page.
+ * Reads hotspot JSON files and populates two separate annotation structure
+ * fields on the project page: `annotations` (exterior) and
+ * `annotations_interior` (interior).
  *
- * Auto-runs when a GLB is uploaded or created (e.g. after OBJ conversion).
- * Also exposes a POST API route used by the panel "Detect" button.
+ * Runs automatically whenever a JSON file is uploaded to a project page.
  */
 
 use Kirby\Cms\App as Kirby;
@@ -15,160 +15,146 @@ use Kirby\Data\Yaml;
 
 Kirby::plugin('goheritage/hotspot-detector', [
 
-    // ── Custom field: "Detect" button in the panel ────────────────────────
-    'fields' => [
-        'hotspot-detect' => [
-            'computed' => [
-                // page ID passed to the Vue component so it knows which page to update
-                'pageId' => function () {
-                    return $this->model()->id();
-                },
-                // tells the component how many annotations already exist
-                'existingCount' => function () {
-                    $model = $this->model();
-                    if ($model->annotations()->isNotEmpty()) {
-                        return $model->annotations()->toStructure()->count();
-                    }
-                    return 0;
-                },
-            ],
-        ],
-    ],
-
-    // ── API route: called by panel button ─────────────────────────────────
-    'api' => [
-        'routes' => [
-            [
-                'pattern' => 'goheritage/detect-hotspots/(:any)',
-                'method'  => 'POST',
-                'auth'    => false,
-                'action'  => function ($rawId) {
-                    $kirby = kirby();
-                    if (!$kirby->user()) {
-                        return ['status' => 'error', 'message' => 'Unauthorized'];
-                    }
-
-                    // Kirby panel encodes page IDs with + instead of /
-                    $pageId = str_replace('+', '/', urldecode($rawId));
-                    $page   = $kirby->page($pageId);
-
-                    if (!$page) {
-                        return ['status' => 'error', 'message' => 'Page not found: ' . $pageId];
-                    }
-
-                    $result = detectAndSaveHotspots($page);
-                    return $result;
-                },
-            ],
-        ],
-    ],
-
-    // ── Hooks: auto-detect when a JSON lands on a project page ─────────────
+    // ── Hooks: auto-detect when a JSON is uploaded ────────────────────────
     'hooks' => [
         'file.create:after' => function ($file) {
-            $ext = strtolower($file->extension());
             $page = $file->parent();
-            if ($page && $page->template()->name() === 'project') {
-                if ($ext === 'json') {
-                    detectAndSaveHotspots($page, $file->root(), 'json');
-                } elseif ($ext === 'glb') {
-                    detectAndSaveHotspots($page, $file->root(), 'glb');
-                }
+            if ($page && $page->template()->name() === 'project'
+                      && strtolower($file->extension()) === 'json') {
+                detectAndSaveHotspots($page);
             }
         },
         'file.replace:after' => function ($newFile, $oldFile) {
-            $ext = strtolower($newFile->extension());
             $page = $newFile->parent();
-            if ($page && $page->template()->name() === 'project') {
-                if ($ext === 'json') {
-                    detectAndSaveHotspots($page, $newFile->root(), 'json');
-                } elseif ($ext === 'glb') {
-                    detectAndSaveHotspots($page, $newFile->root(), 'glb');
-                }
+            if ($page && $page->template()->name() === 'project'
+                      && strtolower($newFile->extension()) === 'json') {
+                detectAndSaveHotspots($page);
             }
         },
     ],
 ]);
 
 
-// ── Core: parse JSON + merge into page annotations ────────────────────────
+// ── Core ──────────────────────────────────────────────────────────────────────
 
 /**
- * Parse a JSON file for hotspots and merge into the page's
- * annotations structure field, preserving any existing descriptions.
- *
- * @param \Kirby\Cms\Page $page
- * @param string|null     $filePath explicit path; if null, auto-detected from page field
- * @return array  { count: int, added: int, skipped: int, hotspots: [] }
+ * Read both JSON fields, parse exterior/interior hotspots separately,
+ * merge into `annotations` and `annotations_interior`, persist.
  */
-function detectAndSaveHotspots($page, $filePath = null, $type = null) {
+function detectAndSaveHotspots($page) {
 
-    // ── find the file ─────────────────────────────────────────────────
-    if (!$filePath) {
-        $uuid = $page->content()->get('model_hotspots_json')->value();
-        if ($uuid) {
-            $file = kirby()->file($uuid) ?? $page->file($uuid);
-            if ($file) {
-                $filePath = $file->root();
-                $type = 'json';
-            }
-        }
-        
-        // Fallback to searching for the exterior GLB
-        if (!$filePath) {
-            $glb = $page->files()->filterBy('extension', 'glb')->first();
-            if ($glb) {
-                $filePath = $glb->root();
-                $type = 'glb';
-            }
-        }
-        
-        if (!$filePath) {
-            return ['status' => 'ok', 'count' => 0, 'added' => 0, 'skipped' => 0,
-                    'message' => 'Veuillez d\'abord téléverser un GLB ou un Hotspots JSON.', 'hotspots' => []];
+    $exteriorHotspots = [];
+    $interiorHotspots = [];
+
+    // Exterior JSON → exterior section
+    $extFile = resolveFileField($page, 'model_hotspots_json');
+    if ($extFile) {
+        $exteriorHotspots = parseJsonHotspotsByScope($extFile->root(), 'exterior');
+    }
+
+    // Interior JSON → interior section
+    $intFile = resolveFileField($page, 'model_hotspots_json_interior');
+    if ($intFile) {
+        $interiorHotspots = parseJsonHotspotsByScope($intFile->root(), 'interior');
+    }
+
+    // GLB fallback when no JSON at all
+    if (empty($exteriorHotspots) && empty($interiorHotspots)) {
+        $glb = $page->files()->filterBy('extension', 'glb')->first();
+        if ($glb) {
+            $exteriorHotspots = parseGlbHotspots($glb->root());
         }
     }
 
-    if (!$type) {
-        $type = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+    if (empty($exteriorHotspots) && empty($interiorHotspots)) {
+        return [
+            'status'  => 'ok', 'count' => 0, 'added' => 0, 'skipped' => 0,
+            'message' => 'Veuillez d\'abord téléverser un GLB ou un Hotspots JSON.',
+            'hotspots' => [],
+        ];
     }
 
-    // ── parse hotspots ──────────────────────────────────────
-    if ($type === 'glb') {
-        $hotspots = parseGlbHotspots($filePath);
-    } else {
-        $hotspots = parseJsonHotspots($filePath);
+    [$extMerged, $extAdded, $extSkipped] = mergeAnnotations(
+        $page, $exteriorHotspots, 'annotations'
+    );
+    [$intMerged, $intAdded, $intSkipped] = mergeAnnotations(
+        $page, $interiorHotspots, 'annotations_interior'
+    );
+
+    $update = [];
+    if (!empty($exteriorHotspots)) $update['annotations']          = Yaml::encode($extMerged);
+    if (!empty($interiorHotspots)) $update['annotations_interior'] = Yaml::encode($intMerged);
+
+    if (!empty($update)) {
+        try {
+            kirby()->impersonate('kirby');
+            $page->update($update);
+        } catch (\Throwable $e) {
+            error_log('[hotspot-detector] update failed: ' . $e->getMessage());
+            return ['status' => 'error', 'message' => $e->getMessage(),
+                    'count' => 0, 'added' => 0, 'skipped' => 0, 'hotspots' => []];
+        }
     }
 
-    if (empty($hotspots)) {
-        return ['status' => 'ok', 'count' => 0, 'added' => 0, 'skipped' => 0,
-                'message' => 'Le fichier JSON semble vide ou mal formaté.', 'hotspots' => []];
-    }
+    $totalCount   = count($extMerged)   + count($intMerged);
+    $totalAdded   = $extAdded   + $intAdded;
+    $totalSkipped = $extSkipped + $intSkipped;
+    $allHotspots  = array_merge($exteriorHotspots, $interiorHotspots);
 
-    // ── read existing annotations from the page ───────────────────────────
+    return [
+        'status'   => 'ok',
+        'count'    => $totalCount,
+        'added'    => $totalAdded,
+        'skipped'  => $totalSkipped,
+        'hotspots' => $allHotspots,
+        'message'  => $totalCount . ' hotspot(s) détecté(s) ('
+                      . $totalAdded . ' nouveau(x), '
+                      . $totalSkipped . ' existant(s) conservé(s))',
+    ];
+}
+
+/**
+ * Resolve a file UUID stored in a page content field to a Kirby File object.
+ */
+function resolveFileField($page, $fieldName) {
+    $uuid = $page->content()->get($fieldName)->value();
+    if (!$uuid) return null;
+    return kirby()->file($uuid) ?? $page->file($uuid) ?? null;
+}
+
+/**
+ * Merge a list of hotspot definitions into an existing annotations field,
+ * preserving user-written descriptions and titles.
+ *
+ * Returns [$merged, $added, $skipped].
+ */
+function mergeAnnotations($page, array $hotspots, string $field): array {
     $existing = [];
-    if ($page->annotations()->isNotEmpty()) {
-        foreach ($page->annotations()->toStructure() as $ann) {
+    $raw = $page->content()->get($field);
+    if ($raw->isNotEmpty()) {
+        foreach ($raw->toStructure() as $ann) {
             $id = $ann->hotspot_id()->value();
-            $existing[$id] = [
-                'hotspot_id'  => $id,
-                'title'       => $ann->title()->value(),
-                'camera_mode' => $ann->camera_mode()->value() ?: 'fly',
-                'description' => $ann->description()->value(),
-            ];
+            if ($id) {
+                $existing[$id] = [
+                    'hotspot_id'  => $id,
+                    'title'       => $ann->title()->value(),
+                    'camera_mode' => $ann->camera_mode()->value() ?: 'fly',
+                    'description' => $ann->description()->value(),
+                ];
+            }
         }
     }
 
-    // ── merge: keep existing descriptions, add new, preserve order ────────
     $merged  = [];
     $added   = 0;
     $skipped = 0;
 
     foreach ($hotspots as $hs) {
         if (isset($existing[$hs['id']])) {
-            // already exists — preserve description, optionally update title
-            $existing[$hs['id']]['title'] = $existing[$hs['id']]['title'] ?: $hs['title'];
-            $merged[] = $existing[$hs['id']];
+            // Keep user's title/description; only fill title if blank
+            $row = $existing[$hs['id']];
+            if (empty($row['title'])) $row['title'] = $hs['title'];
+            $merged[] = $row;
             $skipped++;
         } else {
             $merged[] = [
@@ -181,88 +167,78 @@ function detectAndSaveHotspots($page, $filePath = null, $type = null) {
         }
     }
 
-    // ── persist ───────────────────────────────────────────────────────────
-    if (!empty($merged)) {
-        try {
-            kirby()->impersonate('kirby');
-            $page->update([
-                'annotations' => Yaml::encode($merged),
-            ]);
-        } catch (\Throwable $e) {
-            error_log('[hotspot-detector] failed to update annotations: ' . $e->getMessage());
-            return ['status' => 'error', 'message' => $e->getMessage(),
-                    'count' => 0, 'added' => 0, 'skipped' => 0, 'hotspots' => []];
-        }
-    }
-
-    return [
-        'status'   => 'ok',
-        'count'    => count($merged),
-        'added'    => $added,
-        'skipped'  => $skipped,
-        'hotspots' => $hotspots,
-        'message'  => count($merged) . ' hotspot(s) détecté(s) (' . $added . ' nouveau(x), ' . $skipped . ' existant(s) conservé(s))',
-    ];
+    return [$merged, $added, $skipped];
 }
 
 /**
- * Parse arbitrary JSON exported by Blender addons and extract hotspot entries.
+ * Parse hotspots from a JSON file exported by the GoHéritage Blender addon.
  *
- * @param string $jsonPath absolute path to the .json file
- * @return array  array of ['id' => string, 'title' => string, 'camera_mode' => string]
+ * $scope: 'exterior' | 'interior'
+ *
+ * Handles:
+ *   - Scoped format: { "exterior": { "hotspots": [...] }, "interior": { ... } }
+ *   - Flat format:   { "hotspots": [...] }  or  [ {...}, ... ]
+ *
+ * For scoped files the requested scope is returned; flat files are returned
+ * entirely (field assignment determines the scope).
  */
-function parseJsonHotspots($jsonPath) {
+function parseJsonHotspotsByScope(string $jsonPath, string $scope): array {
     if (!file_exists($jsonPath) || !is_readable($jsonPath)) return [];
-
-    $jsonStr = file_get_contents($jsonPath);
-    if (!$jsonStr) return [];
-
-    $data = json_decode($jsonStr, true);
+    $data = json_decode(file_get_contents($jsonPath), true);
     if (!is_array($data)) return [];
 
-    // Extract correct array inside JSON depending on what the addon produced
-    $source = [];
-    if (isset($data['hotspots']) && is_array($data['hotspots'])) {
-        $source = $data['hotspots'];
-    } elseif (isset($data['annotations']) && is_array($data['annotations'])) {
-        $source = $data['annotations'];
-    } else {
-        $source = $data; // assume root array
+    // Scoped format
+    if (isset($data['exterior']) || isset($data['interior'])) {
+        $nodes = $data[$scope]['hotspots'] ?? [];
+        return extractHotspotNodes($nodes);
     }
 
-    $hotspots = [];
+    // Flat format: { "hotspots": [...] }
+    if (isset($data['hotspots']) && is_array($data['hotspots'])) {
+        return extractHotspotNodes($data['hotspots']);
+    }
 
-    foreach ($source as $key => $node) {
+    // Flat format: { "annotations": [...] }
+    if (isset($data['annotations']) && is_array($data['annotations'])) {
+        return extractHotspotNodes($data['annotations']);
+    }
+
+    // Root array
+    if (array_is_list($data)) {
+        return extractHotspotNodes($data);
+    }
+
+    return [];
+}
+
+/**
+ * Normalise a raw array of hotspot node arrays into
+ * [['id' => ..., 'title' => ..., 'camera_mode' => ...], ...]
+ */
+function extractHotspotNodes(array $nodes): array {
+    $out = [];
+    foreach ($nodes as $key => $node) {
         if (!is_array($node)) continue;
-
-        $id         = $node['id']          ?? $node['hotspot_id'] ?? (is_string($key) ? $key : null) ?? $node['name'] ?? null;
-        $title      = $node['title']       ?? $node['name']       ?? $id;
-        $cameraMode = $node['camera_mode'] ?? $node['mode']       ?? 'fly';
-
-        // Addon specific fallback
+        $id   = $node['id'] ?? $node['hotspot_id'] ?? (is_string($key) ? $key : null) ?? $node['name'] ?? null;
         if (empty($id) && isset($node['uuid'])) {
             $id = 'hotspot_' . substr($node['uuid'], 0, 6);
         }
-
         if (empty($id)) continue;
-
-        $hotspots[] = [
+        $out[] = [
             'id'          => $id,
-            'title'       => $title,
-            'camera_mode' => $cameraMode,
+            'title'       => $node['title']       ?? $node['name'] ?? $id,
+            'camera_mode' => $node['camera_mode'] ?? $node['mode'] ?? 'fly',
         ];
     }
-
-    return $hotspots;
+    return $out;
 }
 
 /**
- * Executes an internal Node script to read GLB binary structure looking for
- * user data / names indicating hotspots.
+ * Parse hotspot names/positions embedded in a GLB via Node.js helper.
  */
-function parseGlbHotspots($glbPath) {
+function parseGlbHotspots(string $glbPath): array {
     if (!file_exists($glbPath)) return [];
-    
+
     $nodeCandidates = [
         'C:\\Program Files\\nodejs\\node.exe',
         'C:\\Program Files (x86)\\nodejs\\node.exe',
@@ -271,17 +247,13 @@ function parseGlbHotspots($glbPath) {
     foreach ($nodeCandidates as $c) {
         if (file_exists($c)) { $node = $c; break; }
     }
-    
+
     $script = __DIR__ . '/extract-glb.js';
-    $cmd = sprintf('"%s" %s %s 2>&1', $node, escapeshellarg($script), escapeshellarg($glbPath));
-    
+    $cmd    = sprintf('"%s" %s %s 2>&1', $node, escapeshellarg($script), escapeshellarg($glbPath));
     $output = []; $code = 0;
     exec($cmd, $output, $code);
-    
     if ($code !== 0) return [];
-    
-    $json = implode("", $output);
-    $data = json_decode($json, true);
-    
+
+    $data = json_decode(implode('', $output), true);
     return is_array($data) ? $data : [];
 }
