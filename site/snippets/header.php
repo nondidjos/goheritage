@@ -52,8 +52,8 @@ if ($isMapPage) {
       </a>
     </div>
 
-    <!-- spacer -->
-    <div class="col-3"></div>
+    <!-- spacer (hidden on mobile, header becomes flex) -->
+    <div class="col-3 hidden md:block"></div>
 
     <!-- mobile hamburger -->
     <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Menu" aria-expanded="false">
@@ -64,7 +64,7 @@ if ($isMapPage) {
 
     <!-- navigation — right-aligned, 2 cols spaced out -->
     <nav class="site-nav col-2 flex w-full items-center justify-between" id="site-nav" aria-label="Navigation principale">
-      <?php foreach ($site->children()->listed() as $item): ?>
+      <?php foreach ($site->children()->listed()->not($site->homePage()) as $item): ?>
       <a
         class="font-sans text-sm uppercase tracking-wider text-ink no-underline transition-colors duration-150 hover:underline hover:text-ink"
         href="<?= $item->url() ?>"
@@ -73,11 +73,12 @@ if ($isMapPage) {
       <?php endforeach ?>
 
       <!-- mobile close button -->
-      <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Fermer le menu" style="display:none;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Fermer le menu">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
+        <span>Fermer</span>
       </button>
     </nav>
 

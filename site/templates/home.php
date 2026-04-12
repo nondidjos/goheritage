@@ -31,7 +31,12 @@ snippet('header');
         <?php if ($heroMedia->type() === 'video'): ?>
           <video src="<?= $heroMedia->url() ?>" class="w-full h-full object-cover" autoplay muted loop playsinline></video>
         <?php else: ?>
-          <img src="<?= $heroMedia->url() ?>" alt="<?= $heroMedia->alt()->esc() ?>" class="w-full h-full object-cover" loading="eager">
+          <picture>
+            <?php if ($heroMobile = $page->heroImageMobile()->toFile()): ?>
+              <source media="(max-width: 640px)" srcset="<?= $heroMobile->url() ?>">
+            <?php endif ?>
+            <img src="<?= $heroMedia->url() ?>" alt="<?= $heroMedia->alt()->esc() ?>" class="w-full h-full object-cover" loading="eager">
+          </picture>
         <?php endif ?>
       <?php endif ?>
     </div>
@@ -40,7 +45,7 @@ snippet('header');
 </section>
 
 <?php if ($featured_project = $site->featured_project()->toPage()): ?>
-<section class="py-16 bg-surface col-7 -mx-4 px-4 md:px-12 mb-20 rounded-md mt-10">
+<section class="py-12 sm:py-16 bg-surface col-7 -mx-4 px-6 sm:px-10 md:px-16 mb-20 rounded-md mt-10">
   <div class="col-7 flex flex-col md:flex-row gap-10 lg:gap-16 items-center w-full">
     <!-- Featured Project Image -->
     <div class="w-full md:w-3/5">
@@ -84,12 +89,22 @@ snippet('header');
     <div class="compare-slider" id="compare-slider">
       <div class="compare-slider__before">
         <?php if ($beforeImg = $page->compareImageBefore()->toFile()): ?>
-          <img src="<?= $beforeImg->url() ?>" alt="<?= $beforeImg->alt()->esc() ?>" loading="lazy">
+          <picture>
+            <?php if ($beforeMobile = $page->compareImageBeforeMobile()->toFile()): ?>
+              <source media="(max-width: 640px)" srcset="<?= $beforeMobile->url() ?>">
+            <?php endif ?>
+            <img src="<?= $beforeImg->url() ?>" alt="<?= $beforeImg->alt()->esc() ?>" loading="lazy">
+          </picture>
         <?php endif ?>
       </div>
       <div class="compare-slider__after">
         <?php if ($afterImg = $page->compareImageAfter()->toFile()): ?>
-          <img src="<?= $afterImg->url() ?>" alt="<?= $afterImg->alt()->esc() ?>" loading="lazy">
+          <picture>
+            <?php if ($afterMobile = $page->compareImageAfterMobile()->toFile()): ?>
+              <source media="(max-width: 640px)" srcset="<?= $afterMobile->url() ?>">
+            <?php endif ?>
+            <img src="<?= $afterImg->url() ?>" alt="<?= $afterImg->alt()->esc() ?>" loading="lazy">
+          </picture>
         <?php endif ?>
       </div>
       <div class="compare-slider__handle" id="compare-handle">
@@ -124,7 +139,7 @@ snippet('header');
     <?= $page->procedeHeading()->or('Le procédé GOVR') ?>
   </h2>
 
-  <div class="col-7 overflow-hidden rounded-md aspect-[4/1] relative" id="procede-images">
+  <div class="col-7 overflow-hidden rounded-md aspect-[16/9] md:aspect-[4/1] relative" id="procede-images">
     <?php if ($step1Img = $page->step1Image()->toFile()): ?>
       <img src="<?= $step1Img->url() ?>" alt="Acquisition" class="procede-image" data-step="0">
     <?php endif ?>
@@ -364,7 +379,7 @@ snippet('header');
       </p>
       <div class="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
         <a href="<?= url('contact') ?>"
-          class="btn border-[4px] !border-surface !text-surface hover:!bg-surface hover:!text-ink transition-colors duration-150">
+          class="btn w-full sm:w-auto border-[4px] !border-surface !text-surface hover:!bg-surface hover:!text-ink transition-colors duration-150">
           Contactez nous
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -373,7 +388,7 @@ snippet('header');
           </svg>
         </a>
         <a href="<?= url('map') ?>"
-          class="btn !bg-surface border-[4px] !border-surface !text-ink hover:!bg-white hover:!border-white transition-colors duration-150">
+          class="btn w-full sm:w-auto !bg-surface border-[4px] !border-surface !text-ink hover:!bg-white hover:!border-white transition-colors duration-150">
           Explorer la carte
         </a>
       </div>

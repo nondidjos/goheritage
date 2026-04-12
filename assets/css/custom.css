@@ -3,6 +3,11 @@ html {
     scrollbar-gutter: stable;
 }
 
+/* ── Logo ─────────────────────────────────────────────── */
+header img {
+    border-radius: 0;
+}
+
 /* ── Local Fonts ──────────────────────────────────────── */
 @font-face {
     font-family: 'DM Sans';
@@ -316,7 +321,7 @@ babylon {
     position: relative;
     overflow: hidden;
     border-radius: var(--radius-md);
-    aspect-ratio: 4/3;
+    aspect-ratio: 3/2;
     cursor: col-resize;
     user-select: none;
     -webkit-user-select: none;
@@ -401,6 +406,13 @@ babylon {
         display: flex;
     }
 
+    /* Header row: logo left, hamburger right, vertically centered */
+    header .grid-7 {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
     .site-nav {
         position: fixed;
         top: 60px;
@@ -408,14 +420,14 @@ babylon {
         right: 0;
         background: #fff;
         flex-direction: column;
-        padding: 1rem 1.25rem;
+        align-items: stretch;
+        padding: 0;
         max-height: 0;
         overflow: hidden;
         transition: max-height 0.3s ease-out;
         z-index: 40;
         gap: 0;
-        border-bottom: 1px solid var(--color-border);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .site-nav.is-open {
@@ -423,36 +435,41 @@ babylon {
     }
 
     .site-nav a {
-        padding: 0.6rem 0;
-        border-bottom: 1px solid var(--color-border);
+        display: block;
+        width: 100%;
+        padding: 0.85rem 1.25rem;
+        background: #fff;
+        border: none;
     }
 
-    .site-nav a:last-of-type {
-        border-bottom: none;
+    .site-nav a:nth-of-type(even) {
+        background: #f7f7f7;
     }
 
     .mobile-menu-close {
         display: none;
-        position: absolute;
-        top: 0.65rem;
-        right: 1.25rem;
-        background: none;
+        order: -1;
+        width: 100%;
+        padding: 0.65rem 1.25rem;
+        background: #f0f0f0;
         border: none;
-        padding: 0;
         cursor: pointer;
-        color: var(--color-ink);
-        width: 24px;
-        height: 24px;
-        flex-shrink: 0;
-        transition: color 0.15s;
+        color: var(--color-text-dimmed);
+        justify-content: center;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        transition: background 0.15s;
     }
 
     .mobile-menu-close:hover {
-        color: var(--color-faint);
+        background: #e8e8e8;
     }
 
     .site-nav.is-open .mobile-menu-close {
-        display: block;
+        display: flex;
     }
 
     /* Overlay behind header when menu is open */
@@ -929,5 +946,10 @@ model-viewer .update-bar {
     /* Restore main padding for content pages (not map/project) */
     body:not(:has(#viewer-container)):not(:has(#map-main)) main {
         padding-inline: 1rem !important;
+    }
+
+    /* Compare slider: squarer on mobile */
+    .compare-slider {
+        aspect-ratio: 1/1;
     }
 }
