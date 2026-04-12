@@ -416,7 +416,7 @@ babylon {
 
     .site-nav {
         position: fixed;
-        top: 0;
+        top: 60px;
         left: 0;
         right: 0;
         background: #fff;
@@ -460,7 +460,7 @@ babylon {
         display: flex;
         order: -1;
         width: 100%;
-        padding: 1.1rem 1.5rem;
+        padding: 0.65rem 1.25rem;
         background: #f0f0f0;
         border: none;
         cursor: pointer;
@@ -483,8 +483,9 @@ babylon {
         content: '';
         position: fixed;
         inset: 0;
+        top: 60px;
         background: rgba(0, 0, 0, 0.1);
-        z-index: 59;
+        z-index: 39;
         animation: fadeIn 0.3s ease-out;
     }
 
