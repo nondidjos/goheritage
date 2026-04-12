@@ -16,22 +16,26 @@ $interiorTexFile  = $page->file('interior-texture.jpg') ?? $page->file('interior
 $interiorNormFile = $page->file('interior-normal.jpg')  ?? $page->file('interior-normal.png')
                     ?? $page->file('interior-normal.jpeg') ?? $page->model_normal_interior()->toFile();
 
-$hotspotsJsonFile = $page->file('hotspots.json') ?? $page->model_hotspots_json()->toFile();
-$hotspotsJsonUrl  = $hotspotsJsonFile ? $hotspotsJsonFile->url() : null;
+$hotspotsExtFile = $page->file('hotspots-exterior.json') ?? $page->model_hotspots_json()->toFile();
+$hotspotsIntFile = $page->file('hotspots-interior.json') ?? $page->model_hotspots_json_interior()->toFile();
+$hotspotsExtUrl  = $hotspotsExtFile ? $hotspotsExtFile->url() : null;
+$hotspotsIntUrl  = $hotspotsIntFile ? $hotspotsIntFile->url() : null;
 
 $viewerUrl = $page->viewer_url()->isNotEmpty() ? $page->viewer_url()->esc() : null;
 $viewerLabel = $page->viewer_label()->isNotEmpty() ? $page->viewer_label()->esc() : 'Explorer le Modèle 3D';
 
-// build annotation data from CMS structure field
+// Build annotation data from both exterior and interior CMS structure fields
 $annotationsData = [];
-if ($page->annotations()->isNotEmpty()) {
-    foreach ($page->annotations()->toStructure() as $i => $ann) {
-        $annotationsData[] = [
-            'id'          => $ann->hotspot_id()->value(),
-            'title'       => $ann->title()->value(),
-            'description' => $ann->description()->value(),
-            'camera_mode' => $ann->camera_mode()->or('fly')->value(),
-        ];
+foreach ([$page->annotations(), $page->annotations_interior()] as $field) {
+    if ($field->isNotEmpty()) {
+        foreach ($field->toStructure() as $ann) {
+            $annotationsData[] = [
+                'id'          => $ann->hotspot_id()->value(),
+                'title'       => $ann->title()->value(),
+                'description' => $ann->description()->value(),
+                'camera_mode' => $ann->camera_mode()->or('fly')->value(),
+            ];
+        }
     }
 }
 $annotationsJson = json_encode($annotationsData, JSON_UNESCAPED_UNICODE);
@@ -200,7 +204,8 @@ if ($gallery->count() === 0) {
                  <?php if ($interiorNormUrl): ?>data-normal-interior="<?= $interiorNormUrl ?>"<?php endif ?>
                  data-draco-path="<?= url('node_modules/three/examples/jsm/libs/draco/') ?>"
                  data-annotations="<?= htmlspecialchars($annotationsJson) ?>"
-                 <?php if ($hotspotsJsonUrl): ?>data-hotspots-json="<?= $hotspotsJsonUrl ?>"<?php endif ?>>
+                 <?php if ($hotspotsExtUrl): ?>data-hotspots-json="<?= $hotspotsExtUrl ?>"<?php endif ?>
+                 <?php if ($hotspotsIntUrl): ?>data-hotspots-json-interior="<?= $hotspotsIntUrl ?>"<?php endif ?>>
             </div>
             <style>
               .viewer-progress {

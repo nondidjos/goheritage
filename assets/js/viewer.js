@@ -31,14 +31,15 @@ function initViewer(container) {
   const interiorGlbUrl = container.dataset.glbInterior || null;
   const interiorTexUrl = container.dataset.textureInterior || null;
 
-  const hotspotsJsonUrl = container.dataset.hotspotsJson || null;
+  const hotspotsJsonUrl         = container.dataset.hotspotsJson         || null;
+  const hotspotsJsonInteriorUrl = container.dataset.hotspotsJsonInterior  || null;
 
   // CMS annotations passed as JSON data attribute
   let cmsAnnotations = [];
   try { cmsAnnotations = JSON.parse(container.dataset.annotations || '[]'); } catch (_) { }
 
-  // Hotspot positions loaded from JSON file (set after fetch)
-  var jsonHotspots = null; // { exterior: { hotspots: [...] }, interior: { hotspots: [...] } }
+  // Hotspot positions loaded from JSON file(s) (set after fetch)
+  var jsonHotspots = { exterior: { hotspots: [] }, interior: { hotspots: [] } };
 
   var interiorGlbDerivedUrl = interiorGlbUrl || (interiorObjUrl ? interiorObjUrl.replace(/\.obj$/i, '.glb') : null);
   if (!objUrl && !glbUrl && !interiorGlbDerivedUrl && !interiorObjUrl) return;
@@ -270,7 +271,7 @@ function initViewer(container) {
     var sideKey = side || 'exterior';
 
     // Primary: read hotspot positions from the JSON file exported by Blender addon
-    if (jsonHotspots && jsonHotspots[sideKey] && jsonHotspots[sideKey].hotspots) {
+    if (jsonHotspots && jsonHotspots[sideKey] && jsonHotspots[sideKey].hotspots && jsonHotspots[sideKey].hotspots.length) {
       jsonHotspots[sideKey].hotspots.forEach(function (h) {
         var pos = h.position;
         var entry = {
@@ -715,9 +716,13 @@ function initViewer(container) {
     if (hs.cameraPos) {
       cameraTarget = hs.cameraPos.clone();
     } else {
+      // Approach from outward direction (hotspot → away from model center),
+      // biased upward so the camera is never below or inside the model.
       var dir = targetPos.clone().sub(modelCenter).normalize();
       if (dir.length() < 0.01) dir.set(0, 0, 1);
-      cameraTarget = targetPos.clone().add(dir.multiplyScalar(modelRadius * 0.6));
+      dir.y += 0.5;
+      dir.normalize();
+      cameraTarget = targetPos.clone().add(dir.multiplyScalar(modelRadius * 1.5));
     }
 
     var lookAtTarget = hs.lookAt ? hs.lookAt.clone() : targetPos.clone();
@@ -739,6 +744,9 @@ function initViewer(container) {
     var hs = hotspots.find(function (h) { return h.id === id; });
     if (hs && hs.el) hs.el.classList.remove('is-active');
     if (isMobile) hidePoiPopup();
+
+    stopAutoOrbit();
+    controls.enabled = true;
 
     var panelEntry = document.querySelector('.annotation-entry[data-hotspot="' + id + '"]');
     if (panelEntry) panelEntry.classList.remove('is-active');
@@ -773,8 +781,12 @@ function initViewer(container) {
         flyAnimation = requestAnimationFrame(tick);
       } else {
         flyAnimation = null;
-        controls.enabled = true;
-        if (typeof onComplete === 'function') onComplete();
+        // Only re-enable controls if nothing is taking over (e.g. auto-orbit)
+        if (typeof onComplete === 'function') {
+          onComplete();
+        } else {
+          controls.enabled = true;
+        }
       }
     }
 
@@ -786,11 +798,13 @@ function initViewer(container) {
 
   function startAutoOrbit(pivot) {
     stopAutoOrbit();
+    controls.enabled = false;
 
-    var radius = camera.position.distanceTo(pivot);
     var offset = camera.position.clone().sub(pivot);
-    var angle = Math.atan2(offset.x, offset.z);
-    var elevY = offset.y;
+    var angle  = Math.atan2(offset.x, offset.z);
+    var elevY  = offset.y;
+    // Use XZ-only radius so the orbit circle matches exactly where the fly landed
+    var radius = Math.sqrt(offset.x * offset.x + offset.z * offset.z);
     var speed = 0.3; // radians per second
 
     var lastTime = performance.now();
@@ -817,6 +831,7 @@ function initViewer(container) {
     var cancelEvents = ['pointerdown', 'wheel', 'touchstart'];
     function cancelAutoOrbit() {
       stopAutoOrbit();
+      controls.enabled = true;
       cancelEvents.forEach(function (ev) {
         renderer.domElement.removeEventListener(ev, cancelAutoOrbit);
       });
@@ -948,24 +963,46 @@ function initViewer(container) {
     } else if (interiorGlbDerivedUrl || interiorObjUrl) {
       // No exterior model — load interior directly as the starting view
       loadInteriorModel(function (object) {
-        modelObjects['interior'] = object;
         scene.add(object);
         frameModel(object);
         hideProgress();
+        // Activate the interior hotspot set and add labels to the scene
+        currentSide = 'interior';
+        hotspots = hotspotSets.interior;
+        hotspots.forEach(function (hs) {
+          if (hs.labelObj) scene.add(hs.labelObj);
+        });
+        wireAnnotationPanel();
+        wireHotspotBlocks();
       });
     }
   }
 
-  // Fetch JSON hotspots first, then load the model
+  // Fetch JSON hotspot files (exterior + interior), merge into jsonHotspots, then load model
+  var fetchJobs = [];
+
   if (hotspotsJsonUrl) {
-    fetch(hotspotsJsonUrl)
-      .then(function (r) { return r.json(); })
-      .then(function (data) { jsonHotspots = data; })
-      .catch(function (err) { console.warn('hotspots json load failed:', err); })
-      .finally(startLoading);
-  } else {
-    startLoading();
+    fetchJobs.push(
+      fetch(hotspotsJsonUrl).then(function (r) { return r.json(); }).then(function (data) {
+        if (data.exterior && data.exterior.hotspots) jsonHotspots.exterior = data.exterior;
+        if (data.interior && data.interior.hotspots && data.interior.hotspots.length)
+          jsonHotspots.interior = data.interior;
+      }).catch(function (err) { console.warn('exterior hotspots json failed:', err); })
+    );
   }
+
+  if (hotspotsJsonInteriorUrl) {
+    fetchJobs.push(
+      fetch(hotspotsJsonInteriorUrl).then(function (r) { return r.json(); }).then(function (data) {
+        if (data.interior && data.interior.hotspots) jsonHotspots.interior = data.interior;
+        if (data.exterior && data.exterior.hotspots && data.exterior.hotspots.length
+            && !jsonHotspots.exterior.hotspots.length)
+          jsonHotspots.exterior = data.exterior;
+      }).catch(function (err) { console.warn('interior hotspots json failed:', err); })
+    );
+  }
+
+  Promise.all(fetchJobs).finally(startLoading);
 
   // ── Adaptive pixel ratio (performance) ───────────────────────────────────
   var frameCount = 0;
