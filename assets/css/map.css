@@ -441,7 +441,7 @@ main#map-main {
         box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
 
         /* Collapsed: only search bar + handle visible (~72px) */
-        --drawer-peek: 72px;
+        --drawer-peek: 88px;
         max-height: 75vh;
         height: 75vh;
         transform: translateY(calc(100% - var(--drawer-peek)));

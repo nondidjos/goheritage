@@ -12,15 +12,15 @@ snippet('header');
     <div class="flex flex-col sm:flex-row gap-3 w-full">
       <!-- "Carte" uses an explicit lighter orange colour -->
       <a href="<?= url('map') ?>"
-        class="btn flex-1 border-[4px] bg-[#f47a21] border-[#f47a21] text-ink hover:bg-[#d86616] hover:border-[#d86616] justify-center py-3 px-6 text-[1.1rem]">Voir
+        class="btn btn--orange flex-1 justify-center py-3 px-6 text-[1.1rem] transition-colors duration-150">Voir
         la carte
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="7" y1="7" x2="17" y2="17"></line>
           <polyline points="17 7 17 17 7 17"></polyline>
         </svg></a>
       <a href="<?= url('contact') ?>"
-        class="btn flex-1 justify-center border-[4px] hover:bg-surface hover:border-surface transition-colors duration-150">Nous contacter</a>
+        class="btn flex-1 justify-center transition-colors duration-150">Nous contacter</a>
     </div>
   </div>
 
@@ -44,44 +44,7 @@ snippet('header');
 
 </section>
 
-<?php if ($featured_project = $site->featured_project()->toPage()): ?>
-<section class="py-12 sm:py-16 bg-surface col-7 -mx-4 px-6 sm:px-10 md:px-16 mb-20 rounded-md mt-10">
-  <div class="col-7 flex flex-col md:flex-row gap-10 lg:gap-16 items-center w-full">
-    <!-- Featured Project Image -->
-    <div class="w-full md:w-3/5">
-      <a href="<?= $featured_project->url() ?>" class="block rounded-md overflow-hidden aspect-[16/9] group">
-        <?php if ($cover = $featured_project->cover()->toFile()): ?>
-          <img src="<?= $cover->crop(1200, 675)->url() ?>" alt="<?= $cover->alt()->esc() ?>" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
-        <?php else: ?>
-          <div class="w-full h-full bg-ink/10 flex items-center justify-center">
-             <span class="text-faint">Pas d'image</span>
-          </div>
-        <?php endif ?>
-      </a>
-    </div>
-    <!-- Featured Project Text -->
-    <div class="w-full md:w-2/5 flex flex-col justify-center">
-      <p class="font-mono text-xs uppercase tracking-wider text-faint mb-4">Projet à la une</p>
-      <h3 class="font-thyssen text-4xl lg:text-5xl text-ink leading-snug mb-4">
-        <a href="<?= $featured_project->url() ?>" class="hover:underline"><?= $featured_project->title()->esc() ?></a>
-      </h3>
-      <?php if ($featured_project->location()->isNotEmpty()): ?>
-        <p class="font-mono text-xs uppercase text-faint mb-5 flex items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
-            <circle cx="12" cy="10" r="3"></circle>
-          </svg>
-          <?= $featured_project->location()->esc() ?>
-        </p>
-      <?php endif ?>
-      <p class="font-sans text-base text-mid leading-relaxed mb-8">
-        <?= $featured_project->description()->isNotEmpty() ? $featured_project->description()->clean() : $featured_project->text()->toBlocks()->excerpt(150) ?>
-      </p>
-      <a href="<?= $featured_project->url() ?>" class="btn self-start">Découvrir le projet</a>
-    </div>
-  </div>
-</section>
-<?php endif ?>
+
 
 <section class="py-12 md:py-20">
 
@@ -139,21 +102,39 @@ snippet('header');
     <?= $page->procedeHeading()->or('Le procédé GOVR') ?>
   </h2>
 
-  <div class="col-7 overflow-hidden rounded-md aspect-[16/9] md:aspect-[4/1] relative" id="procede-images">
-    <?php if ($step1Img = $page->step1Image()->toFile()): ?>
-      <img src="<?= $step1Img->url() ?>" alt="Acquisition" class="procede-image" data-step="0">
+  <div class="col-7 overflow-hidden rounded-md relative h-[300px] md:h-[500px] bg-surface" id="procede-images">
+    <?php if ($f1 = $page->step1Image()->toFiles()->first()): ?>
+      <div class="procede-image" data-step="0">
+        <?php if ($f1->type() === 'video'): ?>
+          <video src="<?= $f1->url() ?>" autoplay loop muted playsinline class="w-full h-full object-cover"></video>
+        <?php else: ?>
+          <img src="<?= $f1->url() ?>" alt="Acquisition" class="w-full h-full object-cover">
+        <?php endif ?>
+      </div>
     <?php endif ?>
 
-    <?php if ($step2Img = $page->step2Image()->toFile()): ?>
-      <img src="<?= $step2Img->url() ?>" alt="Traitement" class="procede-image is-hidden" data-step="1">
+    <?php if ($f2 = $page->step2Image()->toFiles()->first()): ?>
+      <div class="procede-image is-hidden" data-step="1">
+        <?php if ($f2->type() === 'video'): ?>
+          <video src="<?= $f2->url() ?>" autoplay loop muted playsinline class="w-full h-full object-cover"></video>
+        <?php else: ?>
+          <img src="<?= $f2->url() ?>" alt="Traitement" class="w-full h-full object-cover">
+        <?php endif ?>
+      </div>
     <?php endif ?>
 
-    <?php if ($step3Img = $page->step3Image()->toFile()): ?>
-      <img src="<?= $step3Img->url() ?>" alt="Production" class="procede-image is-hidden" data-step="2">
+    <?php if ($f3 = $page->step3Image()->toFiles()->first()): ?>
+      <div class="procede-image is-hidden" data-step="2">
+        <?php if ($f3->type() === 'video'): ?>
+          <video src="<?= $f3->url() ?>" autoplay loop muted playsinline class="w-full h-full object-cover"></video>
+        <?php else: ?>
+          <img src="<?= $f3->url() ?>" alt="Production" class="w-full h-full object-cover">
+        <?php endif ?>
+      </div>
     <?php endif ?>
   </div>
 
-  <div class="col-7 bg-surface rounded-md relative overflow-hidden p-4 pt-4">
+  <div id="procede-steps-container" class="col-7 bg-surface rounded-md relative z-10 overflow-hidden p-4 pt-4">
 
     <div class="absolute top-0 left-0 w-full h-1 bg-border/50">
       <div id="procede-progress" class="h-full bg-mid w-0 transition-none"></div>
@@ -228,7 +209,7 @@ snippet('header');
       <p class="font-sans text-base text-white/60 leading-relaxed max-w-lg">
         <?= $page->manifestoFooterText()->nl2br() ?>
       </p>
-      <a href="<?= url('contact') ?>" class="btn border-white/40 text-white hover:bg-white hover:text-ink hover:border-white flex-shrink-0 transition-colors duration-150">
+      <a href="<?= url('contact') ?>" class="btn btn--secondary shrink-0 transition-colors duration-150">
         Protéger votre site
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -242,6 +223,45 @@ snippet('header');
 
 </section>
 
+<?php if ($featured_project = $site->featured_project()->toPage()): ?>
+<section class="py-12 md:py-20">
+  <div class="col-7 flex flex-col md:flex-row gap-10 lg:gap-16 items-center w-full">
+    <!-- Featured Project Image -->
+    <div class="w-full md:w-3/5">
+      <a href="<?= $featured_project->url() ?>" class="block rounded-md overflow-hidden aspect-video group">
+        <?php if ($cover = $featured_project->cover()->toFile()): ?>
+          <img src="<?= $cover->crop(1200, 675)->url() ?>" alt="<?= $cover->alt()->esc() ?>" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+        <?php else: ?>
+          <div class="w-full h-full bg-ink/10 flex items-center justify-center">
+             <span class="text-faint">Pas d'image</span>
+          </div>
+        <?php endif ?>
+      </a>
+    </div>
+    <!-- Featured Project Text -->
+    <div class="w-full md:w-2/5 flex flex-col justify-center">
+      <p class="font-mono text-xs uppercase tracking-wider text-faint mb-4">Projet à la une</p>
+      <h3 class="font-thyssen text-4xl lg:text-5xl text-ink leading-snug mb-4">
+        <a href="<?= $featured_project->url() ?>" class="hover:underline"><?= $featured_project->title()->esc() ?></a>
+      </h3>
+      <?php if ($featured_project->location()->isNotEmpty()): ?>
+        <p class="font-mono text-xs uppercase text-faint mb-5 flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <?= $featured_project->location()->esc() ?>
+        </p>
+      <?php endif ?>
+      <p class="font-sans text-base text-mid leading-relaxed mb-8">
+        <?= $featured_project->description()->isNotEmpty() ? $featured_project->description()->clean() : $featured_project->text()->toBlocks()->excerpt(150) ?>
+      </p>
+      <a href="<?= $featured_project->url() ?>" class="btn w-full md:w-auto justify-center self-start">Découvrir le projet</a>
+    </div>
+  </div>
+</section>
+<?php endif ?>
+
 <section class="py-12 md:py-20">
   <h2 class="col-7 font-sans text-[clamp(1.25rem,2vw,1.75rem)] text-ink leading-tight mb-6">
     <?= $page->projectsHeading()->or('Nos derniers projets') ?>
@@ -254,7 +274,7 @@ snippet('header');
       ?>
       <a href="<?= $project->url() ?>"
         class="col-span-1 md:col-span-2 block no-underline hover:no-underline group transition-transform duration-200">
-        <div class="overflow-hidden rounded-md aspect-[16/7] mb-3 bg-surface">
+        <div class="overflow-hidden rounded-md aspect-16/7 mb-3 bg-surface">
           <?php if ($cover = $project->cover()->toFile()): ?>
             <img src="<?= $cover->crop(800, 350)->url() ?>" alt="<?= $cover->alt()->esc() ?>" loading="lazy"
               class="w-full h-full object-cover">
@@ -286,7 +306,7 @@ snippet('header');
 
     <!-- "Tous nos projets" Button acting as the 4th card in col-7 -->
     <a href="<?= url('map') ?>"
-      class="btn border-[4px] border-border hover:bg-surface hover:border-surface col-span-1 md:col-span-1 flex flex-col items-center justify-center p-6 bg-transparent transition-colors duration-150 rounded-md no-underline group h-full min-h-[150px]">
+      class="btn border-border hover:bg-surface hover:border-surface col-span-1 md:col-span-1 flex flex-col items-center justify-center p-6 bg-transparent transition-colors duration-150 rounded-md no-underline group h-full min-h-[150px]">
       <!-- Enter key arrow (corner-down-left) -->
       <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
@@ -314,7 +334,7 @@ snippet('header');
       <p class="font-sans text-base text-mid leading-relaxed mb-6">
         <?= $page->deliverablesText()->nl2br() ?>
       </p>
-      <a href="<?= url('contact') ?>" class="btn self-start">
+      <a href="<?= url('contact') ?>" class="btn w-full md:w-auto justify-center self-start mb-6 md:mb-0">
         Demander un devis
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -359,27 +379,27 @@ snippet('header');
 
 </section>
 
-<section class="py-12 mb-16">
-  <div class="col-7 relative rounded-md overflow-hidden min-h-[50vh] flex items-center justify-center p-12 bg-ink">
+<section class="py-12 mb-8 md:mb-16">
+  <div class="col-7 relative rounded-md overflow-hidden min-h-[40vh] md:min-h-[50vh] flex items-center justify-center p-6 md:p-12 bg-ink">
     <?php if ($impactImg = $page->impactImage()->toFile()): ?>
       <div class="absolute inset-0 opacity-20 mix-blend-luminosity pointer-events-none">
         <img src="<?= $impactImg->url() ?>" alt="Statistiques" class="w-full h-full object-cover">
       </div>
     <?php endif ?>
 
-    <div class="relative z-10 flex flex-col items-center text-center max-w-3xl col-start-2 col-end-7 mx-auto">
+    <div class="relative z-10 flex flex-col items-start text-left max-w-3xl col-start-2 col-end-7">
       <?php if ($page->impactTag()->isNotEmpty()): ?>
         <p class="font-mono text-xs uppercase tracking-wider text-white/40 mb-6"><?= $page->impactTag()->esc() ?></p>
       <?php endif ?>
-      <h2 class="font-thyssen text-4xl sm:text-5xl md:text-7xl text-white leading-tight mb-6 mt-8">
+      <h2 class="font-thyssen text-3xl sm:text-5xl md:text-7xl text-white leading-tight mb-4 mt-4">
         <?= $page->impactHeading()->or('Préserver pour l\'éternité.') ?>
       </h2>
-      <p class="font-sans text-lg text-white/80 mb-10 leading-relaxed">
+      <p class="font-sans text-sm md:text-lg text-white/80 mb-8 leading-relaxed">
         <?= $page->impactText()->nl2br() ?>
       </p>
-      <div class="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
+      <div class="flex flex-col sm:flex-row gap-3 w-full">
         <a href="<?= url('contact') ?>"
-          class="btn w-full sm:w-auto border-[4px] !border-surface !text-surface hover:!bg-surface hover:!text-ink transition-colors duration-150">
+          class="btn btn--secondary w-full sm:w-auto justify-center transition-colors duration-150">
           Contactez nous
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -388,7 +408,7 @@ snippet('header');
           </svg>
         </a>
         <a href="<?= url('map') ?>"
-          class="btn w-full sm:w-auto !bg-surface border-[4px] !border-surface !text-ink hover:!bg-white hover:!border-white transition-colors duration-150">
+          class="btn btn--orange w-full sm:w-auto transition-colors duration-150 justify-center">
           Explorer la carte
         </a>
       </div>

@@ -6,11 +6,35 @@ Heroheading: Notre patrimoine, modélisé et accessible en 3D
 
 ----
 
+Heroimage: []
+
+----
+
+Heroimagemobile: []
+
+----
+
 Compareheading: Un jumeau numérique
 
 ----
 
 Comparetext: Grâce à la photogrammétrie et au scan 3D, nous créons des répliques numériques fidèles du patrimoine en danger. Ces modèles permettent une documentation précise, une analyse détaillée et une diffusion accessible à tous, chercheurs comme grand public.
+
+----
+
+Compareimagebefore: - 'file://tv4uwhfelezdsigl'
+
+----
+
+Compareimagebeforemobile: []
+
+----
+
+Compareimageafter: - 'file://omj570exf1uovb3i'
+
+----
+
+Compareimageaftermobile: []
 
 ----
 
@@ -26,11 +50,19 @@ Step1text: Capture photographique haute résolution du patrimoine. Des centaines
 
 ----
 
+Step1image: - 'file://tv4uwhfelezdsigl'
+
+----
+
 Step2title: Traitement
 
 ----
 
 Step2text: Reconstruction photogrammétrique et nettoyage des nuages de points pour former un modèle 3D fidèle.
+
+----
+
+Step2image: - 'file://omj570exf1uovb3i'
 
 ----
 
@@ -42,11 +74,17 @@ Step3text: Optimisation pour le web, textures réalistes et mise en ligne sur la
 
 ----
 
+Step3image: - 'file://gzz0uuhuedgjhnk1'
+
+----
+
 Manifestotag: Conservation par le numérique
 
 ----
 
-Manifestoheading: Le temps efface.
+Manifestoheading:
+
+Le temps efface.
 Nous préservons l'irremplaçable.
 
 ----
@@ -79,20 +117,22 @@ Manifestofootertext: Un jumeau numérique détecte les dégradations invisibles,
 
 ----
 
-Projectsheading: Nos derniers projets
-
-----
-
 Deliverablestag: Métrologie & livrables
 
 ----
 
-Deliverablesheading: Du terrain
+Deliverablesheading:
+
+Du terrain
 au plan côté.
 
 ----
 
 Deliverablestext: Chaque numérisation produit des livrables exploitables immédiatement — plans, mesures précises, données brutes — compatibles avec les outils de votre équipe.
+
+----
+
+Deliverablesimage: []
 
 ----
 
@@ -120,11 +160,23 @@ Deliv3text: Formats IFC, Revit, QGIS. Données brutes E57/LAS disponibles. Le ju
 
 ----
 
+Projectsheading: Nos derniers projets
+
+----
+
+Impacttag: 
+
+----
+
 Impactheading: Préserver pour l'éternité.
 
 ----
 
 Impacttext: Chaque modèle numérisé est une victoire contre le temps et l'oubli. Rejoignez notre base de données mondiale ou signalez-nous des éléments architecturaux en péril immédiat.
+
+----
+
+Impactimage: []
 
 ----
 

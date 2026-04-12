@@ -10,7 +10,7 @@ if ($isMapPage) {
 ?>
 </main>
 
-<footer class="bg-[#1A1916] text-white pt-20 pb-10">
+<footer class="bg-ink text-white pt-20 pb-10">
   <div class="grid-7 mb-20">
 
     <!-- brand column -->
@@ -43,7 +43,7 @@ if ($isMapPage) {
 
     <!-- social links -->
     <div class="col-1">
-      <h2 class="font-mono text-xs uppercase tracking-wider text-[#6B6965] mb-4">Suivre</h2>
+      <h2 class="font-mono text-xs uppercase tracking-wider text-[#6B6965] mb-4">Nous suivre</h2>
       <ul class="list-none flex flex-col gap-2">
       <?php if ($site->social()->isNotEmpty()): ?>
         <?php foreach ($site->social()->toStructure() as $social): ?>

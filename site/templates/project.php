@@ -241,16 +241,6 @@ if ($gallery->count() === 0) {
             </div>
         <?php endif ?>
 
-        <!-- Mobile POI popup (hidden on desktop, shown by viewer.js on hotspot tap) -->
-        <div class="poi-popup" id="poi-popup" aria-hidden="true">
-            <div class="poi-popup__card">
-                <button class="poi-popup__close" id="poi-popup-close" aria-label="Fermer">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-                <h3 class="poi-popup__title" id="poi-popup-title"></h3>
-                <div class="poi-popup__body" id="poi-popup-body"></div>
-            </div>
-        </div>
 
     </div>
 

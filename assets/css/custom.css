@@ -138,11 +138,50 @@ header img {
     text-decoration: none;
 }
 
-/* ── 3D Viewer (Babylon) ──────────────────────────────── */
-babylon {
-    display: block;
-    width: 100%;
-    height: 100%;
+/* ── Button modifiers ──────────────────────────────────── */
+
+/* Orange CTA — brand primary */
+.btn--orange {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-ink);
+}
+
+.btn--orange:hover {
+    background-color: transparent;
+    border-color: var(--color-accent);
+    color: var(--color-ink);
+}
+
+.btn--orange svg {
+    stroke: var(--color-ink);
+}
+
+.btn--secondary {
+    background-color: #ffffff;
+    border-color: #e3e3e3;
+    color: var(--color-ink);
+}
+
+.btn--secondary:hover {
+    background-color: #e3e3e3;
+    border-color: #e3e3e3;
+}
+
+/* Orange CTA — brand primary context overrides */
+.bg-ink .btn--orange:hover {
+    background-color: #fef3ea;
+    border-color: var(--color-accent);
+    color: var(--color-ink);
+}
+
+.bg-ink .btn--orange:hover svg {
+    stroke: var(--color-ink);
+}
+
+/* ── Blog search drawer handle — hidden on desktop ────── */
+.blog-search-drawer__handle {
+    display: none;
 }
 
 /* ── Breadcrumb ───────────────────────────────────────── */
@@ -651,11 +690,28 @@ a.tag:hover {
     inset: 0;
     width: 100%;
     height: 100%;
+    overflow: hidden;
+}
+
+.procede-image img,
+.procede-image video {
+    width: 100%;
+    height: 100%;
+    max-width: none;
     object-fit: cover;
+    border-radius: 0;
 }
 
 .procede-image.is-hidden {
     opacity: 0;
+    pointer-events: none;
+}
+
+#procede-steps-container {
+    transform: translateY(-16px);
+    margin-bottom: -16px;
+    /* consume the overlap space */
+    z-index: 20;
 }
 
 /* ── 3D Model Viewer ──────────────────────────────────── */
@@ -663,7 +719,6 @@ model-viewer {
     --progress-bar-color: var(--color-ink);
     --progress-bar-height: 4px;
     outline: none;
-    /* remove ugly focus ring */
 }
 
 /* Custom progress bar container */
@@ -742,36 +797,70 @@ model-viewer .update-bar {
 
 /* upload-overwrite panel field — styles live in site/plugins/model-converter/index.css */
 
+/* ── Line height — tighten globally, more on mobile ──── */
+body {
+    line-height: 1.45;
+}
+
+.text {
+    line-height: 1.55;
+}
+
+.article-excerpt {
+    line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+    body {
+        line-height: 1.4;
+    }
+
+    .text {
+        line-height: 1.5;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+        line-height: 1.2;
+    }
+}
+
 /* ── Mobile global ──────────────────────────────────── */
 @media (max-width: 640px) {
 
-    /* Compact header */
     header .grid-7 {
         padding-block: 0.75rem;
     }
 
-    /* Compact breadcrumb */
+    /* Nav top matches the shorter header height at mobile (12px*2 + ~30px button = ~54px) */
+    .site-nav {
+        top: 54px;
+    }
+
+    /* Hide breadcrumb on mobile everywhere */
     .breadcrumb {
-        padding: 0.75rem 1.25rem;
-        margin-bottom: 1rem;
+        display: none;
     }
 
-    .breadcrumb__inner {
-        font-size: 1.25rem;
-    }
-
-    /* Ensure main has no extra padding on mobile project/map pages */
     main:has(#project-content),
     #map-main {
         padding-inline: 0 !important;
     }
 
-
 }
 
-/* ── Mobile: map page — hide breadcrumb to save space ── */
 @media (max-width: 60rem) {
     body:has(#map-main) .breadcrumb {
+        display: none;
+    }
+}
+
+/* ── Mobile: project page — hide footer ── */
+/* Drawer occupies the bottom; footer is unreachable and redundant. */
+@media (max-width: 640px) {
+    body:has(#viewer-container) footer {
         display: none;
     }
 }
@@ -779,17 +868,14 @@ model-viewer .update-bar {
 /* ── Mobile homepage & global fixes ─────────────────────── */
 @media (max-width: 640px) {
 
-    /* Hide pure spacer columns */
     .home-spacer {
         display: none !important;
     }
 
-    /* Hero: image first, text below */
     #hero-section {
         display: flex !important;
         flex-direction: column;
         min-height: auto;
-        padding-inline: 1rem;
         padding-top: 1rem;
         padding-bottom: 2rem;
     }
@@ -810,7 +896,6 @@ model-viewer .update-bar {
         max-height: 52vh;
     }
 
-    /* Procede steps: disable JS absolute positioning on mobile */
     #procede-steps {
         height: auto !important;
     }
@@ -821,38 +906,36 @@ model-viewer .update-bar {
         width: 100% !important;
     }
 
-    /* Blog: sidebar moves below articles on mobile */
-    #blog-main-list {
-        display: flex;
-        flex-direction: column;
+    main:has(#hero-section) {
+        gap: 0 !important;
     }
 
-    #blog-main-list>.col-2 {
-        order: 2;
-        padding-right: 0;
-        padding-top: 1.5rem;
-        border-top: 1px solid var(--color-border);
-        margin-top: 1.5rem;
-    }
-
-    #blog-main-list>.col-5 {
-        order: 1;
-    }
-
-    /* Reduce section vertical padding */
     section.py-20 {
-        padding-top: 2.5rem;
-        padding-bottom: 2.5rem;
+        padding-top: 3.5rem;
+        padding-bottom: 3.5rem;
     }
 
     section.py-16 {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
+        padding-top: 3rem;
+        padding-bottom: 3rem;
     }
 
     section.py-12 {
-        padding-top: 1.5rem;
-        padding-bottom: 1.5rem;
+        padding-top: 3rem;
+        padding-bottom: 3rem;
+    }
+
+    #hero-section {
+        padding-bottom: 3rem !important;
+    }
+
+    section:has(#procede-images) {
+        padding-top: 3rem !important;
+        padding-bottom: 3rem !important;
+    }
+
+    .col-7.border-t.border-border {
+        margin-top: 2.5rem !important;
     }
 
     /* Homepage: manifesto big heading */
@@ -877,9 +960,6 @@ model-viewer .update-bar {
     }
 }
 
-/* ── Fix: restore main padding on content pages (homepage, blog, article) ── */
-/* The global mobile rule removed padding-inline for map/project edge-to-edge,
-   but homepage, blog, article need their 1.25rem gutter back. */
 @media (max-width: 640px) {
     body:not(:has(#viewer-container)):not(:has(#map-main)) main {
         padding-inline: 1rem !important;
@@ -889,28 +969,11 @@ model-viewer .update-bar {
 /* ── Complex layouts requiring CSS (grid to flex transitions) ── */
 @media (max-width: 640px) {
 
-    /* Reduce section vertical padding */
-    section.py-20 {
-        padding-top: 2.5rem;
-        padding-bottom: 2.5rem;
-    }
-
-    section.py-16 {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-    }
-
-    section.py-12 {
-        padding-top: 1.5rem;
-        padding-bottom: 1.5rem;
-    }
-
     /* Hero: override grid to flex for reordering */
     #hero-section {
         display: flex !important;
         flex-direction: column;
         min-height: auto;
-        padding-inline: 1rem;
         padding-top: 1rem;
         padding-bottom: 2rem;
     }
@@ -931,15 +994,51 @@ model-viewer .update-bar {
         max-height: 52vh;
     }
 
-    /* Procede steps: disable absolute positioning mobile */
+    /* Procede steps: mobile active/inactive animation */
     #procede-steps {
         height: auto !important;
+        gap: 0.5rem;
     }
 
     #procede-steps [data-step] {
         position: static !important;
         left: auto !important;
         width: 100% !important;
+        transition: opacity 0.35s ease-in-out, transform 0.35s ease-in-out, max-height 0.35s ease-in-out;
+        opacity: 0.45;
+        transform: scale(0.97);
+        overflow: hidden;
+        max-height: 7.5rem;
+        padding: 1rem 1.25rem !important;
+    }
+
+    #procede-steps [data-step]>span {
+        display: block;
+        line-height: 1;
+        margin-bottom: 0.5rem;
+    }
+
+    #procede-steps [data-step]>h3 {
+        margin-bottom: 0;
+        line-height: 1.2;
+    }
+
+    #procede-steps [data-step] p {
+        transition: opacity 0.3s ease-in-out;
+        opacity: 0;
+        margin-top: 0.5rem;
+        margin-bottom: 0;
+    }
+
+    #procede-steps [data-step].is-active {
+        opacity: 1;
+        transform: scale(1);
+        /* close to actual content: 1rem top + ~3rem number + 0.5rem gap + ~1.5rem title + 0.5rem gap + ~3rem text + 1rem bottom */
+        max-height: 11rem;
+    }
+
+    #procede-steps [data-step].is-active p {
+        opacity: 1;
     }
 
     /* Restore main padding for content pages (not map/project) */
@@ -950,5 +1049,114 @@ model-viewer .update-bar {
     /* Compare slider: squarer on mobile */
     .compare-slider {
         aspect-ratio: 4/5;
+    }
+
+    .bg-ink .relative.z-10 {
+        align-items: flex-start !important;
+        text-align: left !important;
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+    }
+}
+
+/* ── Mobile: blog page ──────────────────────────────── */
+@media (max-width: 640px) {
+
+    main:has(#blog-main-list) {
+        padding-top: 1rem !important;
+        /* push content above the peeking drawer */
+        padding-bottom: 72px !important;
+    }
+
+    #blog-main-list {
+        border-top: none;
+        padding-top: 0;
+    }
+
+    /* ── Search + filter: fixed bottom drawer (same pattern as map-panel) ── */
+    #blog-search-drawer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 100;
+        background: var(--color-bg, #fff);
+        border-radius: 14px 14px 0 0;
+        border-top: 1px solid var(--color-border);
+
+        --drawer-peek: 88px;
+        max-height: 75vh;
+        overflow: hidden;
+        transform: translateY(calc(100% - var(--drawer-peek)));
+        transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+
+        /* override flex column gap from desktop */
+        gap: 1rem;
+        padding: 0 1.25rem 2rem;
+        border-bottom: none;
+        padding-bottom: 2rem;
+        margin-bottom: 0;
+    }
+
+    #blog-search-drawer.is-expanded {
+        transform: translateY(0);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Drag handle bar */
+    .blog-search-drawer__handle {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 20px;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .blog-search-drawer__handle::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: rgba(26, 25, 22, 0.18);
+        border-radius: 2px;
+    }
+
+    /* Search bar — tapping it when collapsed expands the drawer */
+    #blog-search-drawer .blog-search-bar {
+        cursor: pointer;
+    }
+
+    #blog-search-drawer .blog-search-bar__input {
+        font-size: 0.9375rem;
+    }
+
+    #blog-recent-sidebar .btn {
+        display: block;
+        border: none !important;
+        background: none !important;
+        padding: 1.75rem 0 0 !important;
+        min-height: 0 !important;
+        margin-top: 0 !important;
+        gap: 0 !important;
+    }
+
+    #blog-recent-sidebar .btn svg {
+        display: none;
+    }
+
+    #blog-recent-sidebar .btn br {
+        display: none;
+    }
+
+    #blog-recent-sidebar .btn span {
+        font-family: var(--font-sans);
+        font-size: 1.375rem;
+        font-weight: 600;
+        text-transform: none;
+        letter-spacing: 0;
+        text-align: left;
+        line-height: 1.2;
     }
 }
