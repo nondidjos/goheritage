@@ -12,11 +12,18 @@ tabs:
         label: Titre principal
         type: text
       heroImage:
-        label: Image ou vidéo hero
+        label: Image ou vidéo hero (bureau)
         type: files
         max: 1
+        width: 1/2
         query: page.files.filterBy('type', 'in', ['image', 'video'])
-        help: Image ou vidéo affichée dans la colonne de droite du hero (la vidéo sera muette et en boucle)
+        help: Vidéo = muette et en boucle
+      heroImageMobile:
+        label: Image hero (mobile, optionnel)
+        type: files
+        max: 1
+        width: 1/2
+        help: Remplace l'image hero sur mobile (≤ 640px)
 
   compare:
     label: Jumeau numérique
@@ -28,13 +35,25 @@ tabs:
         label: Texte d'accompagnement
         type: textarea
       compareImageBefore:
-        label: Image Avant (photo)
+        label: Avant — Bureau (photo)
         type: files
         max: 1
+        width: 1/2
+      compareImageBeforeMobile:
+        label: Avant — Mobile (optionnel)
+        type: files
+        max: 1
+        width: 1/2
       compareImageAfter:
-        label: Image Après (modèle 3D)
+        label: Après — Bureau (modèle 3D)
         type: files
         max: 1
+        width: 1/2
+      compareImageAfterMobile:
+        label: Après — Mobile (optionnel)
+        type: files
+        max: 1
+        width: 1/2
 
   procede:
     label: Procédé
