@@ -26,6 +26,9 @@ RewriteEngine on
 # except for the .well-known folder, which is used for Let's Encrypt and security.txt
 RewriteRule (^|/)\.(?!well-known\/) index.php [L]
 
+# block log files at the document root from being served directly
+RewriteRule ^.*\.log$ - [F,L]
+
 # block all files in the content folder from being accessed directly
 RewriteRule ^content/(.*) index.php [L]
 
@@ -63,5 +66,11 @@ AddOutputFilterByType DEFLATE application/x-javascript
 # (hardens against attacks from malicious file uploads)
 Header set Content-Type "text/plain" "expr=-z %{CONTENT_TYPE}"
 Header set X-Content-Type-Options "nosniff"
+Header set X-Frame-Options "SAMEORIGIN"
+Header set Referrer-Policy "strict-origin-when-cross-origin"
+Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+
+# Uncomment once the site is served over HTTPS:
+# Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
 
 </IfModule>

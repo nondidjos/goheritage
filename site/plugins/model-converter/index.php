@@ -192,7 +192,7 @@ Kirby::plugin('goheritage/model-converter', [
                 'auth'    => false,
                 'action'  => function () {
                     // Temporarily raise limits just for this heavy API route
-                    ini_set('memory_limit', '-1');
+                    ini_set('memory_limit', '1G');
                     set_time_limit(3600);
                     
                     $kirby   = kirby();
@@ -399,12 +399,9 @@ function compressTexture($file, $size = 4096, $quality = 85) {
         'C:\\Program Files\\nodejs\\node.exe',
         'C:\\Program Files (x86)\\nodejs\\node.exe',
     ];
-    $node = null;
+    $node = 'node'; // fallback: use node from PATH (works on Linux/macOS)
     foreach ($nodeCandidates as $c) {
         if (file_exists($c)) { $node = $c; break; }
-    }
-    if (!$node) {
-        throw new \Exception('[model-converter] node.exe not found');
     }
 
     $script   = __DIR__ . '/compress-texture.js';
