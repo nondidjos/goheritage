@@ -10,6 +10,16 @@ panel.plugin('goheritage/model-converter', {
     'upload-overwrite': {
       template: `
         <k-field v-bind="$props" class="k-upload-overwrite-field">
+          <k-button
+            v-if="localFiles && localFiles.length"
+            slot="options"
+            icon="trash"
+            text="Tout supprimer"
+            variant="filled"
+            size="sm"
+            :disabled="uploading"
+            @click="confirmDeleteAll"
+          />
           <div class="k-upload-overwrite-wrap">
 
             <!-- Native Kirby dropzone -->
@@ -22,17 +32,17 @@ panel.plugin('goheritage/model-converter', {
                 icon="upload"
                 text="Sélectionner"
                 :disabled="uploading"
-                @click.stop="$refs.input.click()"
-              />
-              <input
-                ref="input"
-                type="file"
-                :accept="accept || undefined"
-                style="display:none"
-                @change="upload"
-                :disabled="uploading"
+                @click.stop="$refs.fileInput.click()"
               />
             </k-dropzone>
+            <input
+              ref="fileInput"
+              type="file"
+              :accept="accept || undefined"
+              style="display:none"
+              @change="upload"
+              :disabled="uploading"
+            />
 
             <!-- File list -->
             <ul v-if="matchingFiles.length" class="k-upload-overwrite-list">
@@ -156,7 +166,7 @@ panel.plugin('goheritage/model-converter', {
             const ext = file.name.split('.').pop().toLowerCase();
             if (!exts.includes(ext)) {
               this.showMessage(`Extension non autorisée : .${ext}`, 'error');
-              this.$refs.input.value = '';
+              if (this.$refs.fileInput) this.$refs.fileInput.value = '';
               return;
             }
           }
@@ -177,11 +187,13 @@ panel.plugin('goheritage/model-converter', {
               body: form,
             });
 
-            const json = await resp.json();
-
             if (!resp.ok) {
-              this.showMessage('Erreur : ' + (json.error || resp.statusText), 'error');
+              const body = await resp.text().catch(() => '');
+              let errorMsg = resp.statusText;
+              try { const errJson = JSON.parse(body); if (errJson.error) errorMsg = errJson.error; } catch(e) {}
+              this.showMessage('Erreur : ' + errorMsg, 'error');
             } else {
+              const json = await resp.json();
               const verb = json.status === 'replaced' ? 'Remplacé' : 'Ajouté';
               this.showMessage(`${verb} : ${json.filename}`, 'success');
               // Update local list immediately so the file shows without waiting for reload
@@ -192,10 +204,10 @@ panel.plugin('goheritage/model-converter', {
               this.$panel.view.reload();
             }
           } catch (err) {
-            this.showMessage('Erreur : ' + err.message, 'error');
+            this.showMessage('Erreur réseau : ' + err.message, 'error');
           } finally {
             this.uploading = false;
-            this.$refs.input.value = '';
+            if (this.$refs.fileInput) this.$refs.fileInput.value = '';
           }
         },
 
@@ -214,27 +226,58 @@ panel.plugin('goheritage/model-converter', {
           });
         },
 
+        confirmDeleteAll() {
+          this.$panel.dialog.open({
+            component: 'k-remove-dialog',
+            props: {
+              text: `Supprimer tous les fichiers de ce champ ?`,
+            },
+            on: {
+              submit: () => {
+                this.$panel.dialog.close();
+                this.deleteAll();
+              },
+            },
+          });
+        },
+
+        async deleteAll() {
+          this.uploading = true;
+          this.message = 'Suppression en cours…';
+          try {
+            const toDelete = [...this.localFiles];
+            for (const f of toDelete) {
+              await this._rawDelete(f.filename);
+              this.localFiles = this.localFiles.filter(x => x.filename !== f.filename);
+            }
+            this.showMessage('Tous les fichiers ont été supprimés', 'success');
+            this.$panel.view.reload();
+          } catch (err) {
+            this.showMessage('Erreur : ' + err.message, 'error');
+          } finally {
+            this.uploading = false;
+          }
+        },
+
+        async _rawDelete(filename) {
+          const params = new URLSearchParams({ pageId: this.pageId || '', filename });
+          const resp = await fetch(`/api/goheritage/delete-file?${params}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF': panel.csrf },
+          });
+          if (!resp.ok) {
+            const body = await resp.text().catch(() => '');
+            let errorMsg = `HTTP ${resp.status}`;
+            try { const errJson = JSON.parse(body); if (errJson.error) errorMsg = errJson.error; } catch(e) {}
+            throw new Error(errorMsg);
+          }
+        },
+
         async deleteFile(file) {
           try {
-            const params = new URLSearchParams({
-              pageId: this.pageId || '',
-              filename: file.filename,
-            });
-            const resp = await fetch(
-              `/api/goheritage/delete-file?${params}`,
-              {
-                method: 'DELETE',
-                headers: { 'X-CSRF': panel.csrf },
-              }
-            );
-
-            const json = await resp.json().catch(() => ({}));
-            if (!resp.ok) {
-              this.showMessage('Erreur : ' + (json.error || resp.statusText), 'error');
-            } else {
-              this.showMessage(`Supprimé : ${file.filename}`, 'success');
-              this.$panel.view.reload();
-            }
+            await this._rawDelete(file.filename);
+            this.showMessage(`Supprimé : ${file.filename}`, 'success');
+            this.$panel.view.reload();
           } catch (err) {
             this.showMessage('Erreur : ' + err.message, 'error');
           }
@@ -263,13 +306,15 @@ panel.plugin('goheritage/model-converter', {
               method: 'POST',
               headers: { 'X-CSRF': panel.csrf },
             });
-            const json = await resp.json().catch(() => ({}));
-            if (resp.ok) {
+            if (!resp.ok) {
+              const body = await resp.text().catch(() => '');
+              let errorMsg = resp.statusText;
+              try { const errJson = JSON.parse(body); if (errJson.error) errorMsg = errJson.error; } catch(e) {}
+              this.showMessage('Erreur : ' + errorMsg, 'error');
+              this.$set(this.localFiles, idx, { ...file, compressing: false });
+            } else {
               this.showMessage('Compressé ✓', 'success');
               this.$panel.view.reload();
-            } else {
-              this.showMessage('Erreur : ' + (json.error || resp.statusText), 'error');
-              this.$set(this.localFiles, idx, { ...file, compressing: false });
             }
           } catch (err) {
             this.showMessage('Erreur : ' + err.message, 'error');
@@ -331,8 +376,10 @@ panel.plugin('goheritage/model-converter', {
             headers: { 'X-CSRF': panel.csrf },
           });
           if (!resp.ok) {
-            const json = await resp.json().catch(() => ({}));
-            throw new Error(json.error || `HTTP ${resp.status}`);
+            const body = await resp.text().catch(() => '');
+            let errorMsg = `HTTP ${resp.status}`;
+            try { const errJson = JSON.parse(body); if (errJson.error) errorMsg = errJson.error; } catch(e) {}
+            throw new Error(errorMsg);
           }
         },
         confirmDelete(file) {
@@ -375,16 +422,17 @@ panel.plugin('goheritage/model-converter', {
         },
       },
       template: `
-        <div class="k-field">
-          <k-field-header label="Fichiers">
-            <template #options>
-              <k-button-group v-if="localFiles.length">
-                <k-button icon="files" size="sm" :disabled="busyAll" @click="confirmDeleteAll">
-                  {{ busyAll ? 'Suppression…' : 'Tout supprimer' }}
-                </k-button>
-              </k-button-group>
-            </template>
-          </k-field-header>
+        <k-field label="Fichiers" class="k-page-files-list-field">
+          <k-button
+            v-if="localFiles && localFiles.length"
+            slot="options"
+            icon="trash"
+            text="Tout supprimer"
+            variant="filled"
+            size="sm"
+            :disabled="busyAll"
+            @click="confirmDeleteAll"
+          />
           <ul v-if="localFiles.length" class="k-upload-overwrite-list">
             <li v-for="f in localFiles" :key="f.filename" class="k-upload-overwrite-list__item">
               <k-icon type="file" class="k-upload-overwrite-list__icon" />
@@ -427,6 +475,10 @@ panel.plugin('goheritage/model-converter', {
             const resp = await fetch('/api/goheritage/geocode?q=' + encodeURIComponent(this.query), {
               headers: { 'X-CSRF': panel.csrf },
             });
+            if (!resp.ok) {
+              this.results = [];
+              return;
+            }
             const json = await resp.json();
             this.results = (json.features || []).map(f => ({
               label: f.place_name || f.text || '',
