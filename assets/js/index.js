@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (viewerContainer) {
             viewerContainer.addEventListener('click', function (e) {
                 // Don't collapse if clicking a label or control inside the viewer
-                if (e.target.closest('.viewer-label, .viewer-toggle, .poi-popup')) return;
+                if (e.target.closest('.viewer-label, .viewer-toggle')) return;
                 if (projectContent.classList.contains('is-expanded')) {
                     projectContent.classList.remove('is-expanded');
                 }
@@ -227,6 +227,27 @@ document.addEventListener('DOMContentLoaded', function () {
         autoPlayReq = requestAnimationFrame(tick);
     }
 
+    // ── Blog: search drawer (mobile) ──
+    var blogSearchDrawer = document.getElementById('blog-search-drawer');
+    var blogSearchHandle = document.getElementById('blog-search-handle');
+    if (blogSearchDrawer && blogSearchHandle) {
+        function toggleBlogDrawer(e) {
+            blogSearchDrawer.classList.toggle('is-expanded');
+        }
+        blogSearchHandle.addEventListener('click', toggleBlogDrawer);
+
+        // Tapping the search bar itself expands when collapsed
+        var blogSearchBar = blogSearchDrawer.querySelector('.blog-search-bar');
+        if (blogSearchBar) {
+            blogSearchBar.addEventListener('click', function (e) {
+                if (!blogSearchDrawer.classList.contains('is-expanded')) {
+                    e.preventDefault();
+                    blogSearchDrawer.classList.add('is-expanded');
+                }
+            });
+        }
+    }
+
     // ── Blog: client-side tag filtering ──
     var tagBtns = document.querySelectorAll('[data-filter-tag]');
     var blogArticles = document.querySelectorAll('[data-article-tags]');
@@ -247,7 +268,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
             // applyBlogFilters is defined below; defer so it runs after declaration
-            setTimeout(function () { applyBlogFilters(); }, 0);
+            setTimeout(function () {
+                applyBlogFilters();
+                var filtersEl = document.getElementById('blog-main-list');
+                if (filtersEl) filtersEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
         }
 
         tagBtns.forEach(function (btn) {

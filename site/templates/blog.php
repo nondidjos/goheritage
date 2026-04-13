@@ -44,8 +44,9 @@ function resolveAuthor($field): string {
           <div class="flex flex-wrap gap-2">
             <?php
               $tags = $flagship->tags()->split(',');
-              $displayTags = array_slice($tags, 0, 1);
-              $extra = count($tags) - 1;
+              $primaryTag = $flagship->primary_tag()->isNotEmpty() ? trim($flagship->primary_tag()->value()) : null;
+              $displayTags = $primaryTag ? [$primaryTag] : array_slice($tags, 0, 1);
+              $extra = $primaryTag ? count(array_filter($tags, fn($t) => trim($t) !== $primaryTag)) : count($tags) - 1;
             ?>
             <?php foreach ($displayTags as $tag): ?>
               <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($tag)) ?>" class="tag"><?= esc(trim($tag)) ?></a>
@@ -74,20 +75,23 @@ function resolveAuthor($field): string {
 
       <div class="col-1 hidden lg:block"></div>
 
-      <aside class="col-2 flex flex-col justify-start">
+      <aside class="col-2 flex flex-col justify-start" id="blog-recent-sidebar">
         <div class="flex flex-col divide-y divide-border">
           <?php foreach ($recent as $article): ?>
             <article class="pt-5 pb-7 first:pt-0 group">
               <div class="flex justify-between items-center mb-3">
                 <div class="flex flex-wrap gap-1.5">
-                  <?php 
+                  <?php
                     $aTags = $article->tags()->split(',');
-                    foreach (array_slice($aTags, 0, 1) as $tag): 
+                    $aPrimary = $article->primary_tag()->isNotEmpty() ? trim($article->primary_tag()->value()) : null;
+                    $aDisplay = $aPrimary ?? (trim($aTags[0] ?? ''));
+                    $aExtra = $aPrimary ? count(array_filter($aTags, fn($t) => trim($t) !== $aPrimary)) : count($aTags) - 1;
                   ?>
-                    <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($tag)) ?>" class="tag"><?= esc(trim($tag)) ?></a>
-                  <?php endforeach ?>
-                  <?php if (count($aTags) > 1): ?>
-                    <span class="tag" style="background-color:transparent;border:1px solid var(--color-border);">+<?= count($aTags) - 1 ?></span>
+                  <?php if ($aDisplay): ?>
+                    <a href="<?= url('blog') ?>?tag=<?= urlencode($aDisplay) ?>" class="tag"><?= esc($aDisplay) ?></a>
+                  <?php endif ?>
+                  <?php if ($aExtra > 0): ?>
+                    <span class="tag" style="background-color:transparent;border:1px solid var(--color-border);">+<?= $aExtra ?></span>
                   <?php endif ?>
                 </div>
                 <span class="byline"><?= resolveAuthor($article->author()) ?></span>
@@ -124,10 +128,11 @@ function resolveAuthor($field): string {
     </div>
 
     <!-- Main Article List -->
-    <div class="border-t border-border pt-8 md:pt-12 mb-12">
+    <div class="border-t border-border pt-8 md:pt-12 mb-12" id="blog-main-list">
 
-      <!-- Left sidebar: 2 columns (Search, Tags) -->
-      <aside class="col-2 flex flex-col gap-10 pr-0 md:pr-8 mb-8 md:mb-0 border-b border-border pb-8 md:border-b-0 md:pb-0 md:mt-0">
+      <!-- Left sidebar: 2 columns (Search, Tags) — becomes bottom drawer on mobile -->
+      <aside class="col-2 flex flex-col gap-10 pr-0 md:pr-8 mb-8 md:mb-0 border-b border-border pb-8 md:border-b-0 md:pb-0 md:mt-0" id="blog-search-drawer">
+        <div class="blog-search-drawer__handle" id="blog-search-handle"></div>
 
         <form action="<?= $page->url() ?>" method="GET">
           <div class="blog-search-bar">
@@ -180,16 +185,19 @@ function resolveAuthor($field): string {
             </div>
 
             <!-- 3 columns of 5 for text -->
-            <div class="md:col-span-3 flex flex-col justify-start">
+            <div class="md:col-span-3 flex flex-col">
               <div class="flex flex-wrap gap-2 mb-3">
-                <?php 
+                <?php
                   $iTags = $item->tags()->split(',');
-                  foreach (array_slice($iTags, 0, 1) as $tag): 
+                  $iPrimary = $item->primary_tag()->isNotEmpty() ? trim($item->primary_tag()->value()) : null;
+                  $iDisplay = $iPrimary ?? (trim($iTags[0] ?? ''));
+                  $iExtra = $iPrimary ? count(array_filter($iTags, fn($t) => trim($t) !== $iPrimary)) : count($iTags) - 1;
                 ?>
-                  <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($tag)) ?>" class="tag"><?= esc(trim($tag)) ?></a>
-                <?php endforeach ?>
-                <?php if (count($iTags) > 1): ?>
-                  <span class="tag" style="background-color:transparent;border:1px solid var(--color-border);">+<?= count($iTags) - 1 ?></span>
+                <?php if ($iDisplay): ?>
+                  <a href="<?= url('blog') ?>?tag=<?= urlencode($iDisplay) ?>" class="tag"><?= esc($iDisplay) ?></a>
+                <?php endif ?>
+                <?php if ($iExtra > 0): ?>
+                  <span class="tag" style="background-color:transparent;border:1px solid var(--color-border);">+<?= $iExtra ?></span>
                 <?php endif ?>
               </div>
               <h3 class="font-sans font-semibold text-2xl text-ink leading-tight mb-3 transition-colors tracking-tight">
@@ -203,7 +211,7 @@ function resolveAuthor($field): string {
                   echo esc($excerpt ?: 'Contenu détaillé prochainement disponible.');
                 ?>
               </p>
-              <div class="mt-4 flex items-center gap-3">
+              <div class="mt-auto pt-4 flex items-center gap-3">
                 <span class="byline"><?= resolveAuthor($item->author()) ?></span>
                 <span class="font-mono text-[10px] text-faint"><?= $item->date()->toDate('d M Y') ?></span>
               </div>
