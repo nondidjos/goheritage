@@ -53,6 +53,14 @@ columns:
             options: query
             query: site.index.pluck("tags", ",", true)
             help: "Sélectionnez un tag existant ou tapez-en un nouveau."
+
+          primary_tag:
+            type: select
+            label: Tag mis en avant
+            placeholder: "Premier tag par défaut"
+            options: query
+            query: site.index.pluck("tags", ",", true)
+            help: "Tag affiché en badge sur les cartes. Si vide, le premier tag est utilisé."
       files:
         type: files
         label: Fichiers

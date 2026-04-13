@@ -26,6 +26,14 @@ F::$types['document'][] = 'json';
 
 Kirby::plugin('goheritage/model-converter', [
 
+    // ── Page method: merged annotation list for blueprint queries ─────────
+    'pageMethods' => [
+        'allAnnotations' => function () {
+            return $this->annotations()->toStructure()
+                ->add($this->annotations_interior()->toStructure());
+        },
+    ],
+
     // ── Panel field ──────────────────────────────────────────────────────────
     'fields' => [
         'upload-overwrite' => [

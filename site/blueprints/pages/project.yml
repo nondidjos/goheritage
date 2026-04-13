@@ -118,6 +118,14 @@ tabs:
             query: site.index.pluck("tags", ",", true)
             help: "Commencez à taper pour réutiliser un tag existant ou appuyez sur Entrée pour en créer un nouveau."
 
+          primary_tag:
+            type: select
+            label: Tag mis en avant
+            placeholder: "Premier tag par défaut"
+            options: query
+            query: site.index.pluck("tags", ",", true)
+            help: "Tag affiché en badge sur les cartes. Si vide, le premier tag est utilisé."
+
   # ── Tab 3 : Modèle 3D ─────────────────────────────────────────────────────
   viewer:
     label: Modèle 3D
