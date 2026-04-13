@@ -31,8 +31,8 @@ function initViewer(container) {
   const interiorGlbUrl = container.dataset.glbInterior || null;
   const interiorTexUrl = container.dataset.textureInterior || null;
 
-  const hotspotsJsonUrl         = container.dataset.hotspotsJson         || null;
-  const hotspotsJsonInteriorUrl = container.dataset.hotspotsJsonInterior  || null;
+  const hotspotsJsonUrl = container.dataset.hotspotsJson || null;
+  const hotspotsJsonInteriorUrl = container.dataset.hotspotsJsonInterior || null;
 
   // CMS annotations passed as JSON data attribute
   let cmsAnnotations = [];
@@ -93,17 +93,17 @@ function initViewer(container) {
   // dolly slows to a crawl at close range).
   function handleZoom(e) {
     e.preventDefault();
-    var dir  = new THREE.Vector3().subVectors(camera.position, controls.target);
+    var dir = new THREE.Vector3().subVectors(camera.position, controls.target);
     var dist = dir.length();
     // Smoothly combines distance scaling (fast from afar) and structural radius (brisk up close).
     // Original static rate was 0.08 * R. The new baseline here is gently bumped to 0.10 * R.
     var step = (dist * 0.08) + (modelRadius * 0.10);
-    
+
     // Restore original gentle floor
     if (step < 0.5) step = 0.5;
     var sign = (e.deltaY > 0) ? 1 : -1;
     var newDist = dist + sign * step;
-    if (newDist < 0.1) newDist = 0.1; 
+    if (newDist < 0.1) newDist = 0.1;
     camera.position.copy(controls.target).addScaledVector(dir.normalize(), newDist);
     controls.update();
   }
@@ -216,9 +216,10 @@ function initViewer(container) {
 
     var maxDim = Math.max(size.x, size.y, size.z);
     var fov = camera.fov * (Math.PI / 180);
-    var dist = (maxDim / 2) / Math.tan(fov / 2) * 1.4;
+    var dist = (maxDim / 2) / Math.tan(fov / 2) * 0.8;
 
     camera.position.copy(center);
+    camera.position.y += maxDim * 0.55;
     camera.position.z += dist;
     camera.near = maxDim * 0.001;
     camera.far = maxDim * 10;
@@ -407,8 +408,12 @@ function initViewer(container) {
     var poiSections = document.querySelectorAll('.poi-section[data-hotspot]');
     poiSections.forEach(function (section) {
       section.addEventListener('toggle', function () {
-        if (section.open) {
-          activateHotspot(section.dataset.hotspot);
+        var id = section.dataset.hotspot;
+        if (section.open && id !== activeHotspotId) {
+          activateHotspot(id);
+        } else if (!section.open && id === activeHotspotId) {
+          deactivateHotspot(id);
+          activeHotspotId = null;
         }
       });
     });
@@ -694,16 +699,25 @@ function initViewer(container) {
     // highlight 3D label
     if (hs.el) hs.el.classList.add('is-active');
 
-    // highlight panel entry (desktop)
-    var panelEntry = document.querySelector('.annotation-entry[data-hotspot="' + id + '"]');
-    if (panelEntry) {
-      panelEntry.classList.add('is-active');
-      panelEntry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // open + scroll the matching <details> section in the left panel
+    var poiSection = document.querySelector('.poi-section[data-hotspot="' + id + '"]');
+    if (poiSection && !poiSection.open) {
+      poiSection.open = true;
+      var summary = poiSection.querySelector('.poi-section__summary');
+      if (summary) {
+        summary.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        poiSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
 
-    // On mobile: show POI popup with the matching section's content
-    if (isMobile) {
-      showPoiPopup(id);
+    // On mobile: open the drawer only when there's a section linked to this hotspot
+    if (isMobile && poiSection) {
+      var projectContent = document.getElementById('project-content');
+      if (projectContent && !projectContent.classList.contains('is-expanded')) {
+        projectContent.classList.add('is-expanded');
+        document.body.style.overflow = 'hidden';
+      }
     }
 
     // camera behaviour depends on mode
@@ -720,9 +734,9 @@ function initViewer(container) {
       // biased upward so the camera is never below or inside the model.
       var dir = targetPos.clone().sub(modelCenter).normalize();
       if (dir.length() < 0.01) dir.set(0, 0, 1);
-      dir.y += 0.5;
+      dir.y += 1.4;
       dir.normalize();
-      cameraTarget = targetPos.clone().add(dir.multiplyScalar(modelRadius * 1.5));
+      cameraTarget = targetPos.clone().add(dir.multiplyScalar(modelRadius * 0.45));
     }
 
     var lookAtTarget = hs.lookAt ? hs.lookAt.clone() : targetPos.clone();
@@ -743,13 +757,12 @@ function initViewer(container) {
   function deactivateHotspot(id) {
     var hs = hotspots.find(function (h) { return h.id === id; });
     if (hs && hs.el) hs.el.classList.remove('is-active');
-    if (isMobile) hidePoiPopup();
 
     stopAutoOrbit();
     controls.enabled = true;
 
-    var panelEntry = document.querySelector('.annotation-entry[data-hotspot="' + id + '"]');
-    if (panelEntry) panelEntry.classList.remove('is-active');
+    var poiSection = document.querySelector('.poi-section[data-hotspot="' + id + '"]');
+    if (poiSection && poiSection.open) poiSection.open = false;
   }
 
   // ── Smooth camera fly-to ─────────────────────────────────────────────────
@@ -801,8 +814,8 @@ function initViewer(container) {
     controls.enabled = false;
 
     var offset = camera.position.clone().sub(pivot);
-    var angle  = Math.atan2(offset.x, offset.z);
-    var elevY  = offset.y;
+    var angle = Math.atan2(offset.x, offset.z);
+    var elevY = offset.y;
     // Use XZ-only radius so the orbit circle matches exactly where the fly landed
     var radius = Math.sqrt(offset.x * offset.x + offset.z * offset.z);
     var speed = 0.3; // radians per second
@@ -848,41 +861,6 @@ function initViewer(container) {
     }
   }
 
-  // ── Mobile POI popup ─────────────────────────────────────────────────────
-  var poiPopup = document.getElementById('poi-popup');
-  var poiPopupTitle = document.getElementById('poi-popup-title');
-  var poiPopupBody = document.getElementById('poi-popup-body');
-  var poiPopupClose = document.getElementById('poi-popup-close');
-
-  function showPoiPopup(hotspotId) {
-    if (!poiPopup || !poiPopupTitle || !poiPopupBody) return;
-
-    // Find the matching POI section rendered by the poi block
-    var section = document.querySelector('.poi-section[data-hotspot="' + hotspotId + '"]');
-    if (!section) return;
-
-    var titleEl = section.querySelector('.poi-section__title');
-    var bodyEl = section.querySelector('.poi-section__body');
-
-    poiPopupTitle.textContent = titleEl ? titleEl.textContent : hotspotId;
-    poiPopupBody.innerHTML = bodyEl ? bodyEl.innerHTML : '';
-
-    poiPopup.classList.add('is-visible');
-    poiPopup.setAttribute('aria-hidden', 'false');
-  }
-
-  function hidePoiPopup() {
-    if (!poiPopup) return;
-    poiPopup.classList.remove('is-visible');
-    poiPopup.setAttribute('aria-hidden', 'true');
-  }
-
-  if (poiPopupClose) {
-    poiPopupClose.addEventListener('click', function (e) {
-      e.stopPropagation();
-      hidePoiPopup();
-    });
-  }
 
   // ── Derive the converted GLB url from the OBJ url (same basename, .glb ext) ─
   var exteriorGlbUrl = glbUrl || (objUrl
@@ -996,7 +974,7 @@ function initViewer(container) {
       fetch(hotspotsJsonInteriorUrl).then(function (r) { return r.json(); }).then(function (data) {
         if (data.interior && data.interior.hotspots) jsonHotspots.interior = data.interior;
         if (data.exterior && data.exterior.hotspots && data.exterior.hotspots.length
-            && !jsonHotspots.exterior.hotspots.length)
+          && !jsonHotspots.exterior.hotspots.length)
           jsonHotspots.exterior = data.exterior;
       }).catch(function (err) { console.warn('interior hotspots json failed:', err); })
     );
