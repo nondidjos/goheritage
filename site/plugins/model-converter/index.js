@@ -76,7 +76,7 @@ panel.plugin('goheritage/model-converter', {
                     style="padding:2px 7px; border:none; background:transparent; cursor:pointer; display:flex; align-items:center; color:var(--color-text-dimmed);"
                     :style="{ opacity: (f.compressing || presetFor(f) === 0) ? 0.4 : 1 }"
                   >
-                    <k-icon :type="f.compressing ? 'loader' : 'arrow-right'" />
+                    <k-icon :type="f.compressing ? 'loader' : 'angle-right'" />
                   </button>
                   </div>
                 </div>
@@ -313,7 +313,20 @@ panel.plugin('goheritage/model-converter', {
               this.showMessage('Erreur : ' + errorMsg, 'error');
               this.$set(this.localFiles, idx, { ...file, compressing: false });
             } else {
+              let json = await resp.json().catch(() => null);
               this.showMessage('Compressé ✓', 'success');
+              
+              if (json && json.filename) {
+                this.$set(this.localFiles, idx, { 
+                  ...file, 
+                  filename: json.filename, 
+                  size: json.size, 
+                  url: json.url, 
+                  compressing: false 
+                });
+              } else {
+                this.$set(this.localFiles, idx, { ...file, compressing: false });
+              }
               this.$panel.view.reload();
             }
           } catch (err) {

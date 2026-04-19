@@ -21,17 +21,18 @@ const quality    = qualityArg ? parseInt(qualityArg.split('=')[1]) : 85;
 
 (async () => {
   try {
-    const img = sharp(src).ensureAlpha();
+    const opts = { limitInputPixels: false };
+    const img = sharp(src, opts).ensureAlpha();
     const { width, height } = await img.metadata();
 
     // Blur a copy for UV dilation fill
-    const blurred = await sharp(src)
+    const blurred = await sharp(src, opts)
       .ensureAlpha()
       .blur(24)
       .raw()
       .toBuffer({ resolveWithObject: true });
 
-    const original = await sharp(src)
+    const original = await sharp(src, opts)
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
@@ -53,7 +54,7 @@ const quality    = qualityArg ? parseInt(qualityArg.split('=')[1]) : 85;
       }
     }
 
-    await sharp(out, { raw: { width: w, height: h, channels } })
+    await sharp(out, { raw: { width: w, height: h, channels }, limitInputPixels: false })
       .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
       .flatten({ background: { r: 0, g: 0, b: 0 } }) // drop alpha for JPEG
       .jpeg({ quality, mozjpeg: false })
