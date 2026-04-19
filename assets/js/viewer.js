@@ -86,37 +86,7 @@ function initViewer(container) {
   controls.dampingFactor = 0.08;
   controls.screenSpacePanning = true;
   controls.maxDistance = 5000;
-  controls.enableZoom = false; // replaced with additive zoom below
-
-  // Additive zoom — fixed step based on model size so speed is consistent
-  // regardless of how close the camera is (OrbitControls' built-in multiplicative
-  // dolly slows to a crawl at close range).
-  function handleZoom(e) {
-    e.preventDefault();
-    var dir = new THREE.Vector3().subVectors(camera.position, controls.target);
-    var dist = dir.length();
-    // Smoothly combines distance scaling (fast from afar) and structural radius (brisk up close).
-    // Original static rate was 0.08 * R. The new baseline here is gently bumped to 0.10 * R.
-    var step = (dist * 0.08) + (modelRadius * 0.10);
-
-    // Restore original gentle floor
-    if (step < 0.5) step = 0.5;
-    var sign = (e.deltaY > 0) ? 1 : -1;
-    var newDist = dist + sign * step;
-    if (newDist < 0.1) newDist = 0.1;
-    camera.position.copy(controls.target).addScaledVector(dir.normalize(), newDist);
-    controls.update();
-  }
-
-  // Forward wheel from label overlay + apply custom zoom everywhere on the canvas
-  container.addEventListener('wheel', function (e) {
-    if (e.target.closest('.viewer-label')) {
-      e.preventDefault();
-      handleZoom(e);
-    }
-  }, { passive: false });
-
-  renderer.domElement.addEventListener('wheel', handleZoom, { passive: false });
+  controls.enableZoom = true;
 
   // ── Progress overlay ─────────────────────────────────────────────────────
   const progress = document.createElement('div');
@@ -206,23 +176,26 @@ function initViewer(container) {
   // ── Frame camera to fit model ────────────────────────────────────────────
   function frameModel(object) {
     var box = new THREE.Box3().setFromObject(object);
+    if (box.isEmpty()) {
+       box.setFromCenterAndSize(new THREE.Vector3(0,0,0), new THREE.Vector3(10,10,10));
+    }
     var size = box.getSize(new THREE.Vector3());
     var center = box.getCenter(new THREE.Vector3());
 
     modelCenter.copy(center);
-    modelRadius = size.length() / 2;
+    modelRadius = size.length() / 2 || 1;
 
     controls.target.copy(center);
 
-    var maxDim = Math.max(size.x, size.y, size.z);
+    var maxDim = Math.max(size.x, size.y, size.z) || 10;
     var fov = camera.fov * (Math.PI / 180);
-    var dist = (maxDim / 2) / Math.tan(fov / 2) * 0.8;
+    var dist = ((maxDim / 2) / Math.tan(fov / 2) * 0.8) || 10;
 
     camera.position.copy(center);
     camera.position.y += maxDim * 0.55;
     camera.position.z += dist;
-    camera.near = maxDim * 0.001;
-    camera.far = maxDim * 10;
+    camera.near = 0.01;
+    camera.far = Math.max(10000, maxDim * 10);
     camera.updateProjectionMatrix();
     controls.update();
   }
@@ -1027,6 +1000,7 @@ function initViewer(container) {
   var observer = new ResizeObserver(function () {
     var w = container.clientWidth;
     var h = container.clientHeight;
+    if (w === 0 || h === 0) return; // Prevent corrupting the projection matrix if element is hidden
     renderer.setSize(w, h);
     labelRenderer.setSize(w, h);
     camera.aspect = w / h;

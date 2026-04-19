@@ -168,6 +168,17 @@ Kirby::plugin('goheritage/model-converter', [
                         set_time_limit(300);
                         $kirby->impersonate('kirby');
                         compressTexture($file, $size, $quality);
+                        $page = kirby()->page($pageId);
+                        $jpgFilename = pathinfo($filename, PATHINFO_FILENAME) . '.jpg';
+                        $newFile = $page->file($jpgFilename);
+                        if ($newFile) {
+                            return Response::json([
+                                'status'   => 'ok',
+                                'filename' => $newFile->filename(),
+                                'size'     => $newFile->niceSize(),
+                                'url'      => $newFile->url() . '?t=' . time()
+                            ]);
+                        }
                         return Response::json(['status' => 'ok']);
                     } catch (\Throwable $e) {
                         return Response::json(['error' => $e->getMessage()], 500);
@@ -339,15 +350,17 @@ function goheritageCanonicalBase($fieldName) {
  * The resulting GLB replaces (or creates) a same-named .glb file on the page.
  */
 function convertObjToGlb($file) {
-    // Use full path so PHP's exec() finds npx regardless of web-server PATH
-    $candidates = [
-        'C:\\Program Files\\nodejs\\npx.cmd',
-        'C:\\Program Files (x86)\\nodejs\\npx.cmd',
+    $nodeCandidates = [
+        'C:\\Program Files\\nodejs\\node.exe',
+        'C:\\Program Files (x86)\\nodejs\\node.exe',
     ];
-    $npx = 'npx';
-    foreach ($candidates as $c) {
-        if (file_exists($c)) { $npx = $c; break; }
+    $node = 'node';
+    foreach ($nodeCandidates as $c) {
+        if (file_exists($c)) { $node = $c; break; }
     }
+    
+    $obj2gltf = realpath(__DIR__ . '/../../../node_modules/obj2gltf/bin/obj2gltf.js');
+    $gltfTransform = realpath(__DIR__ . '/../../../node_modules/@gltf-transform/cli/bin/cli.js');
 
     $objPath  = $file->root();
     $dir      = dirname($objPath);
@@ -358,8 +371,9 @@ function convertObjToGlb($file) {
     try {
         // step 1: obj → glb
         $cmd1 = sprintf(
-            '"%s" obj2gltf -i %s -o %s --binary --unlit 2>&1',
-            $npx,
+            '"%s" "%s" -i %s -o %s --binary --unlit 2>&1',
+            $node,
+            $obj2gltf,
             escapeshellarg($objPath),
             escapeshellarg($tmpGlb)
         );
@@ -373,8 +387,9 @@ function convertObjToGlb($file) {
     
         // step 2: draco compression
         $cmd2 = sprintf(
-            '"%s" gltf-transform draco %s %s 2>&1',
-            $npx,
+            '"%s" "%s" draco %s %s 2>&1',
+            $node,
+            $gltfTransform,
             escapeshellarg($tmpGlb),
             escapeshellarg($finalGlb)
         );
@@ -468,21 +483,23 @@ function compressTexture($file, $size = 4096, $quality = 85) {
  * Modifies the file in-place (tmp → replace).
  */
 function compressGlbTextures($file) {
-    $candidates = [
-        'C:\\Program Files\\nodejs\\npx.cmd',
-        'C:\\Program Files (x86)\\nodejs\\npx.cmd',
+    $nodeCandidates = [
+        'C:\\Program Files\\nodejs\\node.exe',
+        'C:\\Program Files (x86)\\nodejs\\node.exe',
     ];
-    $npx = 'npx';
-    foreach ($candidates as $c) {
-        if (file_exists($c)) { $npx = $c; break; }
+    $node = 'node';
+    foreach ($nodeCandidates as $c) {
+        if (file_exists($c)) { $node = $c; break; }
     }
+    $gltfTransform = realpath(__DIR__ . '/../../../node_modules/@gltf-transform/cli/bin/cli.js');
     $glbPath = $file->root();
     $tmpPath = $glbPath . '.compressing.glb';
 
     // Step 1: resize embedded textures to max 4096 px
     $cmd1 = sprintf(
-        '"%s" gltf-transform resize %s %s --width 4096 --height 4096 2>&1',
-        $npx,
+        '"%s" "%s" resize %s %s --width 4096 --height 4096 2>&1',
+        $node,
+        $gltfTransform,
         escapeshellarg($glbPath),
         escapeshellarg($tmpPath)
     );
@@ -497,8 +514,9 @@ function compressGlbTextures($file) {
     // Step 2: convert textures to WebP at quality 80
     $tmpPath2 = $glbPath . '.webp.glb';
     $cmd2 = sprintf(
-        '"%s" gltf-transform webp %s %s --quality 80 2>&1',
-        $npx,
+        '"%s" "%s" webp %s %s --quality 80 2>&1',
+        $node,
+        $gltfTransform,
         escapeshellarg($tmpPath),
         escapeshellarg($tmpPath2)
     );
