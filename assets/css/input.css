@@ -80,8 +80,8 @@
     --font-serif: 'IBM Plex Serif', Georgia, serif;
     --font-sans: 'DM Sans', system-ui, sans-serif;
 
-    --radius-sm: 6px;
-    --radius-md: 8px;
+    --radius-sm: 4px;
+    --radius-md: 5px;
 }
 
 /* ── Base ─────────────────────────────────────────────── */

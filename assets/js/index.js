@@ -248,16 +248,91 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // ── Blog: client-side tag filtering ──
-    var tagBtns = document.querySelectorAll('[data-filter-tag]');
+    // ── Blog: client-side tag + author filtering ──
+    var tagBtns     = document.querySelectorAll('[data-filter-tag]');
+    var authorBtns  = document.querySelectorAll('#blog-author-filters [data-filter-author]');
+    var bylineBtns  = document.querySelectorAll('[data-article-author] ~ * [data-filter-author], .byline[data-filter-author]');
     var blogArticles = document.querySelectorAll('[data-article-tags]');
-    var clearBtn = document.getElementById('blog-clear-tags');
-    var noResults = document.getElementById('blog-no-results');
+    var clearBtn    = document.getElementById('blog-clear-filters');
+    var noResults   = document.getElementById('blog-no-results');
 
-    if (tagBtns.length && blogArticles.length) {
-        var selectedBlogTags = new Set();
+    if (blogArticles.length) {
+        var selectedBlogTags    = new Set();
+        var selectedBlogAuthors = new Set();
 
-        // Pre-activate tag from URL ?tag= param (links from project/article pages)
+        // ── Sync sidebar author button visual state ──
+        function syncAuthorBtns() {
+            authorBtns.forEach(function (btn) {
+                btn.classList.toggle('tag--active', selectedBlogAuthors.has(btn.dataset.filterAuthor));
+            });
+            // also highlight byline buttons in article list
+            document.querySelectorAll('button.byline[data-filter-author]').forEach(function (btn) {
+                btn.classList.toggle('byline--active', selectedBlogAuthors.has(btn.dataset.filterAuthor));
+            });
+        }
+
+        // ── Apply filters ──
+        function applyBlogFilters() {
+            var hasTags    = selectedBlogTags.size > 0;
+            var hasAuthors = selectedBlogAuthors.size > 0;
+            var visibleCount = 0;
+
+            blogArticles.forEach(function (article) {
+                var show = true;
+                if (hasTags) {
+                    var tags = JSON.parse(article.dataset.articleTags || '[]');
+                    if (!tags.some(function (t) { return selectedBlogTags.has(t.trim()); })) show = false;
+                }
+                if (hasAuthors && show) {
+                    if (!selectedBlogAuthors.has(article.dataset.articleAuthor)) show = false;
+                }
+                article.style.display = show ? '' : 'none';
+                if (show) visibleCount++;
+            });
+
+            if (clearBtn) clearBtn.classList.toggle('hidden!', !hasTags && !hasAuthors);
+            if (noResults) noResults.classList.toggle('hidden', (!hasTags && !hasAuthors) || visibleCount > 0);
+            syncAuthorBtns();
+        }
+
+        // ── Tag filter buttons ──
+        tagBtns.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var tag = btn.dataset.filterTag;
+                selectedBlogTags.has(tag) ? selectedBlogTags.delete(tag) : selectedBlogTags.add(tag);
+                btn.classList.toggle('tag--active', selectedBlogTags.has(tag));
+                applyBlogFilters();
+            });
+        });
+
+        // ── Author filter buttons (sidebar + bylines on cards) ──
+        function handleAuthorClick(author) {
+            selectedBlogAuthors.has(author) ? selectedBlogAuthors.delete(author) : selectedBlogAuthors.add(author);
+            applyBlogFilters();
+        }
+
+        authorBtns.forEach(function (btn) {
+            btn.addEventListener('click', function () { handleAuthorClick(btn.dataset.filterAuthor); });
+        });
+
+        // Delegate byline clicks (covers flagship, sidebar, and main-list bylines)
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest('button.byline[data-filter-author]');
+            if (!btn) return;
+            handleAuthorClick(btn.dataset.filterAuthor);
+        });
+
+        // ── Clear all filters ──
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function () {
+                selectedBlogTags.clear();
+                selectedBlogAuthors.clear();
+                tagBtns.forEach(function (b) { b.classList.remove('tag--active'); });
+                applyBlogFilters();
+            });
+        }
+
+        // ── Pre-activate tag from URL ?tag= param ──
         var urlTag = new URLSearchParams(window.location.search).get('tag');
         if (urlTag) {
             var normalised = urlTag.trim();
@@ -267,61 +342,23 @@ document.addEventListener('DOMContentLoaded', function () {
                     btn.classList.add('tag--active');
                 }
             });
-            // applyBlogFilters is defined below; defer so it runs after declaration
             setTimeout(function () {
                 applyBlogFilters();
                 var filtersEl = document.getElementById('blog-main-list');
                 if (filtersEl) filtersEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 100);
         }
-
-        tagBtns.forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var tag = btn.dataset.filterTag;
-                if (selectedBlogTags.has(tag)) {
-                    selectedBlogTags.delete(tag);
-                    btn.classList.remove('tag--active');
-                } else {
-                    selectedBlogTags.add(tag);
-                    btn.classList.add('tag--active');
-                }
-                applyBlogFilters();
-            });
-        });
-
-        if (clearBtn) {
-            clearBtn.addEventListener('click', function () {
-                selectedBlogTags.clear();
-                tagBtns.forEach(function (b) { b.classList.remove('tag--active'); });
-                applyBlogFilters();
-            });
-        }
-
-        function applyBlogFilters() {
-            var hasTags = selectedBlogTags.size > 0;
-            var visibleCount = 0;
-
-            blogArticles.forEach(function (article) {
-                if (!hasTags) {
-                    article.style.display = '';
-                    visibleCount++;
-                    return;
-                }
-                var tags = JSON.parse(article.dataset.articleTags || '[]');
-                var matches = tags.some(function (t) { return selectedBlogTags.has(t.trim()); });
-                article.style.display = matches ? '' : 'none';
-                if (matches) visibleCount++;
-            });
-
-            // show/hide the "× Effacer tout" tag button
-            if (clearBtn) {
-                clearBtn.classList.toggle('hidden!', !hasTags);
-            }
-
-            // no-results message
-            if (noResults) {
-                noResults.classList.toggle('hidden', !hasTags || visibleCount > 0);
-            }
-        }
     }
+
+    // ── Blog: expand +N tag overflow ──
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.tag--overflow-toggle');
+        if (!btn) return;
+        var overflow = btn.previousElementSibling;
+        if (overflow && overflow.classList.contains('tag-overflow')) {
+            var expanding = overflow.classList.contains('is-hidden');
+            overflow.classList.toggle('is-hidden', !expanding);
+            btn.style.display = expanding ? 'none' : '';
+        }
+    });
 });

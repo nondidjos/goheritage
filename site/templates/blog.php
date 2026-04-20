@@ -17,11 +17,24 @@ if ($q = get('q')) {
 $allTags = $allArticles->pluck('tags', ',', true);
 
 // Helper: resolve author field (may be a Kirby user ID or a plain name)
-function resolveAuthor($field): string {
+// Returns plain (unescaped) name — escape at output time
+function authorName($field): string {
     $raw = trim($field->value());
     if ($raw === '') return 'GoHeritage';
     $user = kirby()->user($raw);
-    return $user ? esc($user->name()->value()) : esc($raw);
+    return $user ? $user->name()->value() : $raw;
+}
+function resolveAuthor($field): string {
+    return esc(authorName($field));
+}
+
+// Collect unique author names for the sidebar filter
+$allAuthors = [];
+foreach ($allArticles as $_a) {
+    $name = authorName($_a->author());
+    if ($name !== '' && !in_array($name, $allAuthors)) {
+        $allAuthors[] = $name;
+    }
 }
 ?>
 <?php snippet('header') ?>
@@ -41,21 +54,26 @@ function resolveAuthor($field): string {
         </a>
 
         <div class="flex justify-between items-start mt-3 mb-2">
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap gap-2 items-center">
             <?php
               $tags = $flagship->tags()->split(',');
               $primaryTag = $flagship->primary_tag()->isNotEmpty() ? trim($flagship->primary_tag()->value()) : null;
-              $displayTags = $primaryTag ? [$primaryTag] : array_slice($tags, 0, 1);
-              $extra = $primaryTag ? count(array_filter($tags, fn($t) => trim($t) !== $primaryTag)) : count($tags) - 1;
+              $firstTag = $primaryTag ?? trim($tags[0] ?? '');
+              $otherTags = array_values(array_filter($tags, fn($t) => trim($t) !== $firstTag));
             ?>
-            <?php foreach ($displayTags as $tag): ?>
-              <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($tag)) ?>" class="tag"><?= esc(trim($tag)) ?></a>
-            <?php endforeach ?>
-            <?php if ($extra > 0): ?>
-              <span class="tag" style="background-color:transparent;border:1px solid var(--color-border);">+<?= $extra ?></span>
+            <?php if ($firstTag): ?>
+              <a href="<?= url('blog') ?>?tag=<?= urlencode($firstTag) ?>" class="tag"><?= esc($firstTag) ?></a>
+            <?php endif ?>
+            <?php if (count($otherTags) > 0): ?>
+              <span class="tag-overflow is-hidden">
+                <?php foreach ($otherTags as $t): ?>
+                  <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($t)) ?>" class="tag"><?= esc(trim($t)) ?></a>
+                <?php endforeach ?>
+              </span>
+              <button class="tag tag--overflow-toggle" style="background-color:transparent;border:1px solid var(--color-border);">+<?= count($otherTags) ?></button>
             <?php endif ?>
           </div>
-          <span class="byline"><?= resolveAuthor($flagship->author()) ?></span>
+          <button class="byline" data-filter-author="<?= esc(authorName($flagship->author())) ?>"><?= resolveAuthor($flagship->author()) ?></button>
         </div>
 
         <div class="text-center w-full">
@@ -80,21 +98,26 @@ function resolveAuthor($field): string {
           <?php foreach ($recent as $article): ?>
             <article class="pt-5 pb-7 first:pt-0 group">
               <div class="flex justify-between items-center mb-3">
-                <div class="flex flex-wrap gap-1.5">
+                <div class="flex flex-wrap gap-1.5 items-center">
                   <?php
                     $aTags = $article->tags()->split(',');
                     $aPrimary = $article->primary_tag()->isNotEmpty() ? trim($article->primary_tag()->value()) : null;
-                    $aDisplay = $aPrimary ?? (trim($aTags[0] ?? ''));
-                    $aExtra = $aPrimary ? count(array_filter($aTags, fn($t) => trim($t) !== $aPrimary)) : count($aTags) - 1;
+                    $aFirst = $aPrimary ?? trim($aTags[0] ?? '');
+                    $aOthers = array_values(array_filter($aTags, fn($t) => trim($t) !== $aFirst));
                   ?>
-                  <?php if ($aDisplay): ?>
-                    <a href="<?= url('blog') ?>?tag=<?= urlencode($aDisplay) ?>" class="tag"><?= esc($aDisplay) ?></a>
+                  <?php if ($aFirst): ?>
+                    <a href="<?= url('blog') ?>?tag=<?= urlencode($aFirst) ?>" class="tag"><?= esc($aFirst) ?></a>
                   <?php endif ?>
-                  <?php if ($aExtra > 0): ?>
-                    <span class="tag" style="background-color:transparent;border:1px solid var(--color-border);">+<?= $aExtra ?></span>
+                  <?php if (count($aOthers) > 0): ?>
+                    <span class="tag-overflow is-hidden">
+                      <?php foreach ($aOthers as $t): ?>
+                        <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($t)) ?>" class="tag"><?= esc(trim($t)) ?></a>
+                      <?php endforeach ?>
+                    </span>
+                    <button class="tag tag--overflow-toggle" style="background-color:transparent;border:1px solid var(--color-border);">+<?= count($aOthers) ?></button>
                   <?php endif ?>
                 </div>
-                <span class="byline"><?= resolveAuthor($article->author()) ?></span>
+                <button class="byline" data-filter-author="<?= esc(authorName($article->author())) ?>"><?= resolveAuthor($article->author()) ?></button>
               </div>
 
               <h3 class="font-sans font-semibold text-2xl text-ink leading-snug mb-3 transition-colors tracking-tight">
@@ -159,9 +182,23 @@ function resolveAuthor($field): string {
                 <?= esc($tag) ?>
               </button>
             <?php endforeach ?>
-            <button id="blog-clear-tags" class="tag tag--clear hidden!">× Effacer tout</button>
           </div>
         </div>
+
+        <?php if (count($allAuthors) > 1): ?>
+        <div>
+          <h3 class="font-sans font-semibold text-base text-ink mb-4">Auteurs</h3>
+          <div class="flex flex-wrap gap-2" id="blog-author-filters">
+            <?php foreach ($allAuthors as $author): ?>
+              <button class="tag" data-filter-author="<?= esc($author) ?>">
+                <?= esc($author) ?>
+              </button>
+            <?php endforeach ?>
+          </div>
+        </div>
+        <?php endif ?>
+
+        <button id="blog-clear-filters" class="tag tag--clear hidden!">× Effacer tout</button>
 
       </aside>
 
@@ -169,9 +206,13 @@ function resolveAuthor($field): string {
       <div class="col-5 flex flex-col">
 
         <?php foreach ($mainList as $item): ?>
-          <?php $itemTagsJson = htmlspecialchars(json_encode($item->tags()->split(',')), ENT_QUOTES, 'UTF-8') ?>
+          <?php
+            $itemTagsJson = htmlspecialchars(json_encode($item->tags()->split(',')), ENT_QUOTES, 'UTF-8');
+            $itemAuthor = esc(authorName($item->author()));
+          ?>
           <article class="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8 border-b border-border pb-8 mb-8 last:border-b-0 last:mb-0 last:pb-0 group"
-                   data-article-tags="<?= $itemTagsJson ?>">
+                   data-article-tags="<?= $itemTagsJson ?>"
+                   data-article-author="<?= $itemAuthor ?>">
             
             <!-- 2 columns of 5 for image -->
             <div class="md:col-span-2">
@@ -186,18 +227,23 @@ function resolveAuthor($field): string {
 
             <!-- 3 columns of 5 for text -->
             <div class="md:col-span-3 flex flex-col">
-              <div class="flex flex-wrap gap-2 mb-3">
+              <div class="flex flex-wrap gap-2 mb-3 items-center">
                 <?php
                   $iTags = $item->tags()->split(',');
                   $iPrimary = $item->primary_tag()->isNotEmpty() ? trim($item->primary_tag()->value()) : null;
-                  $iDisplay = $iPrimary ?? (trim($iTags[0] ?? ''));
-                  $iExtra = $iPrimary ? count(array_filter($iTags, fn($t) => trim($t) !== $iPrimary)) : count($iTags) - 1;
+                  $iFirst = $iPrimary ?? trim($iTags[0] ?? '');
+                  $iOthers = array_values(array_filter($iTags, fn($t) => trim($t) !== $iFirst));
                 ?>
-                <?php if ($iDisplay): ?>
-                  <a href="<?= url('blog') ?>?tag=<?= urlencode($iDisplay) ?>" class="tag"><?= esc($iDisplay) ?></a>
+                <?php if ($iFirst): ?>
+                  <a href="<?= url('blog') ?>?tag=<?= urlencode($iFirst) ?>" class="tag"><?= esc($iFirst) ?></a>
                 <?php endif ?>
-                <?php if ($iExtra > 0): ?>
-                  <span class="tag" style="background-color:transparent;border:1px solid var(--color-border);">+<?= $iExtra ?></span>
+                <?php if (count($iOthers) > 0): ?>
+                  <span class="tag-overflow is-hidden">
+                    <?php foreach ($iOthers as $t): ?>
+                      <a href="<?= url('blog') ?>?tag=<?= urlencode(trim($t)) ?>" class="tag"><?= esc(trim($t)) ?></a>
+                    <?php endforeach ?>
+                  </span>
+                  <button class="tag tag--overflow-toggle" style="background-color:transparent;border:1px solid var(--color-border);">+<?= count($iOthers) ?></button>
                 <?php endif ?>
               </div>
               <h3 class="font-sans font-semibold text-2xl text-ink leading-tight mb-3 transition-colors tracking-tight">
@@ -212,7 +258,7 @@ function resolveAuthor($field): string {
                 ?>
               </p>
               <div class="mt-auto pt-4 flex items-center gap-3">
-                <span class="byline"><?= resolveAuthor($item->author()) ?></span>
+                <button class="byline" data-filter-author="<?= $itemAuthor ?>"><?= resolveAuthor($item->author()) ?></button>
                 <span class="font-mono text-[10px] text-faint"><?= $item->date()->toDate('d M Y') ?></span>
               </div>
             </div>

@@ -270,6 +270,24 @@ header img {
     white-space: nowrap;
 }
 
+button.byline {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+button.byline:hover {
+    color: var(--color-ink);
+    text-decoration: underline;
+}
+
+button.byline.byline--active {
+    color: var(--color-ink);
+    font-weight: 600;
+}
+
 /* ── Article excerpt ──────────────────────────────────── */
 .article-excerpt {
     font-family: var(--font-serif);
@@ -626,6 +644,25 @@ a.tag:hover {
 .tag--active {
     background-color: var(--color-ink);
     color: var(--color-bg);
+}
+
+/* ── Tag overflow (hidden extra tags) ─────────────────── */
+.tag-overflow {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.tag-overflow.is-hidden {
+    display: none;
+}
+
+/* ── Tag overflow toggle (subtle gray bg on hover) ──── */
+.tag--overflow-toggle:hover {
+    background-color: var(--color-surface);
+    color: var(--color-mid);
+    border-color: var(--color-border);
 }
 
 /* ── Tag clear button (white bg + gray outline) ────────── */
