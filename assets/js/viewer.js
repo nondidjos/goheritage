@@ -64,6 +64,7 @@ function initViewer(container) {
   labelRenderer.domElement.id = 'viewer-labels';
   container.appendChild(labelRenderer.domElement);
 
+
   // ── Scene ────────────────────────────────────────────────────────────────
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1a1a1a);
@@ -86,7 +87,27 @@ function initViewer(container) {
   controls.dampingFactor = 0.08;
   controls.screenSpacePanning = true;
   controls.maxDistance = 5000;
-  controls.enableZoom = true;
+  controls.enableZoom = false; // handled manually below so we can call preventDefault
+
+  // ── Zoom ─────────────────────────────────────────────────────────────────
+  // preventDefault() must be instant; heavy zoom math is deferred to the
+  // animation frame so rapid wheel bursts never delay the scroll block.
+  var _overViewer = false;
+  var _pendingZoom = 1; // accumulated scale factor, applied each frame
+
+  container.addEventListener('mouseenter', function () { _overViewer = true; });
+  container.addEventListener('mouseleave', function () { _overViewer = false; });
+
+  window.addEventListener('wheel', function (e) {
+    if (!_overViewer) return;
+    e.preventDefault();
+    _pendingZoom *= e.deltaY > 0 ? 1.1 : 1 / 1.1;
+  }, { passive: false });
+
+
+  container.addEventListener('touchmove', function (e) {
+    e.preventDefault();
+  }, { passive: false, capture: true });
 
   // ── Progress overlay ─────────────────────────────────────────────────────
   const progress = document.createElement('div');
@@ -237,7 +258,7 @@ function initViewer(container) {
     // Store exterior model; build toggle once ready if any interior model is set
     modelObjects.exterior = object;
     hotspotSets.exterior = hotspots.slice();
-    if (interiorUrl || interiorObjUrl) buildToggle();
+    if (interiorGlbDerivedUrl || interiorObjUrl) buildToggle();
   }
 
   // ── Extract hotspots from JSON file or GLB Empties (fallback) ─────────────
@@ -989,7 +1010,18 @@ function initViewer(container) {
     controls.dampingFactor = 0.08 * Math.max(ratio, 0.3);
     controls.panSpeed = Math.max(ratio * 0.8, 0.15);
 
-    controls.update();
+    // Apply any accumulated zoom from wheel events (deferred from the listener
+    // so rapid scroll bursts don't block the preventDefault call).
+    if (_pendingZoom !== 1) {
+      var zoomDir = camera.position.clone().sub(controls.target);
+      camera.position.copy(controls.target).addScaledVector(zoomDir, _pendingZoom);
+      _pendingZoom = 1;
+    }
+
+    // Skip controls.update() while a fly animation is active — the fly tick
+    // calls controls.update() itself. Double-updating with enableDamping on
+    // corrupts the damping state and can freeze the camera.
+    if (!flyAnimation) controls.update();
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera);
     checkPerformance();
