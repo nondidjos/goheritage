@@ -175,10 +175,7 @@ tabs:
             type: upload-overwrite
             label: Modèle OBJ
             accept: ".obj"
-            template: model
             help: Fichier OBJ exporté depuis Blender.
-
-
 
           model_texture:
             width: 1/2
@@ -187,6 +184,13 @@ tabs:
             accept: ".jpg,.jpeg,.png"
             template: image
             help: Texture couleur. Déposez un PNG puis choisissez la qualité et cliquez sur l'icône image pour comprimer en JPEG.
+
+          model_hotspots_json:
+            type: upload-overwrite
+            label: Hotspots JSON — Extérieur
+            accept: ".json"
+            template: default
+            help: "JSON exporté par l'addon Blender. Contient les positions 3D des points d'intérêt."
 
           # INTERIOR
           interior_accordion:
@@ -203,8 +207,6 @@ tabs:
             template: model
             help: Fichier OBJ exporté depuis Blender.
 
-
-
           model_texture_interior:
             width: 1/2
             type: upload-overwrite
@@ -212,6 +214,13 @@ tabs:
             accept: ".jpg,.jpeg,.png"
             template: image
             help: Texture couleur. Déposez un PNG puis choisissez la qualité et cliquez sur l'icône image pour comprimer en JPEG.
+
+          model_hotspots_json_interior:
+            type: upload-overwrite
+            label: Hotspots JSON — Intérieur
+            accept: ".json"
+            template: default
+            help: "JSON exporté par l'addon Blender pour le modèle intérieur."
 
 
   # ── Tab 4 : Fichiers ──────────────────────────────────────────────────────
@@ -235,25 +244,9 @@ tabs:
             label: false
             type: info
             text: >
-              Les points d'intérêt apparaissent sous forme de labels cliquables
-              sur le modèle 3D. Les positions sont lues depuis le **fichier JSON**
-              exporté par l'addon Blender. L'identifiant doit correspondre au nom
-              de l'Empty placé dans Blender (ex. `hotspot_01`).
-
-          model_hotspots_json:
-            type: upload-overwrite
-            label: Hotspots JSON — Extérieur
-            accept: ".json"
-            template: default
-            help: "JSON exporté par l'addon Blender pour le modèle extérieur."
-
-          model_hotspots_json_interior:
-            type: upload-overwrite
-            label: Hotspots JSON — Intérieur
-            accept: ".json"
-            template: default
-            help: "JSON exporté par l'addon Blender pour le modèle intérieur."
-
+              Renseignez ici les **titres et descriptions** de chaque point d'intérêt.
+              L'identifiant doit correspondre à celui du JSON Blender (ex. `hotspot_01`).
+              Les positions 3D sont lues depuis le JSON uploadé dans l'onglet **Modèle 3D**.
 
           annotations:
             type: structure
