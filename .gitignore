@@ -57,6 +57,7 @@ Icon
 *.mtl
 *_diffuse.png
 blender/
+assets/content/4_chapelle-saint-jerusalem
 
 # Local Vendor scripts
 assets/js/vendor/
@@ -92,3 +93,26 @@ kirby/
 # Temporary test files
 check.php
 test.html
+
+# Content images
+content/**/*.jpg
+content/**/*.jpeg
+content/**/*.png
+content/**/*.gif
+content/**/*.webp
+content/**/*.svg
+
+# Content image metadata (sidecar files)
+content/**/*.jpg.txt
+content/**/*.jpeg.txt
+content/**/*.png.txt
+content/**/*.gif.txt
+content/**/*.webp.txt
+content/**/*.svg.txt
+
+# Content 3D models and sidecar files
+content/**/*.glb
+content/**/*.glb.txt
+content/**/*.obj.txt
+content/**/*.json.txt
+

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"\\\\.btn\" /c/Users/Nathan/Herd/goheritage/assets/css/*.css)",
+      "Bash(ls /c/Users/Nathan/Herd/goheritage/*.log)"
+    ]
+  }
+}

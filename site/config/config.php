@@ -10,7 +10,7 @@
 use Kirby\Data\Data;
 
 return [
-    'debug' => false,
+    'debug' => true,
     'yaml.handler' => 'symfony',
     'mime' => [
         'types' => [
@@ -18,6 +18,14 @@ return [
             'mtl' => 'model/mtl',
             'glb' => 'model/gltf-binary',
         ]
+    ],
+    // Kirby thumbs. Imagick streams big JPEGs through disk buffers which keeps
+    // peak memory usage well below GD's decode-whole-image-to-RAM approach —
+    // critical for 8192×4096 equirect panoramas (~128 MB of pixel data per file).
+    // Falls back to GD automatically if the Imagick extension isn't loaded.
+    'thumbs' => [
+        'driver'  => extension_loaded('imagick') ? 'im' : 'gd',
+        'quality' => 85,
     ],
     'auth' => [
         'methods' => [
@@ -97,6 +105,24 @@ return [
                 $page->update([
                             'author' => $user->email()
                         ]);
+            }
+        },
+        // Pre-generate panorama thumbs on upload so viewers never wait on a
+        // cold GD/Imagick job. Two sizes: 4096 (viewable equirect) + 1024
+        // (preview / dollhouse markers). Thumbs land in /media/... and are
+        // served directly thereafter — identical paths to what project.php
+        // asks for at render time.
+        'file.create:after' => function ($file) {
+            if ($file->template() !== 'panorama') return;
+            if (!in_array(strtolower($file->extension()), ['jpg', 'jpeg', 'png', 'webp'])) return;
+            // Matterport cube faces — already small, and thumb URLs break the
+            // viewer's SKYBOX_REGEX (needs `_skybox<N>.ext` at end, no `-WIDTHx`).
+            if (preg_match('/[-_]skybox[-_]?\d/i', $file->filename())) return;
+            try {
+                $file->thumb(['width' => 4096, 'quality' => 85, 'format' => 'jpg']);
+                $file->thumb(['width' => 1024, 'quality' => 75, 'format' => 'jpg']);
+            } catch (\Throwable $e) {
+                error_log('[panorama warm-thumb] ' . $file->filename() . ': ' . $e->getMessage());
             }
         },
         'page.changeStatus:before' => function ($page, $status, $oldStatus) {

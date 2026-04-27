@@ -58,8 +58,99 @@ $glbFile = $page->file('exterior.glb') ?? ($objFile ? null
         ->sortBy('modified', 'desc')->first());
 $glbUrl = $glbFile ? $glbFile->url() : null;
 
+// ── PanoViewer (panorama) assets ────────────────────────────────────────────
+// Prefer the explicit field selection; fall back to any panorama-templated file.
+$panoFiles = $page->pano_files()->toFiles();
+if ($panoFiles->count() === 0) {
+    $panoFiles = $page->images()->template('panorama');
+}
+
+// Resize panoramas on the fly via Kirby thumbs.
+// Raw equirects from Matterport are typically 8192×4096 @ 30-50MB each; we serve
+// a 4096-wide JPEG (~1-2MB) as the viewable resolution, plus a 1024-wide preview
+// for dollhouse markers and initial paint. Cube faces are usually smaller so the
+// thumb is mostly a no-op for them. Originals stay on disk for download.
+//
+// The preview key is indexed by BASENAME (lowercased, no extension) so the JS
+// bootstrap can rewrite panorama URLs coming from the GoHéritage JSON file —
+// the JSON stores raw filenames and has no knowledge of the thumb cache.
+$PANO_MAX_W     = 4096;   // full viewable resolution
+$PANO_PREVIEW_W = 1024;   // thumb used as preview / pre-heat
+$PANO_QUALITY   = 85;
+
+$panoUrls    = [];        // ordered list of viewable URLs (thumbs)
+$panoScenes  = [];        // [{ url, preview, filename }]
+$panoRewrite = [];        // basename-without-ext  ⇒ { url, preview }
+foreach ($panoFiles as $pf) {
+    $ext = strtolower($pf->extension());
+    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) continue;
+    // Matterport cube faces are small (≈512–1024 px each) AND the viewer's
+    // SKYBOX_REGEX requires filenames ending in `<prefix>_skybox<N>.ext` —
+    // Kirby thumbs append `-WIDTHx` which breaks that pattern. Serve originals.
+    $isCubeFace = (bool) preg_match('/[-_]skybox[-_]?\d/i', $pf->filename());
+    if ($isCubeFace) {
+        // Skybox filenames must keep the `_skybox{N}` pattern intact (the
+        // SKYBOX_REGEX in the viewer relies on it for grouping faces). Kirby
+        // thumbs append `-WIDTHx` which breaks that, so we only use the
+        // ORIGINAL URL as the canonical face URL. The low-res preview is
+        // generated separately and exposed via panoRewrite[stem].preview —
+        // the viewer reads it for an LOD pre-pass during scene swaps.
+        $fullUrl = $pf->url();
+        try {
+            $prevUrl = $pf->thumb([
+                'width'   => $PANO_PREVIEW_W,
+                'quality' => 72,
+                'format'  => 'jpg',
+            ])->url();
+        } catch (\Throwable $e) {
+            $prevUrl = $pf->url();
+        }
+    } else {
+        try {
+            $fullThumb = $pf->thumb([
+                'width'   => $PANO_MAX_W,
+                'quality' => $PANO_QUALITY,
+                'format'  => 'jpg',
+            ]);
+            $prevThumb = $pf->thumb([
+                'width'   => $PANO_PREVIEW_W,
+                'quality' => 75,
+                'format'  => 'jpg',
+            ]);
+            $fullUrl = $fullThumb->url();
+            $prevUrl = $prevThumb->url();
+        } catch (\Throwable $e) {
+            // Fallback to original if thumb generation fails (e.g. GD missing).
+            $fullUrl = $pf->url();
+            $prevUrl = $pf->url();
+        }
+    }
+    $panoUrls[]   = $fullUrl;
+    $panoScenes[] = [
+        'filename' => $pf->filename(),
+        'url'      => $fullUrl,
+        'preview'  => $prevUrl,
+    ];
+    $stem = strtolower(pathinfo($pf->filename(), PATHINFO_FILENAME));
+    $panoRewrite[$stem] = ['url' => $fullUrl, 'preview' => $prevUrl];
+}
+
+$panoHotspotsFile = $page->file('pano-hotspots.json') ?? $page->pano_hotspots_json()->toFile();
+$panoHotspotsUrl  = $panoHotspotsFile ? $panoHotspotsFile->url() : null;
+
 $hasIframe  = ($viewerUrl !== null);
 $hasModel   = ($objUrl !== null || $interiorObjUrl !== null || $glbUrl !== null || $interiorGlbUrl !== null);
+$hasPano    = (count($panoUrls) > 0 || $panoHotspotsUrl !== null);
+
+// Resolve viewer choice. iframe > preference > fallback.
+$viewerPref = $page->viewer_preference()->or('auto')->value();
+$usePano  = false;
+$useModel = false;
+if (!$hasIframe) {
+    if ($viewerPref === 'model')         { $useModel = $hasModel; $usePano = !$hasModel && $hasPano; }
+    elseif ($viewerPref === 'panorama')  { $usePano  = $hasPano;  $useModel = !$hasPano  && $hasModel; }
+    else                                 { $usePano  = $hasPano;  $useModel = !$hasPano  && $hasModel; }
+}
 
 $posterUrl = ($cover = $page->cover()->toFile())
     ? $cover->crop(1600, 700)->url()
@@ -69,6 +160,7 @@ $gallery = $page->gallery()->toFiles();
 if ($gallery->count() === 0) {
     $gallery = $page->images()
         ->filterBy('extension', 'in', ['jpg', 'jpeg', 'png', 'webp'])
+        ->filter(fn($f) => $f->template() !== 'panorama')
         ->filter(fn($f) => !str_contains(strtolower($f->filename()), 'diffuse')
                         && !str_contains(strtolower($f->filename()), 'texture')
                         && !str_contains(strtolower($f->filename()), 'normal_'))
@@ -191,7 +283,35 @@ if ($gallery->count() === 0) {
             });
             </script>
 
-        <?php elseif ($hasModel): ?>
+        <?php elseif ($usePano): ?>
+            <?php
+            // Base URL for relative panorama paths inside the GoHéritage JSON
+            $panoBaseUrl = $panoFiles->count() > 0 ? dirname($panoFiles->first()->url()) : $page->url();
+            // Prefer GLB over OBJ for dollhouse model (smaller, Draco-compressed)
+            $dollhouseModelUrl = $glbUrl ?: $objUrl;
+            $dollhouseTexUrl   = $texUrl;
+            // Fall back to interior if exterior is missing
+            if (!$dollhouseModelUrl) {
+                $dollhouseModelUrl = $interiorGlbUrl ?: $interiorObjUrl;
+                $dollhouseTexUrl   = $interiorTexUrl;
+            }
+            ?>
+            <div id="pano-viewer"
+                 class="pano-viewer w-full h-full"
+                 data-pano-urls="<?= htmlspecialchars(json_encode($panoUrls, JSON_UNESCAPED_SLASHES)) ?>"
+                 data-pano-scenes="<?= htmlspecialchars(json_encode($panoScenes, JSON_UNESCAPED_SLASHES)) ?>"
+                 data-pano-rewrite="<?= htmlspecialchars(json_encode($panoRewrite, JSON_UNESCAPED_SLASHES)) ?>"
+                 data-pano-base-url="<?= $panoBaseUrl ?>"
+                 <?php if ($panoHotspotsUrl):   ?>data-goheritage-url="<?= $panoHotspotsUrl ?>"<?php endif ?>
+                 <?php if ($dollhouseModelUrl): ?>data-model-url="<?= $dollhouseModelUrl ?>"<?php endif ?>
+                 <?php if ($dollhouseTexUrl):   ?>data-model-texture="<?= $dollhouseTexUrl ?>"<?php endif ?>
+                 <?php if ($page->marker_offset_x()->isNotEmpty()): ?>data-marker-offset-x="<?= $page->marker_offset_x() ?>"<?php endif ?>
+                 <?php if ($page->marker_offset_y()->isNotEmpty()): ?>data-marker-offset-y="<?= $page->marker_offset_y() ?>"<?php endif ?>
+                 <?php if ($page->marker_offset_z()->isNotEmpty()): ?>data-marker-offset-z="<?= $page->marker_offset_z() ?>"<?php endif ?>
+                 data-draco-path="<?= url('node_modules/three/examples/jsm/libs/draco/') ?>">
+            </div>
+
+        <?php elseif ($useModel): ?>
             <div id="viewer-3d"
                  class="w-full h-full bg-ink"
                  data-obj="<?= $objUrl ?>"

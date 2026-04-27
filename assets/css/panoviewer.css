@@ -1,0 +1,347 @@
+/* Panorama viewer — flat, scoped to .pano-viewer.
+   No global selectors: this file is loaded on project pages alongside
+   site CSS and must not leak onto the page body. */
+
+.pano-viewer {
+  --pv-bg:      #1a1a1a;
+  --pv-border:  rgba(255, 255, 255, 0.14);
+  --pv-text:    #fff;
+  --pv-muted:   rgba(255, 255, 255, 0.5);
+  --pv-accent:  #fff;
+  --pv-radius:  2px;
+  --pv-ease:    cubic-bezier(0.4, 0, 0.2, 1);
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  background: #000;
+  font-family: inherit;
+}
+.pano-viewer * { box-sizing: border-box; }
+.pano-viewer.dragging { cursor: grabbing; }
+.pano-viewer .pano-canvas { display: block; width: 100%; height: 100%; }
+
+/* Loading */
+.pano-viewer .pano-loading {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: #0a0a0a; z-index: 100;
+  transition: opacity 0.45s ease;
+}
+.pano-viewer .pano-loading.hidden { opacity: 0; pointer-events: none; }
+.pano-viewer .pano-spinner {
+  width: 28px; height: 28px;
+  border: 2px solid rgba(255,255,255,0.12);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: pano-spin 0.75s linear infinite;
+}
+.pano-viewer .pano-loading-text {
+  margin-top: 12px; font-size: 11px;
+  color: var(--pv-muted); letter-spacing: 0.12em; text-transform: uppercase;
+}
+.pano-viewer .pano-loading-track {
+  width: 160px; height: 1px;
+  background: rgba(255,255,255,0.1);
+  margin-top: 10px; overflow: hidden;
+}
+.pano-viewer .pano-loading-bar {
+  height: 100%; width: 0%; background: #fff;
+  transition: width 0.25s ease;
+}
+
+/* Empty */
+.pano-viewer .pano-empty {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.pano-viewer .pano-empty-glyph { font-size: 44px; opacity: 0.12; }
+.pano-viewer .pano-empty-title {
+  margin-top: 12px; font-size: 14px;
+  color: rgba(255,255,255,0.22);
+}
+.pano-viewer .pano-empty-sub {
+  margin-top: 4px; font-size: 11px;
+  color: rgba(255,255,255,0.12); font-family: monospace;
+}
+
+/* Drop overlay */
+.pano-viewer .pano-drop {
+  position: absolute; inset: 0; z-index: 80;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease;
+  background: rgba(0, 0, 0, 0.35);
+}
+.pano-viewer .pano-drop.active { opacity: 1; }
+.pano-viewer .pano-drop-ring {
+  width: 96px; height: 96px;
+  border: 1px dashed rgba(255,255,255,0.5);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.pano-viewer .pano-drop-icon { font-size: 28px; color: rgba(255,255,255,0.7); }
+.pano-viewer .pano-drop-label {
+  margin-top: 12px; font-size: 12px;
+  color: rgba(255,255,255,0.7); letter-spacing: 0.04em;
+}
+
+/* Fade — short, low-opacity dim instead of full black-out so transitions
+   feel like a quick blur-through rather than a black flash. */
+.pano-viewer .pano-fade {
+  position: absolute; inset: 0;
+  background: #000; opacity: 0;
+  pointer-events: none; z-index: 50;
+  transition: opacity 0.18s cubic-bezier(.4, 0, .2, 1);
+}
+.pano-viewer .pano-fade.in { opacity: 0.55; }
+
+/* Hotspots */
+.pano-viewer .pano-hotspot-layer {
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 10;
+}
+.pano-viewer .pano-hotspot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: all; cursor: pointer;
+}
+.pano-viewer .pano-hotspot-dot {
+  width: 32px; height: 32px;
+  position: relative; display: flex;
+  align-items: center; justify-content: center;
+  transition: transform 0.2s var(--pv-ease);
+}
+.pano-viewer .pano-hotspot:hover .pano-hotspot-dot { transform: scale(1.15); }
+.pano-viewer .pano-hotspot-dot::after {
+  content: '';
+  position: absolute; inset: 0;
+  border: 1px solid rgba(255,255,255,0.45);
+  border-radius: 50%;
+  animation: pano-hotspot-pulse 2.2s ease-out infinite;
+}
+.pano-viewer .pano-hotspot-dot::before {
+  content: '';
+  width: 10px; height: 10px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  z-index: 1;
+}
+.pano-viewer .pano-hotspot-label {
+  position: absolute;
+  bottom: calc(100% + 4px); left: 50%;
+  transform: translateX(-50%);
+  background: var(--pv-bg);
+  border: 1px solid var(--pv-border);
+  padding: 3px 8px;
+  font-size: 11px; color: var(--pv-text);
+  white-space: nowrap;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.pano-viewer .pano-hotspot:hover .pano-hotspot-label { opacity: 1; }
+
+/* Title */
+.pano-viewer .pano-title {
+  position: absolute; top: 16px; left: 16px; z-index: 20;
+  background: var(--pv-bg);
+  border: 1px solid var(--pv-border);
+  padding: 6px 12px;
+  font-size: 12px; font-weight: 500;
+  color: var(--pv-text);
+  letter-spacing: 0.02em;
+}
+
+/* Compass */
+.pano-viewer .pano-compass {
+  position: absolute; top: 16px; left: 16px; z-index: 20;
+  width: 40px; height: 40px;
+  background: var(--pv-bg);
+  border: 1px solid var(--pv-border);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.pano-viewer .pano-compass-needle {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+}
+.pano-viewer .pano-compass-needle svg { width: 20px; height: 20px; }
+
+/* Fullscreen button — top right, above compass */
+.pano-viewer .pano-fullscreen-btn {
+  position: absolute; top: 16px; right: 16px; z-index: 21;
+}
+
+/* Controls (lower right) */
+.pano-viewer .pano-controls {
+  position: absolute; right: 16px; bottom: 16px;
+  display: flex; flex-direction: column; gap: 4px; z-index: 20;
+}
+.pano-viewer .pano-btn {
+  width: 36px; height: 36px;
+  background: var(--pv-bg);
+  border: 1px solid var(--pv-border);
+  color: var(--pv-text); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s var(--pv-ease);
+  padding: 0;
+  font: inherit;
+}
+.pano-viewer .pano-btn:hover  { background: #2a2a2a; }
+.pano-viewer .pano-btn:active { background: #333; }
+.pano-viewer .pano-btn svg    { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.pano-viewer .pano-btn.toggled { background: #fff; color: #000; }
+
+.pano-viewer .pano-btn-pair {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--pv-border);
+}
+.pano-viewer .pano-btn-pair .pano-btn { border: none; }
+.pano-viewer .pano-btn-pair .pano-btn + .pano-btn { border-top: 1px solid var(--pv-border); }
+
+/* Dollhouse — lower left, standalone.
+   In mini mode we just catch clicks; the 3D inset renders on the canvas behind. */
+.pano-viewer .pano-dollhouse {
+  position: absolute; left: 16px; bottom: 16px; z-index: 20;
+}
+.pano-viewer .pano-dollhouse--mini {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.pano-viewer .pano-dollhouse--mini .pano-btn {
+  width: 100%; height: 100%;
+  background: transparent; border: none;
+  display: flex; align-items: flex-end; justify-content: flex-start;
+  padding: 6px 8px;
+}
+.pano-viewer .pano-dollhouse--mini .pano-btn svg {
+  width: 14px; height: 14px;
+  opacity: 0.9;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8));
+}
+.pano-viewer .pano-dollhouse--mini:hover .pano-btn { background: rgba(255,255,255,0.08); }
+
+/* Scene strip */
+.pano-viewer .pano-scenes {
+  position: absolute; bottom: 16px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 6px; z-index: 20;
+  max-width: calc(100% - 160px);
+  overflow-x: auto; padding: 2px;
+  scrollbar-width: none;
+}
+.pano-viewer .pano-scenes::-webkit-scrollbar { display: none; }
+.pano-viewer .pano-scene-thumb {
+  position: relative;
+  flex-shrink: 0; width: 64px; height: 42px;
+  overflow: hidden; cursor: pointer;
+  border: 1px solid var(--pv-border);
+  transition: border-color 0.15s var(--pv-ease);
+  background: #1a1a22;
+}
+.pano-viewer .pano-scene-thumb.active { border-color: #fff; }
+.pano-viewer .pano-scene-thumb:hover:not(.active) { border-color: rgba(255,255,255,0.45); }
+.pano-viewer .pano-scene-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pano-viewer .pano-scene-thumb-label {
+  position: absolute; inset: 0;
+  display: flex; align-items: flex-end;
+  padding: 3px 5px; font-size: 10px; color: #fff;
+  background: linear-gradient(transparent 40%, rgba(0,0,0,0.65));
+}
+
+/* Zoom toast — disabled. Kept node in DOM to avoid null refs. */
+.pano-viewer .pano-zoom-toast { display: none !important; }
+
+/* Dollhouse exit — bottom-left, labeled. Shown only while in dollhouse mode. */
+.pano-viewer .pano-dollhouse-exit {
+  position: absolute; bottom: 16px; left: 16px;
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--pv-bg);
+  border: 1px solid var(--pv-border);
+  color: var(--pv-text);
+  padding: 10px 14px 10px 14px;
+  font: inherit; font-size: 13px; font-weight: 500; letter-spacing: 0.02em;
+  cursor: pointer; z-index: 30;
+  transition: background 0.15s var(--pv-ease);
+}
+.pano-viewer .pano-dollhouse-exit svg { flex-shrink: 0; }
+.pano-viewer .pano-dollhouse-exit span { padding-bottom: 2px; }
+.pano-viewer .pano-dollhouse-exit:hover { background: #2a2a2a; }
+.pano-viewer .pano-dollhouse-exit[hidden] { display: none; }
+
+/* Debug scene list (dollhouse-only) — sweep marker jumper */
+.pano-viewer .pano-debug-list {
+  position: absolute; top: 16px; left: 16px;
+  width: 200px; max-height: calc(100% - 32px);
+  background: rgba(20, 20, 26, 0.92);
+  border: 1px solid var(--pv-border);
+  border-radius: var(--pv-radius);
+  color: var(--pv-text);
+  font: inherit; font-size: 11px;
+  z-index: 30; display: flex; flex-direction: column;
+  backdrop-filter: blur(6px);
+}
+.pano-viewer .pano-debug-list[hidden] { display: none; }
+.pano-viewer .pano-debug-list.collapsed .pano-debug-list-body { display: none; }
+.pano-viewer .pano-debug-list-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; border-bottom: 1px solid var(--pv-border);
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--pv-muted);
+}
+.pano-viewer .pano-debug-list-toggle {
+  background: transparent; border: none; color: var(--pv-text);
+  font-size: 14px; line-height: 1; cursor: pointer; padding: 0 4px;
+}
+.pano-viewer .pano-debug-list-body {
+  overflow-y: auto; padding: 4px; display: flex; flex-direction: column; gap: 2px;
+}
+.pano-viewer .pano-debug-list-empty {
+  padding: 10px; text-align: center; color: var(--pv-muted);
+}
+.pano-viewer .pano-debug-list-row {
+  display: flex; gap: 2px;
+}
+.pano-viewer .pano-debug-jump,
+.pano-viewer .pano-debug-tele {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--pv-border);
+  color: var(--pv-text); padding: 5px 8px; cursor: pointer;
+  font: inherit; font-size: 11px; border-radius: var(--pv-radius);
+  transition: background 0.12s var(--pv-ease);
+}
+.pano-viewer .pano-debug-jump { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pano-viewer .pano-debug-tele { width: 28px; text-align: center; }
+.pano-viewer .pano-debug-jump:hover,
+.pano-viewer .pano-debug-tele:hover { background: rgba(68, 170, 255, 0.18); }
+
+/* Measure */
+.pano-viewer.measuring,
+.pano-viewer.measuring.dragging { cursor: crosshair; }
+.pano-viewer .pano-measure-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: #ffcc33;
+  color: #1a1300;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 7px;
+  pointer-events: none; white-space: nowrap;
+  z-index: 22;
+}
+
+/* Keyframes */
+@keyframes pano-spin { to { transform: rotate(360deg); } }
+@keyframes pano-hotspot-pulse {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0;   }
+}

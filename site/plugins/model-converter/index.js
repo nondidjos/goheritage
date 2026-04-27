@@ -547,6 +547,215 @@ panel.plugin('goheritage/model-converter', {
       `,
     },
 
+    'pano-clear-all': {
+      props: {
+        pageId: { type: String, default: '' },
+        count:  { type: Number, default: 0 },
+      },
+      data() {
+        return { busy: false, localCount: this.count };
+      },
+      watch: {
+        count(v) { this.localCount = v; },
+      },
+      methods: {
+        confirm() {
+          if (!this.localCount) return;
+          this.$panel.dialog.open({
+            component: 'k-remove-dialog',
+            props: { text: `Supprimer ${this.localCount} image${this.localCount > 1 ? 's' : ''} panorama ?` },
+            on: {
+              submit: () => {
+                this.$panel.dialog.close();
+                this.deleteAll();
+              },
+            },
+          });
+        },
+        async deleteAll() {
+          this.busy = true;
+          try {
+            const params = new URLSearchParams({ pageId: this.pageId });
+            const resp = await fetch(`/api/goheritage/delete-panoramas?${params}`, {
+              method: 'DELETE',
+              headers: { 'X-CSRF': panel.csrf },
+            });
+            const json = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(json.error || `HTTP ${resp.status}`);
+            this.localCount = 0;
+            this.$panel.notification.success(`${json.deleted} fichier(s) supprimé(s)`);
+            this.$panel.view.reload();
+          } catch (err) {
+            this.$panel.notification.error(err.message);
+          } finally {
+            this.busy = false;
+          }
+        },
+      },
+      template: `
+        <k-field label=" " class="k-pano-clear-all-field" style="display:flex;align-items:center;gap:0.75rem;">
+          <span v-if="localCount" style="font-size:0.78rem;color:var(--color-text-dimmed);">
+            {{ localCount }} fichier{{ localCount > 1 ? 's' : '' }}
+          </span>
+          <k-button
+            icon="trash"
+            text="Tout supprimer"
+            variant="outlined"
+            theme="negative"
+            size="sm"
+            :disabled="busy || !localCount"
+            @click="confirm"
+          />
+        </k-field>
+      `,
+    },
+
+    'pano-upload': {
+      props: {
+        pageId: { type: String, default: '' },
+        count:  { type: Number, default: 0 },
+      },
+      data() {
+        return {
+          uploading: false,
+          deleting:  false,
+          progress:  { done: 0, total: 0, fails: 0 },
+          localCount: this.count,
+        };
+      },
+      watch: {
+        count(v) { this.localCount = v; },
+      },
+      methods: {
+        pickFiles() {
+          if (this.uploading) return;
+          this.$refs.input.value = '';
+          this.$refs.input.click();
+        },
+        onPick(e) {
+          const files = Array.from(e.target.files || []);
+          if (files.length) this.uploadAll(files);
+        },
+        onDrop(files) {
+          // k-dropzone passes File[] directly
+          const list = Array.from(files || []).filter(f => /\\.(jpe?g|png|webp)$/i.test(f.name));
+          if (list.length) this.uploadAll(list);
+        },
+        confirmDelete() {
+          if (!this.localCount) return;
+          this.$panel.dialog.open({
+            component: 'k-remove-dialog',
+            props: { text: `Supprimer ${this.localCount} image${this.localCount > 1 ? 's' : ''} panorama ?` },
+            on: {
+              submit: () => {
+                this.$panel.dialog.close();
+                this.deleteAll();
+              },
+            },
+          });
+        },
+        async deleteAll() {
+          this.deleting = true;
+          try {
+            const params = new URLSearchParams({ pageId: this.pageId });
+            const resp = await fetch(`/api/goheritage/delete-panoramas?${params}`, {
+              method: 'DELETE',
+              headers: { 'X-CSRF': panel.csrf },
+            });
+            const json = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(json.error || `HTTP ${resp.status}`);
+            this.localCount = 0;
+            this.$panel.notification.success(`${json.deleted} fichier(s) supprimé(s)`);
+            this.$panel.view.reload();
+          } catch (err) {
+            this.$panel.notification.error(err.message);
+          } finally {
+            this.deleting = false;
+          }
+        },
+        async uploadAll(files) {
+          this.uploading = true;
+          this.progress = { done: 0, total: files.length, fails: 0 };
+
+          // Sequential upload — Kirby's file create isn't safe to parallelise
+          // (concurrent writes to content/.lock cause merge conflicts).
+          for (const f of files) {
+            try {
+              const form = new FormData();
+              form.append('file', f);
+              form.append('pageId', this.pageId);
+              form.append('template', 'panorama');
+              form.append('fieldName', ''); // no field binding — files queried by template
+
+              const resp = await fetch('/api/goheritage/upload-overwrite', {
+                method: 'POST',
+                headers: { 'X-CSRF': panel.csrf },
+                body: form,
+              });
+              if (!resp.ok) throw new Error((await resp.text()).slice(0, 120) || resp.statusText);
+              this.progress.done++;
+            } catch (err) {
+              this.progress.fails++;
+              console.warn('[pano-upload] failed:', f.name, err);
+            }
+          }
+
+          this.uploading = false;
+          const ok   = this.progress.done;
+          const fail = this.progress.fails;
+          this.localCount += ok;
+          if (ok)   this.$panel.notification.success(`${ok} image${ok > 1 ? 's' : ''} ajoutée${ok > 1 ? 's' : ''}.`);
+          if (fail) this.$panel.notification.error(`${fail} échec${fail > 1 ? 's' : ''}.`);
+          this.$panel.view.reload();
+        },
+      },
+      template: `
+        <k-field label="Images panorama" class="k-pano-upload-field">
+          <k-dropzone class="k-pano-upload-dropzone" :disabled="uploading || deleting" @drop="onDrop">
+            <div class="k-pano-upload-row">
+              <k-button
+                icon="upload"
+                :text="uploading ? 'Téléversement…' : 'Téléverser des images'"
+                variant="filled"
+                theme="positive"
+                size="sm"
+                :disabled="uploading || deleting"
+                @click="pickFiles"
+              />
+              <span class="k-pano-upload-status">
+                <template v-if="uploading">
+                  {{ progress.done }} / {{ progress.total }}
+                  <template v-if="progress.fails">— {{ progress.fails }} échec(s)</template>
+                </template>
+                <template v-else>
+                  {{ localCount }} image{{ localCount > 1 ? 's' : '' }} en ligne — glissez-déposez ou cliquez à gauche.
+                </template>
+              </span>
+              <k-button
+                v-if="localCount"
+                icon="trash"
+                text="Tout supprimer"
+                variant="outlined"
+                theme="negative"
+                size="sm"
+                class="k-pano-upload-delete"
+                :disabled="uploading || deleting"
+                @click="confirmDelete"
+              />
+            </div>
+            <input
+              ref="input"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              hidden
+              @change="onPick"
+            />
+          </k-dropzone>
+        </k-field>
+      `,
+    },
+
     'accordion-trigger': {
       props: {
         label: String,

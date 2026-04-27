@@ -66,6 +66,22 @@ Kirby::plugin('goheritage/model-converter', [
             ],
         ],
         'accordion-trigger' => [],
+        'pano-clear-all' => [
+            'computed' => [
+                'pageId' => function () { return $this->model()->id(); },
+                'count'  => function () {
+                    return $this->model()->images()->template('panorama')->count();
+                },
+            ],
+        ],
+        'pano-upload' => [
+            'computed' => [
+                'pageId' => function () { return $this->model()->id(); },
+                'count'  => function () {
+                    return $this->model()->images()->template('panorama')->count();
+                },
+            ],
+        ],
         'location-search'   => [
             'computed' => [
                 'pageId' => function () { return $this->model()->id(); },
@@ -94,6 +110,39 @@ Kirby::plugin('goheritage/model-converter', [
     // ── Custom API routes ─────────────────────────────────────────────────────
     'api' => [
         'routes' => [
+            [
+                'pattern' => 'goheritage/delete-panoramas',
+                'method'  => 'DELETE',
+                'auth'    => false,
+                'action'  => function () {
+                    $kirby = kirby();
+                    if (!$kirby->user()) {
+                        return Response::json(['error' => 'Unauthorized'], 401);
+                    }
+                    $pageId = $kirby->request()->get('pageId');
+                    if (!$pageId) {
+                        return Response::json(['error' => 'pageId required'], 400);
+                    }
+                    $page = $kirby->page($pageId);
+                    if (!$page) {
+                        return Response::json(['error' => 'Page not found'], 404);
+                    }
+                    $kirby->impersonate('kirby');
+                    $page    = $kirby->page($pageId);
+                    $files   = $page->images()->template('panorama');
+                    $deleted = 0;
+                    $errors  = [];
+                    foreach ($files as $f) {
+                        try {
+                            $f->delete();
+                            $deleted++;
+                        } catch (\Throwable $e) {
+                            $errors[] = $f->filename() . ': ' . $e->getMessage();
+                        }
+                    }
+                    return Response::json(['deleted' => $deleted, 'errors' => $errors]);
+                },
+            ],
             [
                 'pattern' => 'goheritage/delete-file',
                 'method'  => 'DELETE',
@@ -341,6 +390,7 @@ function goheritageCanonicalBase($fieldName) {
         'model_texture_interior'       => 'interior-texture',
         'model_hotspots_json'          => 'hotspots-exterior',
         'model_hotspots_json_interior' => 'hotspots-interior',
+        'pano_hotspots_json'           => 'pano-hotspots',
     ];
     return $map[$fieldName] ?? null;
 }

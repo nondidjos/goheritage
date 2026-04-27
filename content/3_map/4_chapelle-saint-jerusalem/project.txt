@@ -58,11 +58,35 @@ Tags: chapelle, médiéval, religieux, gironde
 
 ----
 
+Primary-tag: 
+
+----
+
 Viewer-url: 
 
 ----
 
 Model-toggle: true
+
+----
+
+Marker-offset-x: 
+
+----
+
+Marker-offset-y: 
+
+----
+
+Marker-offset-z: 
+
+----
+
+Viewer-preference: panorama
+
+----
+
+Pano-hotspots-json: file://9llbhdx7iolvl4r3
 
 ----
 
@@ -90,7 +114,28 @@ Model-hotspots-json-interior: file://yfcuxj3ycnkhiji5
 
 ----
 
-Annotations: []
+Annotations:
+
+-
+  hotspot_id: hotspot_01
+  title: Tombe
+  camera_mode: auto-orbit
+  description: ''
+-
+  hotspot_id: hotspot_02
+  title: Table
+  camera_mode: fly
+  description: ''
+-
+  hotspot_id: hotspot_03
+  title: Chaire
+  camera_mode: orbit
+  description: ''
+-
+  hotspot_id: hotspot_04
+  title: Voutes
+  camera_mode: orbit
+  description: ''
 
 ----
 
@@ -116,6 +161,255 @@ Annotations-interior:
   title: Voutes
   camera_mode: orbit
   description: ''
+
+----
+
+Pano-files:
+
+- 'file://0nlfl9irdd26i0xy'
+- 'file://u8lat6dfzjfzvhbr'
+- 'file://jbpcf2mysdxgskko'
+- 'file://swzmrbyif1k9hhgd'
+- 'file://hwjemkqvaujqiubp'
+- 'file://mtmjkplbguivwl8e'
+- 'file://xuoyeqre0owqs2uo'
+- 'file://w73klnw5txcke1in'
+- 'file://eophd6p8gr3sqtze'
+- 'file://f9htykm4bzfz3x8c'
+- 'file://04jadvbsguentszb'
+- 'file://yyunnx6s99i4rff1'
+- 'file://7ye1hxrv663zuq9j'
+- 'file://jwk6lao7bq3wlgxz'
+- 'file://lr3etsemn4u6mdxt'
+- 'file://y5i6cvw1ljmxmytw'
+- 'file://ruem92ycmioybvq7'
+- 'file://zfc7wq1gfhchogxk'
+- 'file://z3pdaawa78iyfk4q'
+- 'file://spslrsrdnezo63e8'
+- 'file://alimg7rcjumnr0mc'
+- 'file://1iwrdbe7jwblwd3u'
+- 'file://3sa6iluhxeeg8ij6'
+- 'file://qqqmf6679avmrixm'
+- 'file://gp94npy04jaumfoe'
+- 'file://uceqmqq711foyoza'
+- 'file://ukafzkyjwszuqgzz'
+- 'file://p9lwxd5mhgybxxzp'
+- 'file://ztymghblo5mdthiz'
+- 'file://k7j2lh7cjadkhgtf'
+- 'file://z4uonlurrc5hsxut'
+- 'file://tnp4gvityekgi6ub'
+- 'file://uiehtmu73sqc1qll'
+- 'file://ziiwnu1grf9hjhn1'
+- 'file://3naknrzldgb1niaj'
+- 'file://bfulhufwzrq14hbb'
+- 'file://tbspyyl1itommaig'
+- 'file://zdawsgceflyadcxi'
+- 'file://myxfkztiusipmlf3'
+- 'file://fsxpozbxw9vklm0r'
+- 'file://us4kno3p21yywoqx'
+- 'file://ek2so7rp7b2ec70e'
+- 'file://rzzge49hduit5ogw'
+- 'file://eyzniyj9pmo4eesx'
+- 'file://u2lehxcp84mbi3zd'
+- 'file://i3m2hqvkyxh9uibe'
+- 'file://kbubiekscpbn6p3e'
+- 'file://tqhvt6i66hhygpcm'
+- 'file://zogah4aog1b7u3e8'
+- 'file://r83awjbgmsot2h4u'
+- 'file://rxzkjzr8berwin84'
+- 'file://qqoidqhsauw2jud3'
+- 'file://pwtocgcpcxtiz0vi'
+- 'file://eksbcig4ajsviyd7'
+- 'file://tu9bitmky16oca26'
+- 'file://nygx1qnazwb8djyg'
+- 'file://rb1ydpphcawkpnvw'
+- 'file://2mgg5nadqz2h1i6f'
+- 'file://ezdquieibf1sjcsj'
+- 'file://xoxm0hg619hb0v1f'
+- 'file://mdizandnnivcgcoi'
+- 'file://xwpp2nrm3yojwybt'
+- 'file://junaz8hva1i1popb'
+- 'file://oeoahhygpig5qdbd'
+- 'file://kfoni8o77v6lij08'
+- 'file://by5qsgjedpic3ywj'
+- 'file://pb9bexydxbqif6wb'
+- 'file://mhvrq4hnhp2z4o50'
+- 'file://gkqna8061mlsyefu'
+- 'file://nvpe6h3r4muopupn'
+- 'file://hyv10ezmpl6vgypg'
+- 'file://3ua9io9qterbkbdq'
+- 'file://of45hdm51jqtx3rv'
+- 'file://wlxutpavgl1uylk2'
+- 'file://kk6aarxocew5sfz8'
+- 'file://qbllvhokbil7pr2s'
+- 'file://8cihqihb9qxxtscq'
+- 'file://vkdcnaopf2nzfd0g'
+- 'file://jkekmevlxzohdh9o'
+- 'file://vaggx6v5fwszmlv4'
+- 'file://jgiblpjdhpeg0csm'
+- 'file://9i0xyzqdex9lx83x'
+- 'file://kej7l1u6ukmqbvob'
+- 'file://6f8lvktbvxnus73o'
+- 'file://jzmo6pwmaeoiedyh'
+- 'file://jztcvspfs7ihvgbx'
+- 'file://traiktu377tjurln'
+- 'file://6ek2mamkdno5hqf8'
+- 'file://fcrxat6rwv5y464t'
+- 'file://nkqo3proecbt6f3a'
+- 'file://baqpf8ilssoxlcqa'
+- 'file://kvnrpmq53k5d1j4c'
+- 'file://jrkaesxmbgikkkps'
+- 'file://myiid6cfxyrfiqns'
+- 'file://mtojpcpy74y2sbfc'
+- 'file://mtl9qlush8f6alr2'
+- 'file://nrqututywmaprn2t'
+- 'file://mhoy23bnrnzkboco'
+- 'file://xzqcxeq2ir6gi6ib'
+- 'file://bbkslozcpvxstmr0'
+- 'file://ivjdq0ewzxqi9wmd'
+- 'file://i4cmvbzlctcdjs6g'
+- 'file://dtbednrtf3ibjmbx'
+- 'file://97cjkubt09xsc6px'
+- 'file://x4fqlabm9hswrild'
+- 'file://kiakkb0qltvnn9uo'
+- 'file://r4i3gonbt7ycha9q'
+- 'file://xmxmxe6euf0g9hpu'
+- 'file://bpccvewdao5tctzo'
+- 'file://pioyty15ovfhhomx'
+- 'file://xzozr1td5qlvgpik'
+- 'file://afhh1kwsjjusbv2h'
+- 'file://a8ua1crsf4vcoscw'
+- 'file://kozmk5wjzjbwwyrn'
+- 'file://psaszly9eogrvphf'
+- 'file://u2qqt2a36mfgkl2k'
+- 'file://9j2bayb2jvoizcyy'
+- 'file://onh8arf0txdknkgb'
+- 'file://98zpmazxtf6cdhur'
+- 'file://6wl1y5lbfos7g9y0'
+- 'file://x4eomoxoudfuzx3f'
+- 'file://0zwvulgjxei5hsb2'
+- 'file://9eqqpeur5hlv09vr'
+- 'file://gvpxxxpwbcfpfpus'
+- 'file://ci4axnsuom0ivm6r'
+- 'file://os7mlxowwz2ldjcs'
+- 'file://ubdefmcwmphj7ott'
+- 'file://rvnycf065vugovtg'
+- 'file://y8ayisla1dipdbb6'
+- 'file://fplnv0fvbdpvrgen'
+- 'file://ocgoyoovrn7nudeb'
+- 'file://p6jkw0uri9datudh'
+- 'file://h7y9nfttav5x6lws'
+- 'file://roe0pgerpkbonkad'
+- 'file://y4apg3qsoqfmueiu'
+- 'file://dzwmzyp1qp3z0ngz'
+- 'file://baamegblnj6cd3ni'
+- 'file://bnakjtts5rckmyw1'
+- 'file://sx4wzrpsdk6d3cik'
+- 'file://haajr8wa9cobmx6i'
+- 'file://wvbv9oz1tbvib2lj'
+- 'file://obxxyw60uzq7zstq'
+- 'file://iihbryxzxywbu4lr'
+- 'file://o8gk1w8v02snvcw5'
+- 'file://wu8g6cllohy0egxy'
+- 'file://7oxpyjhr1gbxrfd2'
+- 'file://y47ytxvixa2wr15z'
+- 'file://qpgkkljwqh54hppe'
+- 'file://st3ovy3ygq4b6mrf'
+- 'file://d27yhgtfy7z4p4tr'
+- 'file://yzkjcdssg6ozbpij'
+- 'file://ifrcfs8frvwkezis'
+- 'file://uvcewnkwdqebahrv'
+- 'file://fnxzpqir9qlrjzze'
+- 'file://pv8iodbvpjkgjik3'
+- 'file://shwqajqrmes6mejj'
+- 'file://ciafw43numvn9swv'
+- 'file://jrpydbof2brqr8rl'
+- 'file://bo0afmyn6xh5nvsf'
+- 'file://wesfwvu6xpdty80t'
+- 'file://cgvbzo6rudv97tum'
+- 'file://wywt8uioh1eybxuy'
+- 'file://ua646dzgofhni6gk'
+- 'file://epljwrmjjjticksk'
+- 'file://it9mpazjr8bamehn'
+- 'file://yppeoam54jfh2g3s'
+- 'file://uttvkbexdqbqcvkm'
+- 'file://ci02zoqgnzzvicvz'
+- 'file://rm3gnh9wbfm0oa46'
+- 'file://26dbtz8cuz06y6by'
+- 'file://xptgn9hjg3dsgrsj'
+- 'file://nrh4v8rhhcgf9ys7'
+- 'file://f5qwittjod75fydb'
+- 'file://m3kohcrtfcrfgwlp'
+- 'file://dfz3r2fy5vmwtall'
+- 'file://rridroomzq5crwdm'
+- 'file://4oacwzta8odljqoq'
+- 'file://s7vy3cflnjsycpet'
+- 'file://of5jrayucy4hgzvt'
+- 'file://u6zusz9g3zfeiiir'
+- 'file://9bnspfcgpstrnvfi'
+- 'file://ndmwjhne6hxh4vq4'
+- 'file://xq06v2ix7lavywoc'
+- 'file://d9zhcdh1cpnlfyez'
+- 'file://fhwtwxvqno2anh1u'
+- 'file://k6iwgkrh0dcspzuh'
+- 'file://nwxjdmlw4adrgocw'
+- 'file://ybot1ngnm0tkjad8'
+- 'file://ofd5aynznq35v0qd'
+- 'file://krscve0ygqftsfqc'
+- 'file://af1hopk9z2t5nrvd'
+- 'file://jakvc8pg1izxxxte'
+- 'file://szwcer1qsnpk4wnx'
+- 'file://mmxe9nthusdcbzud'
+- 'file://tdksbquqoaauckku'
+- 'file://yzcp327j1jbpbvij'
+- 'file://wr2fvfs72ervtawm'
+- 'file://ekjoaqw6ftpiphsh'
+- 'file://g5gwdu1rdzq5vek4'
+- 'file://ojxndaezrswquwmb'
+- 'file://2gyv0xx6adny68tt'
+- 'file://1m64vgnqiebu3hg3'
+- 'file://wu8ujy7mhlirrak4'
+- 'file://rvlmousfwlsodg7h'
+- 'file://epkejkuui7pzit5k'
+- 'file://xyaybk9hchyxyhor'
+- 'file://wm6nqcp2jywla0vm'
+- 'file://20002y2hkvk3ylfa'
+- 'file://dtfrs7ejc7on8ye6'
+- 'file://ej8gcbstcehielu6'
+- 'file://ep3pnuduftrtl8no'
+- 'file://virapooxjvejk2y0'
+- 'file://4ki5efthva0of2bz'
+- 'file://52biqdklhvplzbrr'
+- 'file://rhpt3flakw00ce22'
+- 'file://6awl2zteu3ycs23m'
+- 'file://06sik5x26co6bjlu'
+- 'file://g5wbbo9cjxfwexrh'
+- 'file://oq1c3df96knaurvw'
+- 'file://mmypvmagec4ycxfg'
+- 'file://d1odpvtil6imnzkp'
+- 'file://extdibsk2usi9ghf'
+- 'file://6dxnqndvgrekve5f'
+- 'file://kgvuo3rqrahu4x1q'
+- 'file://tjixllhpqk8xus8n'
+- 'file://mysvmxpmiqa11fo4'
+- 'file://4b8zn269qn3k2wgp'
+- 'file://uoawsl3ld5aekjru'
+- 'file://fyptny0aq1uvmsmv'
+- 'file://gaxf9ql3gsgyg5fi'
+- 'file://7j39pnv1yqxnybl0'
+- 'file://mek741zmbgayh10b'
+- 'file://5km0wndhcvz1dlty'
+- 'file://51laspdjhr1r38bg'
+- 'file://gftn4jpuulpvqxvn'
+- 'file://v7n5wf6obhyy0q2y'
+- 'file://xhfjw1j2hqkvvzvd'
+- 'file://i6kaaofczrykgl6d'
+- 'file://878deqgyzqfl3aaz'
+- 'file://0zybybtgaupoya8r'
+
+----
+
+Matterport-url: https://my.matterport.com/show/?m=TEMhCAuJLhs
 
 ----
 

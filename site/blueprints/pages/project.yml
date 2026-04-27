@@ -149,6 +149,87 @@ tabs:
               - Intérieur
             default: false
 
+      # ── Alignement manuel des marqueurs panorama ──────────────────────────
+      - width: 1/1
+        fields:
+          marker_align_info:
+            label: false
+            type: info
+            theme: info
+            text: >
+              **Alignement marqueurs panorama** — laissez vide pour centrer
+              automatiquement sur le modèle. Renseignez (mètres, Three.js
+              Y-up : X = droite, Y = haut, Z = vers la caméra) si l'auto
+              tombe à côté.
+
+      - width: 1/3
+        fields:
+          marker_offset_x:
+            type: number
+            label: Décalage X
+            step: 0.1
+            placeholder: auto
+      - width: 1/3
+        fields:
+          marker_offset_y:
+            type: number
+            label: Décalage Y
+            step: 0.1
+            placeholder: auto
+      - width: 1/3
+        fields:
+          marker_offset_z:
+            type: number
+            label: Décalage Z
+            step: 0.1
+            placeholder: auto
+
+      - width: 1/2
+        fields:
+          viewer_preference:
+            type: select
+            label: Type de viewer
+            default: auto
+            options:
+              auto: Auto (panorama si dispo, sinon 3D)
+              model: Modèle 3D (Three.js)
+              panorama: Panorama (PanoViewer)
+            help: "Détermine quel viewer utiliser sur la page projet. Ignoré si Viewer externe est renseigné."
+
+      # ── Panorama (PanoViewer) ────────────────────────────────────────────────
+      - width: 1/1
+        fields:
+          pano_accordion:
+            type: accordion-trigger
+            label: Panorama (PanoViewer)
+            target: panorama
+            defaultOpen: false
+
+          pano_info:
+            label: false
+            type: info
+            theme: info
+            text: >
+              **Pipeline Panorama** — Dump Matterport (6 faces par scène,
+              `{id}_skybox0…5.jpg`) ou équirectangulaires. Utilisez l'import
+              ci-dessous pour lier les positions, ou déposez un JSON manuellement.
+
+          matterport_import:
+            type: matterport-import
+            label: Extraction Matterport
+
+          pano_upload:
+            type: pano-upload
+
+          pano_hotspots_json:
+            type: upload-overwrite
+            label: JSON Hotspots (manuel)
+            accept: ".json"
+            template: default
+            help: "Remplace l'import auto. JSON GoHéritage définissant scènes et positions."
+
+
+      # ── Fichiers : Extérieur & Intérieur ─────────────────────────────────────
       - width: 1/1
         fields:
           obj_info:
@@ -157,18 +238,13 @@ tabs:
             theme: info
             text: >
               **Pipeline OBJ** — Exportez le modèle en OBJ + texture depuis Blender,
-              puis les hotspots en JSON via l'addon GoHéritage (onglet Options de point d'intérêt).
-              Les textures sont compressées automatiquement à l'upload.
+              puis les hotspots en JSON via l'addon GoHéritage.
 
-      # ── Fichiers : Extérieur & Intérieur ─────────────────────────────────────
-      - width: 1/1
-        fields:
-          # EXTERIOR
           exterior_accordion:
             type: accordion-trigger
             label: Modèle Extérieur
             target: exterior
-            defaultOpen: true
+            defaultOpen: false
 
           model_obj:
             width: 1/2
@@ -178,17 +254,14 @@ tabs:
             template: model
             help: Fichier OBJ exporté depuis Blender.
 
-
-
           model_texture:
             width: 1/2
             type: upload-overwrite
             label: Texture diffuse
             accept: ".jpg,.jpeg,.png"
             template: image
-            help: Texture couleur. Déposez un PNG puis choisissez la qualité et cliquez sur l'icône image pour comprimer en JPEG.
+            help: Texture couleur. PNG → compresser en JPEG via l'icône image.
 
-          # INTERIOR
           interior_accordion:
             type: accordion-trigger
             label: Modèle Intérieur
@@ -203,15 +276,13 @@ tabs:
             template: model
             help: Fichier OBJ exporté depuis Blender.
 
-
-
           model_texture_interior:
             width: 1/2
             type: upload-overwrite
             label: Texture diffuse
             accept: ".jpg,.jpeg,.png"
             template: image
-            help: Texture couleur. Déposez un PNG puis choisissez la qualité et cliquez sur l'icône image pour comprimer en JPEG.
+            help: Texture couleur. PNG → compresser en JPEG via l'icône image.
 
 
   # ── Tab 4 : Fichiers ──────────────────────────────────────────────────────

@@ -1,6 +1,45 @@
 /* upload-overwrite panel field styles
    Minimal styling — lets Kirby components look native */
 
+/* pano-upload field — single-row dropzone, no listing */
+.k-pano-upload-dropzone.k-dropzone {
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--rounded);
+  background: var(--color-background);
+}
+.k-pano-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.k-pano-upload-status {
+  font-size: 0.78rem;
+  color: var(--color-text-dimmed);
+  flex: 1;
+}
+.k-pano-upload-delete {
+  margin-left: auto;
+}
+
+
+/* Move action buttons to the top of the upload dialog so users
+   don't have to scroll past the file list to confirm / cancel. */
+.k-upload-dialog {
+  display: flex;
+  flex-direction: column;
+}
+
+.k-upload-dialog .k-dialog-footer {
+  order: -1;
+  border-top: none;
+  border-bottom: 1px solid var(--color-border);
+  padding-top: 0;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
 .k-upload-overwrite-wrap {
   display: flex;
   flex-direction: column;

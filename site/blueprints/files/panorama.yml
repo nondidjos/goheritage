@@ -1,0 +1,36 @@
+title: Panorama
+accept:
+  type: image
+  extension:
+    - jpg
+    - jpeg
+    - png
+    - webp
+
+columns:
+  - width: 1/2
+    sections:
+      content:
+        type: fields
+        fields:
+          scene_id:
+            label: Identifiant de scène
+            type: text
+            placeholder: "ex. salon, entry, skybox0"
+            help: "Optionnel. Utilisé comme ID de scène. Pour une face Matterport, nommer le fichier `{id}_skybox0.jpg` … `{id}_skybox5.jpg`."
+          title:
+            label: Titre
+            type: text
+            placeholder: "ex. Grand Salon"
+  - width: 1/2
+    sections:
+      meta:
+        type: fields
+        fields:
+          alt:
+            label: Texte alternatif
+            type: text
+          caption:
+            label: Légende
+            type: textarea
+            size: small

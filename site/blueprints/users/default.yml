@@ -34,3 +34,4 @@ columns:
         type: url
         icon: mastodon
         placeholder: https://example.com/@username
+
