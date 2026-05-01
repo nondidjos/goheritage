@@ -78,6 +78,16 @@ if ($gallery->count() === 0) {
 
 <div class="items-start pt-0 pb-10">
 
+    <!-- Back button (top left) -->
+    <div class="col-7 flex items-center mb-6 px-4 pt-4 md:pt-6">
+        <a href="<?= $page->parent()->url() ?>" class="inline-flex items-center gap-3 font-mono text-sm md:text-base uppercase tracking-wider text-faint hover:text-ink transition-colors duration-150 no-underline p-2 md:p-3 -m-2 md:-m-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="md:w-6 md:h-6">
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            Retour
+        </a>
+    </div>
+
     <!-- Project Header (spans full 7 cols) -->
     <div class="col-7 flex flex-col items-center mb-4 px-4 pt-4 project-header relative">
         <h1 class="font-thyssen text-[clamp(2.5rem,8vw,6rem)] text-center leading-[0.9] mb-5 border-none no-underline"><?= $page->title()->esc() ?></h1>

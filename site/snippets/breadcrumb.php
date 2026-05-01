@@ -3,7 +3,6 @@ $items = $items ?? [];
 ?>
 <nav class="breadcrumb" aria-label="Fil d'Ariane">
     <div class="breadcrumb__inner">
-        <a href="<?= $site->url() ?>" class="breadcrumb__parent">Acceuil</a>
         <?php foreach ($items as $i => $item): ?>
             <span class="breadcrumb__sep">></span>
             <?php if (!empty($item['url']) && $i < count($items) - 1): ?>

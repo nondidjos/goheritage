@@ -55,28 +55,12 @@ return [
                     return str_contains(\kirby()->request()->path()->toString(), 'site');
                 }
             ],
-            'home' => [
-                'icon'  => 'home',
-                'label' => 'Accueil',
-                'link'  => 'pages/home',
-                'current' => function () {
-                    return str_contains(\kirby()->request()->path()->toString(), 'pages/home');
-                }
-            ],
             'projects' => [
                 'icon'  => 'box',
                 'label' => 'Carte',
                 'link'  => 'pages/map',
                 'current' => function () {
                     return str_contains(\kirby()->request()->path()->toString(), 'pages/map');
-                }
-            ],
-            'blog' => [
-                'icon'  => 'book',
-                'label' => 'Blog',
-                'link'  => 'pages/blog',
-                'current' => function () {
-                    return str_contains(\kirby()->request()->path()->toString(), 'pages/blog');
                 }
             ],
             '-',

@@ -186,6 +186,62 @@ Kirby::plugin('goheritage/model-converter', [
                 },
             ],
             [
+                'pattern' => 'goheritage/convert-obj',
+                'method'  => 'POST',
+                'auth'    => false,
+                'action'  => function () {
+                    $kirby   = kirby();
+                    $request = $kirby->request();
+
+                    if (!$kirby->user()) {
+                        return Response::json(['error' => 'Unauthorized'], 401);
+                    }
+
+                    $pageId   = $request->get('pageId');
+                    $filename = $request->get('filename');
+
+                    if (!$pageId || !$filename) {
+                        return Response::json(['error' => 'pageId and filename required'], 400);
+                    }
+
+                    $page = $kirby->page($pageId);
+                    if (!$page) {
+                        return Response::json(['error' => 'Page not found'], 404);
+                    }
+
+                    $file = $page->file(basename($filename));
+                    if (!$file) {
+                        return Response::json(['error' => 'File not found'], 404);
+                    }
+
+                    if (strtolower($file->extension()) !== 'obj') {
+                        return Response::json(['error' => 'File must be an .obj'], 400);
+                    }
+
+                    try {
+                        set_time_limit(3600);
+                        $kirby->impersonate('kirby');
+                        convertObjToGlb($file);
+
+                        $page        = $kirby->page($pageId);
+                        $basename    = pathinfo($filename, PATHINFO_FILENAME);
+                        $glbFile     = $page->file($basename . '.glb');
+
+                        if ($glbFile) {
+                            return Response::json([
+                                'status'   => 'ok',
+                                'filename' => $glbFile->filename(),
+                                'size'     => $glbFile->niceSize(),
+                                'url'      => $glbFile->url(),
+                            ]);
+                        }
+                        return Response::json(['status' => 'ok']);
+                    } catch (\Throwable $e) {
+                        return Response::json(['error' => $e->getMessage()], 500);
+                    }
+                },
+            ],
+            [
                 'pattern' => 'goheritage/geocode',
                 'method'  => 'GET',
                 'auth'    => false,
@@ -287,14 +343,6 @@ Kirby::plugin('goheritage/model-converter', [
                             $kirby->page($pageId)->update([$fieldName => $newFile->uuid()]);
                         }
 
-                        // Manually trigger post-upload processing since the
-                        // custom route bypasses Kirby's file.create:after hook.
-                        // OBJ → GLB conversion runs automatically; texture compression
-                        // is triggered manually via the quality picker in the panel.
-                        if ($ext === 'obj') {
-                            convertObjToGlb($newFile);
-                        }
-
                         return Response::json([
                             'status'   => $existing ? 'replaced' : 'created',
                             'filename' => $newFile->filename(),
@@ -314,19 +362,8 @@ Kirby::plugin('goheritage/model-converter', [
     ],
 
     // ── File hooks ────────────────────────────────────────────────────────────
-    'hooks' => [
-        // fires after a file has been created (uploaded) in the panel
-        'file.create:after' => function ($file) {
-            $ext = strtolower($file->extension());
-            if ($ext === 'obj') convertObjToGlb($file);
-        },
-
-        // fires after a file has been replaced (re-uploaded via panel default)
-        'file.replace:after' => function ($newFile, $oldFile) {
-            $ext = strtolower($newFile->extension());
-            if ($ext === 'obj') convertObjToGlb($newFile);
-        },
-    ],
+    // OBJ → GLB conversion is triggered manually via the "→ GLB" button in the panel.
+    'hooks' => [],
 ]);
 
 /**

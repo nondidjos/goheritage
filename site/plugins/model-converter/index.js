@@ -25,7 +25,7 @@ panel.plugin('goheritage/model-converter', {
             <!-- Native Kirby dropzone -->
             <k-dropzone class="k-upload-overwrite-dropzone" :disabled="uploading" @drop="onDrop">
               <p class="k-upload-overwrite-dropzone-label">
-                {{ uploading ? 'Téléversement…' : 'Déposer un fichier ici' }}
+                {{ uploading ? 'Téléversement…' : (anyCompressing ? 'Compression…' : 'Déposer un fichier ici') }}
               </p>
               <k-button
                 size="sm"
@@ -54,6 +54,20 @@ panel.plugin('goheritage/model-converter', {
                 <span v-if="f.size" class="k-upload-overwrite-list__size" style="font-size: 0.8rem; color: var(--color-text-dimmed); margin-right: 0.5rem;">
                   {{ f.size }}
                 </span>
+                <div v-if="/\.obj$/i.test(f.filename)" style="display:flex; flex-direction:column; align-items:flex-start; margin-right:0.25rem; flex-shrink:0; gap:3px;">
+                  <span style="font-family:var(--font-mono, monospace); text-transform:uppercase; font-size:0.55rem; color:var(--color-text-dimmed); letter-spacing:0.05em; line-height:1; font-weight:600; padding-left:2px;">Conversion</span>
+                  <button
+                    type="button"
+                    title="Convertir en GLB (Draco)"
+                    :disabled="!!convertingFile"
+                    @click="convertObj(f)"
+                    style="display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border:1px solid var(--color-border); border-radius:4px; background:transparent; cursor:pointer; font-size:0.65rem; font-family:var(--font-mono, monospace); color:var(--color-text-dimmed); text-transform:uppercase; letter-spacing:0.04em;"
+                    :style="{ opacity: !!convertingFile ? 0.4 : 1 }"
+                  >
+                    <k-icon :type="convertingFile === f.filename ? 'loader' : 'angle-right'" />
+                    GLB
+                  </button>
+                </div>
                 <div v-if="/\.png$/i.test(f.filename)" style="display:flex; flex-direction:column; align-items:flex-start; margin-right:0.25rem; flex-shrink:0; gap:3px;">
                   <span style="font-family:var(--font-mono, monospace); text-transform:uppercase; font-size:0.55rem; color:var(--color-text-dimmed); letter-spacing:0.05em; line-height:1; font-weight:600; padding-left:2px;">Compression</span>
                   <div style="display:inline-flex; align-items:stretch; border:1px solid var(--color-border); border-radius:4px; overflow:hidden;">
@@ -114,6 +128,7 @@ panel.plugin('goheritage/model-converter', {
       data() {
         return {
           uploading: false,
+          convertingFile: '',   // filename currently being converted to GLB, or ''
           message: '',
           messageType: 'success',
           localFiles: [],
@@ -139,6 +154,12 @@ panel.plugin('goheritage/model-converter', {
       computed: {
         matchingFiles() {
           return this.localFiles;
+        },
+
+        // True whenever any compression or conversion is in progress —
+        // used to update the dropzone label to "Compression…"
+        anyCompressing() {
+          return !!this.convertingFile || this.localFiles.some(f => f.compressing);
         },
 
         // Kirby API encodes nested page IDs with "+" instead of "/"
@@ -360,6 +381,34 @@ panel.plugin('goheritage/model-converter', {
           return bytes >= 1048576
             ? (bytes / 1048576).toFixed(1) + ' Mo'
             : Math.round(bytes / 1024) + ' Ko';
+        },
+
+        async convertObj(file) {
+          if (this.convertingFile) return;
+          this.convertingFile = file.filename;
+          try {
+            const params = new URLSearchParams({
+              pageId:   this.pageId || '',
+              filename: file.filename,
+            });
+            const resp = await fetch(`/api/goheritage/convert-obj?${params}`, {
+              method:  'POST',
+              headers: { 'X-CSRF': panel.csrf },
+            });
+            if (!resp.ok) {
+              const body = await resp.text().catch(() => '');
+              let errorMsg = resp.statusText;
+              try { const errJson = JSON.parse(body); if (errJson.error) errorMsg = errJson.error; } catch(e) {}
+              this.showMessage('Erreur : ' + errorMsg, 'error');
+            } else {
+              this.showMessage('Converti en GLB ✓', 'success');
+              this.$panel.view.reload();
+            }
+          } catch (err) {
+            this.showMessage('Erreur : ' + err.message, 'error');
+          } finally {
+            this.convertingFile = '';
+          }
         },
 
         showMessage(text, type) {
