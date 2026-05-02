@@ -74,6 +74,9 @@ export class PanoViewer {
       if (group === this._cubeGroup) return;
       this._disposeObject(group);
     };
+    // Generation counter so _preloadNeighbors can cancel an old run when
+    // the active scene changes mid-queue.
+    this._preloadRunId = 0;
     this._cubeBuilds = new Map(); // id → in-flight build Promise (de-dupe)
 
     // Camera state
@@ -466,61 +469,225 @@ export class PanoViewer {
   // ── Zoom ───────────────────────────────────────────────────────────────────
 
   _zoom(delta) {
+    // Pano mode and dollhouse mode track FOV independently — zoom in
+    // dollhouse must NOT change the pano view (and vice versa).
+    if (this._mode === 'dollhouse' && this._dollhouseCam) {
+      const fov = Math.max(this.cfg.minFov, Math.min(this.cfg.maxFov, this._dollhouseCam.fov + delta));
+      this._dollhouseCam.fov = fov;
+      this._dollhouseCam.updateProjectionMatrix();
+      this._showZoomToast(fov);
+      return;
+    }
     this.fov = Math.max(this.cfg.minFov, Math.min(this.cfg.maxFov, this.fov + delta));
     this.camera.fov = this.fov;
     this.camera.updateProjectionMatrix();
-    if (this._dollhouseCam) {
-      this._dollhouseCam.fov = this.fov;
-      this._dollhouseCam.updateProjectionMatrix();
-    }
-    this._showZoomToast();
-    // Below the threshold, low-res pixels start to read as blocky — kick
-    // the high-res cube load (idempotent + cached if already done).
-    if (this._mode === 'pano') {
-      const sc = this._scenes[this._activeId];
-      if (sc) this._maybeUpgradeToHigh(sc);
-    }
+    this._showZoomToast(this.fov);
+    const sc = this._scenes[this._activeId];
+    if (sc) this._maybeUpgradeToHigh(sc);
   }
 
-  /** Upgrade the active cube scene to high-res LOD if conditions warrant. */
+  /**
+   * Per-face LOD upgrade. Loads only the high-res texture for the face the
+   * user is currently looking at; queues the next-most-visible face after
+   * that, and so on. Avoids the giant 6-face GPU upload that caused the
+   * spike. Each face's HIGH texture is cached by URL in _hiFaceCache.
+   */
   _maybeUpgradeToHigh(sc) {
-    if (this._isMobile) return;                   // mobile stays low
+    if (this._isMobile) return;
     if (!sc || sc.type !== 'cube' || !sc.faces) return;
     const lowFaces = sc.facesLow || sc.faces;
-    if (sc.faces === lowFaces) return;            // no separate high-res
+    if (sc.faces === lowFaces) return;
     const threshold = +(this.cfg.highLodFovDeg ?? 75);
-    if (this.fov > threshold) return;             // not zoomed in enough
-    const hiKey = `${sc.id}::high`;
-    if (this._cubeCache.has(hiKey)) {
-      // Already built — swap in directly (instant).
-      const hi = this._cubeCache.get(hiKey);
-      if (this._activeId === sc.id && this._cubeGroup !== hi) {
-        if (this._cubeGroup) this.scene.remove(this._cubeGroup);
-        this._cubeGroup = hi;
-        if (sc.pano_quat) {
-          hi.quaternion.set(sc.pano_quat.x, sc.pano_quat.y, sc.pano_quat.z, sc.pano_quat.w);
-        }
-        if (hi.parent !== this.scene) this.scene.add(hi);
-      }
-      return;
-    }
-    // Idle-build then swap if user is still on this scene.
-    (window.requestIdleCallback || requestAnimationFrame)(() => {
-      this._getOrBuildCube(sc.id, sc.faces, true, 'high').then(hi => {
-        if (this._activeId !== sc.id) return;
-        if (this._cubeGroup === hi) return;
-        if (this._cubeGroup) this.scene.remove(this._cubeGroup);
-        this._cubeGroup = hi;
-        if (sc.pano_quat) {
-          hi.quaternion.set(sc.pano_quat.x, sc.pano_quat.y, sc.pano_quat.z, sc.pano_quat.w);
-        }
-        if (hi.parent !== this.scene) this.scene.add(hi);
-      }).catch(() => {});
+    if (this.fov > threshold) return;
+    if (!this._cubeGroup) return;
+
+    // Order the 6 faces by visibility — the one centred in the camera frustum
+    // first, then ring of neighbours, leaving the back face for last.
+    const order = this._faceLoadOrder();
+    if (!order.length) return;
+
+    // Track upgraded faces per scene id. _activeFaceUpgrade is "in flight" so
+    // we don't enqueue the same face twice.
+    if (!this._upgradedFaces) this._upgradedFaces = new Map(); // sceneId → Set
+    let done = this._upgradedFaces.get(sc.id);
+    if (!done) { done = new Set(); this._upgradedFaces.set(sc.id, done); }
+
+    const next = order.find(i => !done.has(i));
+    if (next == null) return; // all six already at HIGH
+    if (this._activeFaceUpgrade) return; // wait for in-flight
+
+    const url = sc.faces[next];
+    if (!url) { done.add(next); return; }
+
+    this._activeFaceUpgrade = sc.id + '::' + next;
+    this._loadFaceHigh(url, next).then(tex => {
+      this._activeFaceUpgrade = null;
+      // Bail if user navigated away to a different scene.
+      if (this._activeId !== sc.id) return;
+      // Find this face in the live cube and swap its material map.
+      const face = this._cubeGroup?.children?.find(c => c.userData?.faceIndex === next);
+      if (!face?.material) return;
+      const oldMap = face.material.map;
+      face.material.map = tex;
+      face.material.needsUpdate = true;
+      if (oldMap && oldMap !== tex) oldMap.dispose();
+      done.add(next);
+      // Chain the next face on idle so we don't stall the frame.
+      (window.requestIdleCallback || requestAnimationFrame)(() => this._maybeUpgradeToHigh(sc));
+    }).catch(() => {
+      this._activeFaceUpgrade = null;
     });
   }
 
-  _showZoomToast() {
-    const pct = Math.round((1 - (this.fov - this.cfg.minFov) / (this.cfg.maxFov - this.cfg.minFov)) * 100);
+  /**
+   * Matterport-style scene transition.
+   *
+   * Concept: from the camera's POV, "moving forward" toward the next scene
+   * means the OLD pano slides backward + fades out, while the NEW pano
+   * starts in front of the camera + fades in. Camera stays at origin; we
+   * translate the cube Groups along a small unit vector along the world-
+   * direction from old → new.
+   *
+   * Both groups are rendered together for ~360 ms then we lock to the new.
+   */
+  _startCubeTransition(oldGroup, newGroup, sc, worldOffset) {
+    // Cancel any in-flight transition cleanly.
+    if (this._cubeTransition) {
+      const t = this._cubeTransition;
+      if (t.oldGroup !== newGroup) this.scene.remove(t.oldGroup);
+      this._cubeTransition = null;
+    }
+
+    // Direction (unit vector) from old → new in WORLD space.
+    const dir = worldOffset.clone().normalize();
+    // Travel distance — small + brief reads as a confident step forward
+    // without giving frame drops time to spoil it. Cube radius is 500;
+    // stay well under so no seam shows at peak displacement.
+    const TRAVEL = 140;
+
+    // Make both groups' faces use transparent materials (cube-mesh defaults
+    // are opaque). We lerp opacity via material.opacity but that requires
+    // transparent: true, so set it for the duration of the transition.
+    const setTransparent = (group, transparent) => {
+      group.traverse(c => {
+        if (c.material) {
+          c.material.transparent = transparent;
+          if (!transparent) c.material.opacity = 1;
+          c.material.needsUpdate = true;
+        }
+      });
+    };
+    setTransparent(oldGroup, true);
+    setTransparent(newGroup, true);
+
+    // Place new at "ahead of camera" along dir, will move back to origin.
+    if (sc.pano_quat) {
+      newGroup.quaternion.set(sc.pano_quat.x, sc.pano_quat.y, sc.pano_quat.z, sc.pano_quat.w);
+    } else {
+      newGroup.quaternion.identity();
+    }
+    newGroup.position.copy(dir).multiplyScalar(-TRAVEL);
+    if (newGroup.parent !== this.scene) this.scene.add(newGroup);
+
+    // Old already at origin; we'll translate along +dir (camera moves toward
+    // target = world appears to move away in -direction, but the visible
+    // effect of "we're walking forward into the pano" reads cleanest as
+    // OLD sliding away from us).
+    oldGroup.position.set(0, 0, 0);
+
+    this._cubeGroup = newGroup;
+    this.scene.background = new THREE.Color(0x000000);
+    this.sphere.visible = false;
+
+    this._cubeTransition = {
+      start: performance.now(),
+      duration: 320,
+      oldGroup, newGroup, dir, travel: TRAVEL,
+    };
+  }
+
+  /** Per-frame transition update (called from _tick). */
+  _stepCubeTransition() {
+    const t = this._cubeTransition;
+    if (!t) return;
+    const now = performance.now();
+    const k = Math.min(1, (now - t.start) / t.duration);
+    // Ease out cubic for organic deceleration.
+    const e = 1 - Math.pow(1 - k, 3);
+
+    // Old slides forward + fades out; new pulls in to origin + fades in.
+    t.oldGroup.position.copy(t.dir).multiplyScalar(t.travel * e);
+    t.newGroup.position.copy(t.dir).multiplyScalar(-t.travel * (1 - e));
+
+    const oldOp = 1 - e;
+    const newOp = e;
+    t.oldGroup.traverse(c => { if (c.material) c.material.opacity = oldOp; });
+    t.newGroup.traverse(c => { if (c.material) c.material.opacity = newOp; });
+
+    if (k >= 1) {
+      // Finalise — strip old from scene, restore new to opaque.
+      this.scene.remove(t.oldGroup);
+      t.newGroup.position.set(0, 0, 0);
+      t.newGroup.traverse(c => {
+        if (c.material) {
+          c.material.transparent = false;
+          c.material.opacity = 1;
+          c.material.needsUpdate = true;
+        }
+      });
+      this._cubeTransition = null;
+    }
+  }
+
+  /** Determine which face index is centred in the current camera view. */
+  _facingIndex() {
+    if (!this._cubeGroup) return 4; // default front
+    // Camera direction in world space.
+    const wd = new THREE.Vector3();
+    this.camera.getWorldDirection(wd);
+    // Rotate into cube-local space (undo the bake quaternion).
+    const inv = this._cubeGroup.quaternion.clone().invert();
+    wd.applyQuaternion(inv);
+    // Pick dominant axis. Cube face mapping: +Y=0 +X=1 +Z=2 -X=3 -Z=4 -Y=5.
+    const ax = Math.abs(wd.x), ay = Math.abs(wd.y), az = Math.abs(wd.z);
+    if (ay >= ax && ay >= az) return wd.y > 0 ? 0 : 5;
+    if (ax >= ay && ax >= az) return wd.x > 0 ? 1 : 3;
+    return wd.z > 0 ? 2 : 4;
+  }
+
+  /** Face load priority: facing → 4 sides → opposite. */
+  _faceLoadOrder() {
+    const f = this._facingIndex();
+    const opposite = { 0: 5, 5: 0, 1: 3, 3: 1, 2: 4, 4: 2 }[f];
+    const all = [0, 1, 2, 3, 4, 5];
+    return [f, ...all.filter(i => i !== f && i !== opposite), opposite];
+  }
+
+  /** Load a single high-res face texture (cached by URL). */
+  _loadFaceHigh(url, faceIndex) {
+    if (!this._hiFaceCache) this._hiFaceCache = new LRUCache(48);
+    const cached = this._hiFaceCache.get(url);
+    if (cached) return Promise.resolve(cached);
+    return new Promise((resolve, reject) => {
+      new THREE.TextureLoader().load(url, tex => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = 4;
+        tex.flipY = true;
+        // top/bottom faces in our skybox use a 90° texture rotation; mirror
+        // here so the high-res tex aligns with the low-res it replaces.
+        if (faceIndex === 0) { tex.rotation = Math.PI / 2; tex.center.set(0.5, 0.5); }
+        if (faceIndex === 5) { tex.rotation = -Math.PI / 2; tex.center.set(0.5, 0.5); }
+        tex.needsUpdate = true;
+        try { this.renderer.initTexture(tex); } catch (_) {}
+        this._hiFaceCache.set(url, tex);
+        resolve(tex);
+      }, undefined, reject);
+    });
+  }
+
+  _showZoomToast(fov) {
+    const f = fov ?? this.fov;
+    const pct = Math.round((1 - (f - this.cfg.minFov) / (this.cfg.maxFov - this.cfg.minFov)) * 100);
     this.zoomToast.textContent = `${pct}%`;
     this.zoomToast.classList.add('show');
     clearTimeout(this._zoomToastTimer);
@@ -561,6 +728,7 @@ export class PanoViewer {
 
   _tick() {
     this._animateMarkers?.();
+    this._stepCubeTransition?.();
     if (this._mode === 'dollhouse') { this._updateHotspots(); return; }
     if (!this.isDragging) {
       this.yaw   += this.vel.yaw;
@@ -718,30 +886,52 @@ export class PanoViewer {
       };
 
       if (sc.type === 'cube' && sc.faces?.length === 6) {
-        // LOD: swap to LOW immediately for an instant click response, then
-        // build HIGH in the background and replace once ready. LOW comes
-        // from a 1024-wide thumb (≈ 5–10 MB GPU), HIGH from full-res
-        // (≈ 100+ MB GPU on a 4 K skybox).
-        const swapInGroup = (group) => {
-          if (this._cubeGroup && this._cubeGroup !== group) {
-            this.scene.remove(this._cubeGroup);
-          }
-          this._cubeGroup = group;
-          applyPanoOrientation(group);
-          if (group.parent !== this.scene) this.scene.add(group);
-          this.scene.background = new THREE.Color(0x000000);
-          this.sphere.visible = false;
-        };
-
+        // LOD: render LOW immediately for instant clicks. Per-face HIGH
+        // upgrades happen in the background, only for the face the user
+        // is looking at.
         const lowFaces = sc.facesLow || sc.faces;
+        const lowKey   = `${sc.id}::low`;
+
+        // Only run the cross-fade transition when the target cube was
+        // already preloaded. Building cold = we already made the user wait
+        // ~200 ms of decode + upload; stacking a 320 ms slide on top of
+        // that just feels janky. Cold path: snap.
+        const wasCached = this._cubeCache.has(lowKey);
 
         this._getOrBuildCube(sc.id, lowFaces, !!prev, 'low').then(group => {
-          swapInGroup(group);
-          applyCommon(); // user can interact immediately on LOW
-          // HIGH is opt-in: only kicks in when the user is zoomed in enough
-          // that LOW-res pixelation would matter. Mobile stays on LOW
-          // forever (GPU memory constraints).
-          this._maybeUpgradeToHigh(sc);
+          const prevScene = prev && this._scenes[prev];
+          const offset = (prevScene && prevScene.position && sc.position)
+            ? new THREE.Vector3(
+                sc.position.x - prevScene.position.x,
+                sc.position.y - prevScene.position.y,
+                sc.position.z - prevScene.position.z,
+              )
+            : null;
+
+          let inTransition = false;
+          if (wasCached && this._cubeGroup && offset && offset.lengthSq() > 0.0001) {
+            this._startCubeTransition(this._cubeGroup, group, sc, offset);
+            inTransition = true;
+          } else {
+            if (this._cubeGroup && this._cubeGroup !== group) {
+              this.scene.remove(this._cubeGroup);
+            }
+            this._cubeGroup = group;
+            applyPanoOrientation(group);
+            if (group.parent !== this.scene) this.scene.add(group);
+            this.scene.background = new THREE.Color(0x000000);
+            this.sphere.visible = false;
+          }
+          applyCommon();
+          // Texture upload mid-transition stutters the slide. Wait until
+          // the cross-fade finishes before kicking the per-face HIGH chain.
+          if (inTransition) {
+            setTimeout(() => {
+              if (this._activeId === sc.id) this._maybeUpgradeToHigh(sc);
+            }, 360);
+          } else {
+            this._maybeUpgradeToHigh(sc);
+          }
         }).catch(onErr);
       } else {
         // Equirectangular: texture on sphere
@@ -1040,19 +1230,36 @@ export class PanoViewer {
 
   _preloadNeighbors(scene) {
     if (!this.cfg.preloadNeighbors || !scene.hotspots) return;
-    scene.hotspots.forEach(h => {
-      const target = h.target && this._scenes[h.target];
+    // Run preloads SERIALLY — kicking 6 cube builds in parallel saturates
+    // the renderer (each one runs initTexture + a stealth render at end),
+    // and any pano transition or animation playing during those parallel
+    // bursts visibly stutters. Queue them; cancel-and-restart whenever the
+    // active scene changes.
+    const queue = scene.hotspots
+      .map(h => h.target && this._scenes[h.target])
+      .filter(Boolean);
+
+    const runId = ++this._preloadRunId;
+    const next = () => {
+      if (this._preloadRunId !== runId) return;
+      const target = queue.shift();
       if (!target) return;
+      let p;
       if (target.image) {
-        this._loadTexture(target.image, true).catch(() => {});
+        p = this._loadTexture(target.image, true);
       } else if (target.type === 'cube' && Array.isArray(target.faces)) {
-        // Preload the LOW LOD only — instant swap on click. The high tier
-        // is built in the background after the swap settles, so we don't
-        // saturate GPU upload bandwidth before the user even moves.
         const low = target.facesLow || target.faces;
-        this._getOrBuildCube(target.id, low, true, 'low').catch(() => {});
+        p = this._getOrBuildCube(target.id, low, true, 'low');
+      } else {
+        p = Promise.resolve();
       }
-    });
+      p.catch(() => {}).then(() => {
+        // Yield to the browser between preloads so transitions can grab
+        // the main thread; chained immediately would block.
+        (window.requestIdleCallback || requestAnimationFrame)(next);
+      });
+    };
+    next();
   }
 
   _showLoading() {
@@ -1277,19 +1484,22 @@ export class PanoViewer {
         const next = cur + (targetScale - cur) * k;
         mesh.scale.setScalar(next);
       }
-      // Opacity lerp on a single material (or the wrap's halo + core).
+      // Opacity lerp on a single material, or both halo+core for wraps.
+      const target = u.targetOpacity ?? u.baseOpacity ?? 1;
+      const lerpMat = (mat, weight) => {
+        if (!mat) return;
+        const cur2 = mat.opacity;
+        const want = target * weight;
+        if (Math.abs(cur2 - want) > 0.005) {
+          mat.opacity = cur2 + (want - cur2) * k;
+        }
+      };
       if (mesh.material) {
-        const target = u.targetOpacity ?? u.baseOpacity ?? 1;
-        const cur2 = mesh.material.opacity;
-        if (Math.abs(cur2 - target) > 0.005) {
-          mesh.material.opacity = cur2 + (target - cur2) * k;
-        }
-      } else if (u.haloMat) {
-        const target = u.targetOpacity ?? u.baseOpacity ?? 0.35;
-        const cur2 = u.haloMat.opacity;
-        if (Math.abs(cur2 - target) > 0.005) {
-          u.haloMat.opacity = cur2 + (target - cur2) * k;
-        }
+        lerpMat(mesh.material, 1);
+      } else {
+        // Glow tracks at ~30% of the ring's opacity so it stays subtle.
+        lerpMat(u.coreMat, 1);
+        lerpMat(u.haloMat, 0.3);
       }
     };
     this._navArrows?.forEach(apply);
@@ -1605,61 +1815,48 @@ export class PanoViewer {
             mats.forEach(mm => { if (mm) mm.side = side; });
           });
 
-          // Try to merge BEFORE adding to scene + computing bounds.
-          mergeIfBeneficial(sharedMat);
-
-          obj.traverse(c => c.layers.set(1));
-          obj.visible = true;
-          this.scene.add(obj);
-
-          // Defer bbox + mini-dollhouse setup to the next frame so the
-          // current main-thread tick can return — keeps the loading UI
-          // animating instead of freezing.
-          requestAnimationFrame(() => {
+          // Spread the heavy post-load work across many frames so any pano
+          // transition the user has in flight stays smooth. Each step is
+          // ≤ ~30 ms on a typical model; the browser can paint + animate
+          // between RAFs.
+          const yield_ = () => new Promise(r => requestAnimationFrame(r));
+          (async () => {
+            await yield_();
+            mergeIfBeneficial(sharedMat); // collapse 200 sub-meshes → 1
+            await yield_();
+            obj.traverse(c => c.layers.set(1));
+            obj.visible = true;
+            this.scene.add(obj);
+            await yield_();
             this._modelBounds = new THREE.Box3().setFromObject(obj);
+            await yield_();
             this.dollhouseBtn.hidden = false;
             this.dollhouseEl.hidden  = false;
             this.measureBtn.hidden   = false;
             this._setupMiniDollhouse();
-
-            // Pre-warm the GPU pipeline against both cameras that will see
-            // this model. A 1×1 render is too small to fully exercise the
-            // texture upload path on some drivers, so we use the actual
-            // mini-viewport size + a tmp full-size dollhouse cam. Both runs
-            // happen behind a scissor test so the live viewport isn't dirty.
+            await yield_();
+            // Compile shaders (bypasses first-frame compile stall).
+            try { this.renderer.compile(this.scene, this._miniCam || this.camera); } catch (_) {}
+            await yield_();
+            // One real render with the mini cam at its actual viewport size,
+            // behind a scissor — forces texture upload now without dirtying
+            // the live viewport.
             try {
-              const prevAutoClear = this.renderer.autoClear;
-              this.renderer.autoClear = false;
-              this.renderer.setScissorTest(true);
-
               if (this._miniCam && this._miniRect) {
-                this.renderer.compile(this.scene, this._miniCam);
+                const prev = this.renderer.autoClear;
+                this.renderer.autoClear = false;
+                this.renderer.setScissorTest(true);
                 this.renderer.setScissor(0, 0, this._miniRect.w, this._miniRect.h);
                 this.renderer.setViewport(0, 0, this._miniRect.w, this._miniRect.h);
                 this.renderer.render(this.scene, this._miniCam);
+                this.renderer.setScissorTest(false);
+                this.renderer.autoClear = prev;
               }
-              // Pre-warm a dollhouse-style camera too — first dollhouse
-              // entry would otherwise pay the same upload cost.
-              const tmpCam = new THREE.PerspectiveCamera(55, 1, 0.1, 10000);
-              tmpCam.layers.enable(1);
-              const c = this._modelBounds.getCenter(new THREE.Vector3());
-              const s = this._modelBounds.getSize(new THREE.Vector3());
-              const d = Math.max(s.x, s.y, s.z) * 1.5;
-              tmpCam.position.set(c.x + d, c.y + d, c.z + d);
-              tmpCam.lookAt(c);
-              this.renderer.compile(this.scene, tmpCam);
-              this.renderer.setScissor(0, 0, 64, 64);
-              this.renderer.setViewport(0, 0, 64, 64);
-              this.renderer.render(this.scene, tmpCam);
-
-              this.renderer.setScissorTest(false);
-              this.renderer.autoClear = prevAutoClear;
-            } catch (_) { /* warm-up is best-effort */ }
-
+            } catch (_) {}
             this._hideLoading();
             this._emit('modelloaded', { url });
             resolve(obj);
-          });
+          })();
         };
 
         if (texUrl) {

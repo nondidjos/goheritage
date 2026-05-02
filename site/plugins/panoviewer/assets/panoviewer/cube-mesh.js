@@ -95,6 +95,9 @@ export function buildCubeMesh(faces, opts = {}) {
         mesh.rotation.set(...rot);
         mesh.renderOrder = -10;
         mesh.layers.set(0);
+        // Face index tag — viewer uses this for per-face LOD upgrades.
+        mesh.userData.faceIndex = i;
+        if (texRot != null) mesh.userData.texRot = texRot;
         group.add(mesh);
 
         // Debug: overlay face index number so user can identify which skybox is where

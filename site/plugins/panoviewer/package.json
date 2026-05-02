@@ -1,0 +1,19 @@
+{
+  "name": "@goheritage/panoviewer",
+  "version": "0.1.0",
+  "description": "Matterport-style panorama + dollhouse viewer (Three.js). Self-contained ES-module package.",
+  "type": "module",
+  "main": "assets/panoviewer.js",
+  "exports": {
+    ".": "./assets/panoviewer.js",
+    "./bridge": "./assets/goheritage-bridge.js",
+    "./style.css": "./assets/panoviewer.css"
+  },
+  "files": [
+    "assets/"
+  ],
+  "peerDependencies": {
+    "three": "*"
+  },
+  "private": true
+}

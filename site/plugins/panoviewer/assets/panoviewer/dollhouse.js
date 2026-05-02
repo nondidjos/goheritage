@@ -17,6 +17,12 @@ export const dollhouseMixin = {
     // belong to the mode we're leaving and get disposed.
     this._hoveredNav = null;
     if (this.renderer?.domElement) this.renderer.domElement.style.cursor = '';
+    // Coming out of dollhouse, the pano camera was tilted down to look at
+    // the model. Reset pitch to horizon so the next pano scene shows
+    // forward, not floor. Yaw is preserved so direction-of-interest sticks.
+    if (mode === 'pano' && this._mode === 'dollhouse') {
+      this.pitch = 0;
+    }
     this._mode = mode;
     this.dollhouseBtn.classList.toggle('toggled', mode === 'dollhouse');
     if (mode === 'dollhouse') this._enterDollhouse();
@@ -62,6 +68,11 @@ export const dollhouseMixin = {
       this.scene.add(amb, dir);
       this._dollhouseLights = [amb, dir];
     }
+
+    // Mini-inset's white sphere marker would otherwise stay visible in
+    // dollhouse mode (it's on layer 1 and never gets toggled outside the
+    // inset render path). Hide it whenever we enter the full dollhouse.
+    if (this._miniMarker) this._miniMarker.visible = false;
 
     this._buildPanoMarkers();
     this._logScaleDiagnostics(bbox);
@@ -399,54 +410,60 @@ export const dollhouseMixin = {
       this.scene.remove(this._markersGroup);
       this._disposeObject(this._markersGroup);
     }
-    // Scale marker radius to model size — invisible at < 0.15 m on big models.
+    // Marker radius scaled to model size. Bigger than the last pass — easy
+    // to spot at dollhouse framing distance. Inactive markers fade down via
+    // baseOpacity, so making them larger doesn't crowd the model.
     const bbox   = this._modelBounds || new THREE.Box3().setFromObject(this._model);
     const size   = bbox.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z) || 10;
-    const radius = Math.max(0.18, maxDim * 0.011);
+    const radius = Math.max(0.18, maxDim * 0.013);
 
-    // Shared geometries — flat disks lying on the floor, like Matterport.
-    const ringInner = radius;
-    const ringOuter = radius * 1.45;
-    const ringGeo   = new THREE.RingGeometry(ringInner, ringOuter, 28);
-    const coreGeo   = new THREE.CircleGeometry(radius * 0.6, 24);
+    // Disk anatomy:
+    //   glow  — translucent outer ring, fakes a soft drop-shadow
+    //   ring  — clean white stroke (the main visual)
+    // (the filled centre disc was removed per the latest pass — looked dated.)
+    const glowGeo   = new THREE.RingGeometry(radius * 1.55, radius * 2.10, 32);
+    const ringGeo   = new THREE.RingGeometry(radius,        radius * 1.42, 32);
 
     const group = new THREE.Group();
     let count = 0;
     for (const sc of Object.values(this._scenes)) {
       if (!sc.position) continue;
-      // Halo ring (depthTest off → visible through walls in dollhouse)
-      const haloMat = new THREE.MeshBasicMaterial({
+      // Outer glow — fakes a soft drop-shadow on the floor.
+      const glowMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff, transparent: true, opacity: 0.10,
+        depthTest: false, depthWrite: false, side: THREE.DoubleSide,
+      });
+      const glow = new THREE.Mesh(glowGeo, glowMat);
+      glow.rotation.x = -Math.PI / 2;
+      glow.renderOrder = 9;
+
+      // Main ring — the dot itself.
+      const ringMat = new THREE.MeshBasicMaterial({
         color: 0xffffff, transparent: true, opacity: 0.55,
         depthTest: false, depthWrite: false, side: THREE.DoubleSide,
       });
-      const halo = new THREE.Mesh(ringGeo, haloMat);
-      halo.rotation.x = -Math.PI / 2;
-      halo.renderOrder = 10;
-
-      const coreMat = new THREE.MeshBasicMaterial({
-        color: 0xffffff, transparent: true, opacity: 0.95,
-        depthTest: false, depthWrite: false, side: THREE.DoubleSide,
-      });
-      const core = new THREE.Mesh(coreGeo, coreMat);
-      core.rotation.x = -Math.PI / 2;
-      core.renderOrder = 11;
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.renderOrder = 10;
 
       const wrap = new THREE.Group();
       wrap.position.set(sc.position.x, sc.position.y, sc.position.z);
       wrap.userData.sceneId       = sc.id;
-      wrap.userData.haloMat       = haloMat;
-      wrap.userData.coreMat       = coreMat;
-      wrap.userData.baseScale     = 1.0;
-      wrap.userData.hoverScale    = 1.35;
-      wrap.userData.targetScale   = 1.0;
+      // _setActiveMarker / _animateMarkers still write to haloMat/coreMat
+      // — alias them to the new pair so we don't break those code paths.
+      wrap.userData.haloMat       = glowMat;
+      wrap.userData.coreMat       = ringMat;
+      wrap.userData.baseScale     = 0.9;
+      wrap.userData.hoverScale    = 1.25;
+      wrap.userData.targetScale   = 0.9;
       wrap.userData.baseOpacity   = 0.55;
-      wrap.userData.hoverOpacity  = 0.9;
+      wrap.userData.hoverOpacity  = 0.85;
       wrap.userData.targetOpacity = 0.55;
-      halo.userData.sceneId = sc.id;
-      core.userData.sceneId = sc.id;
-      wrap.add(halo);
-      wrap.add(core);
+      glow.userData.sceneId = sc.id;
+      ring.userData.sceneId = sc.id;
+      wrap.add(glow);
+      wrap.add(ring);
       // Layer the whole wrap (children inherit) so dollhouse cam sees it.
       wrap.traverse(c => c.layers.set(1));
       group.add(wrap);
@@ -497,22 +514,22 @@ export const dollhouseMixin = {
     this._setActiveMarker(this._activeId);
   },
 
-  /** Active marker = scaled-up + brighter (no colour tint, modern look). */
+  /** Active marker = clearly bigger + fully bright; inactive shrinks + dims. */
   _setActiveMarker(id) {
     if (!this._markersGroup) return;
     this._markersGroup.children.forEach(wrap => {
       const u = wrap.userData;
       if (!u.haloMat || !u.coreMat) return;
       if (u.sceneId === id) {
-        u.baseScale    = 1.5;
-        u.hoverScale   = 1.8;
-        u.baseOpacity  = 0.95;
+        u.baseScale    = 1.7;
+        u.hoverScale   = 1.95;
+        u.baseOpacity  = 1.0;
         u.hoverOpacity = 1.0;
       } else {
-        u.baseScale    = 1.0;
-        u.hoverScale   = 1.35;
-        u.baseOpacity  = 0.55;
-        u.hoverOpacity = 0.9;
+        u.baseScale    = 0.85;
+        u.hoverScale   = 1.25;
+        u.baseOpacity  = 0.22;
+        u.hoverOpacity = 0.6;
       }
       if (this._hoveredNav !== wrap) {
         u.targetScale   = u.baseScale;
