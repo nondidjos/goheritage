@@ -345,3 +345,96 @@
   0%   { transform: scale(1);   opacity: 0.6; }
   100% { transform: scale(2.2); opacity: 0;   }
 }
+
+/* ── Fancy viewer animations ───────────────────────────────────────────── */
+
+/* Boot — viewer chrome eases in on first paint.
+   NOTE: do NOT include .pano-loading here. CSS animations override regular
+   declarations on the cascade, so applying `animation: pano-fade-in ... both`
+   to .pano-loading would lock opacity at 1 and defeat .hidden's opacity:0
+   → loading screen never disappears. */
+.pano-viewer .pano-control-stack,
+.pano-viewer .pano-compass,
+.pano-viewer .pano-dollhouse,
+.pano-viewer .pano-fullscreen-btn {
+    animation: pano-fade-in 380ms cubic-bezier(.2, .8, .2, 1) both;
+}
+.pano-viewer .pano-control-stack { animation-delay: 80ms; }
+.pano-viewer .pano-compass       { animation-delay: 160ms; }
+.pano-viewer .pano-dollhouse     { animation-delay: 240ms; }
+
+@keyframes pano-fade-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+/* Buttons — soft press + hover lift */
+.pano-viewer .pano-btn {
+    transition: transform 180ms cubic-bezier(.2, .8, .2, 1),
+                background-color 180ms ease,
+                box-shadow 220ms ease;
+}
+.pano-viewer .pano-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+.pano-viewer .pano-btn:active {
+    transform: translateY(0) scale(0.96);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+/* Compass needle — subtle glow when yaw changes */
+.pano-viewer .pano-compass {
+    transition: filter 320ms ease;
+}
+.pano-viewer .pano-compass:hover {
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.3));
+}
+
+/* Loading bar — shimmer */
+.pano-viewer .pano-loading-bar {
+    background: linear-gradient(
+        90deg,
+        var(--color-accent, #f3883a) 0%,
+        rgba(255, 255, 255, 0.6) 50%,
+        var(--color-accent, #f3883a) 100%
+    );
+    background-size: 200% 100%;
+    animation: pano-shimmer 1.4s linear infinite;
+}
+@keyframes pano-shimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+}
+
+/* Dollhouse mini-inset — gentle entrance */
+.pano-viewer .pano-dollhouse--mini {
+    animation: pano-mini-pop 420ms cubic-bezier(.2, .9, .2, 1.1) both;
+    transition: transform 220ms ease, box-shadow 220ms ease;
+}
+.pano-viewer .pano-dollhouse--mini:hover {
+    transform: scale(1.04);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+@keyframes pano-mini-pop {
+    from { opacity: 0; transform: scale(0.7) translateY(8px); }
+    to   { opacity: 1; transform: scale(1)   translateY(0); }
+}
+
+/* Exit-dollhouse button — slide in from left */
+.pano-viewer .pano-dollhouse-exit {
+    animation: pano-slide-in 320ms cubic-bezier(.2, .8, .2, 1) both;
+}
+@keyframes pano-slide-in {
+    from { opacity: 0; transform: translateX(-12px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Zoom toast — pop + fade */
+.pano-viewer .pano-zoom-toast {
+    transition: opacity 200ms ease, transform 240ms cubic-bezier(.2, .8, .2, 1);
+    transform: translateY(6px);
+}
+.pano-viewer .pano-zoom-toast.show {
+    transform: translateY(0);
+}

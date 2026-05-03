@@ -186,12 +186,18 @@ export function boot(el, opts = {}) {
   });
   if (opts.exposeGlobal !== false) window.viewer = viewer;
 
-  // Model first so the dollhouse button + scene markers are ready.
+  // Model load deferred — it was the biggest contributor to the initial 3 s
+  // freeze (parse + merge + texture upload all sync on main thread). We
+  // wait until the page is idle (~3 s after pano boots), then load in the
+  // background. Dollhouse button reveals only after model is ready.
   const modelUrl = el.dataset.modelUrl || null;
   const modelTex = el.dataset.modelTexture || null;
   if (modelUrl) {
-    viewer.loadModel(modelUrl, modelTex ? { texture: modelTex } : {})
-      .catch(err => console.warn('pano: model load failed:', err));
+    const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 3000));
+    idle(() => {
+      viewer.loadModel(modelUrl, modelTex ? { texture: modelTex } : {})
+        .catch(err => console.warn('pano: model load failed:', err));
+    }, { timeout: 8000 });
   }
 
   const urls    = JSON.parse(el.dataset.panoUrls    || '[]');

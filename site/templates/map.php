@@ -21,7 +21,8 @@ snippet('header');
           <line x1="10.5" y1="10.5" x2="15" y2="15" stroke="currentColor" stroke-width="1.5" />
         </svg>
         <input type="search" class="map-search-bar__input" id="map-search"
-          placeholder="Rechercher..." aria-label="Rechercher">
+          placeholder="Rechercher..." aria-label="Rechercher"
+          value="<?= esc($filters['q'] ?? '', 'attr') ?>">
       </div>
       <button class="map-filter-btn font-mono" id="map-filter-btn">
         Filtres
@@ -31,11 +32,58 @@ snippet('header');
       </button>
     </div>
 
+    <?php
+    // Build active-filter chips so the user sees which URL params filtered
+    // the list, with one-click removal (links back to /map without the param).
+    $activeChips = [];
+    if (!empty($filters['region'])) {
+        $labels = ['wallonie' => 'Wallonie', 'flandre' => 'Flandre', 'bruxelles' => 'Bruxelles', 'autre' => 'Autre région'];
+        $activeChips[] = ['label' => 'Région : ' . ($labels[$filters['region']] ?? $filters['region']), 'remove' => 'region'];
+    }
+    if (!empty($filters['category'])) {
+        $catLabels = ['chateaux' => 'Châteaux', 'abbayes' => 'Abbayes', 'jardins' => 'Jardins', 'demeures' => 'Demeures'];
+        $activeChips[] = ['label' => 'Type : ' . ($catLabels[$filters['category']] ?? $filters['category']), 'remove' => 'category'];
+    }
+    if (!empty($filters['tag'])) {
+        $activeChips[] = ['label' => 'Tag : ' . $filters['tag'], 'remove' => 'tag'];
+    }
+    if (!empty($filters['q'])) {
+        $activeChips[] = ['label' => '« ' . $filters['q'] . ' »', 'remove' => 'q'];
+    }
+
+    // Build URL with one param removed (preserve the others).
+    $rebuild = function (string $drop) use ($filters) {
+        $q = array_filter($filters, fn ($v, $k) => $v !== '' && $k !== $drop, ARRAY_FILTER_USE_BOTH);
+        return $q ? (url('map') . '?' . http_build_query($q)) : url('map');
+    };
+    ?>
+    <?php if ($activeChips): ?>
+      <div class="map-active-filters" data-result-count="<?= $projects->count() ?>" data-total-count="<?= $allCount ?>">
+        <span class="map-active-filters__count">
+          <strong><?= $projects->count() ?></strong> sur <?= $allCount ?>
+        </span>
+        <?php foreach ($activeChips as $chip): ?>
+          <a href="<?= $rebuild($chip['remove']) ?>" class="map-active-filter">
+            <span><?= esc($chip['label']) ?></span>
+            <span class="map-active-filter__x" aria-hidden="true">×</span>
+          </a>
+        <?php endforeach ?>
+        <a href="<?= url('map') ?>" class="map-active-filter map-active-filter--clear">Tout effacer</a>
+      </div>
+    <?php endif ?>
+
     <!-- tag filter panel — populated and animated by JS -->
     <div class="map-filter-panel" id="map-filter-panel"></div>
 
     <!-- project cards list -->
     <nav class="map-list" id="map-list" aria-label="Liste des sites patrimoniaux">
+      <?php if ($projects->count() === 0): ?>
+        <div class="map-list__empty">
+          <p class="font-mono text-xs uppercase tracking-wider text-faint mb-2">Aucun résultat</p>
+          <p class="font-serif text-sm text-mid">Aucune propriété ne correspond à ces filtres. Essayez de les élargir.</p>
+          <a href="<?= url('map') ?>" class="btn btn--secondary mt-4">Réinitialiser</a>
+        </div>
+      <?php endif ?>
       <?php foreach ($projects as $project): ?>
         <div class="map-card" data-id="<?= $project->slug() ?>"
           data-lat="<?= $project->lat()->value() ?>" data-lng="<?= $project->lng()->value() ?>"

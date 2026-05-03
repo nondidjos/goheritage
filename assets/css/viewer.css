@@ -695,3 +695,138 @@
         padding-top: 0.75rem;
     }
 }
+
+/* ── Project section dividers — history vs commercial ──────────────────── */
+.project-section {
+    position: relative;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-border);
+}
+.project-section + .project-section {
+    margin-top: 0.5rem;
+}
+.project-section--history {
+    border-top: none;
+    padding-top: 0;
+}
+.project-section__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+.project-section__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-faint);
+}
+.project-section__eyebrow--commercial {
+    color: var(--color-accent);
+}
+.project-section__price {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-ink);
+    background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg));
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+}
+
+/* Region tag — distinct so it reads as a primary filter, not a free tag */
+.tag--region {
+    background: var(--color-ink);
+    color: #fff;
+}
+.tag--region:hover {
+    background: var(--color-accent);
+}
+
+/* ── Availability chips ────────────────────────────────────────────────── */
+.availability-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+.availability-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans, sans-serif);
+    font-size: 0.8rem;
+    line-height: 1.2;
+    text-decoration: none !important;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.availability-chip:hover {
+    background: var(--color-ink);
+    color: #fff;
+    border-color: var(--color-ink);
+    transform: translateY(-1px);
+}
+.availability-chip__icon {
+    display: inline-flex;
+    color: var(--color-accent);
+}
+.availability-chip:hover .availability-chip__icon {
+    color: #fff;
+}
+.availability-chip__label { flex: 1; }
+.availability-chip__arrow {
+    opacity: 0.5;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.availability-chip:hover .availability-chip__arrow {
+    opacity: 1;
+    transform: translateX(2px);
+}
+
+/* ── Owner contact card ────────────────────────────────────────────────── */
+.owner-card {
+    margin-top: 1rem;
+    padding: 1rem 1.1rem;
+    background: var(--color-surface);
+    border-radius: var(--radius-sm);
+}
+.owner-card__eyebrow {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-faint);
+    margin-bottom: 0.4rem;
+}
+.owner-card__name {
+    font-family: var(--font-sans, sans-serif);
+    font-size: 0.95rem;
+    color: var(--color-ink);
+    margin-bottom: 0.5rem;
+}
+.owner-card__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.owner-card__list a {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8rem;
+    color: var(--color-ink);
+    text-decoration: none;
+}
+.owner-card__list a:hover { color: var(--color-accent); text-decoration: underline; }

@@ -8,12 +8,12 @@
  * assets/panoviewer/* internals) plus a stylesheet and a bridge module
  * that boots the viewer from data attributes on a #pano-viewer element.
  *
- * Asset URLs (auto-published by Kirby to media/plugins/goheritage/panoviewer/):
+ * Asset URLs (auto-published by Kirby to media/plugins/goheritage/panoviewer/{hash}/):
  *   - panoviewer.css
  *   - panoviewer.js
  *   - goheritage-bridge.js
  *
- * Templates / snippets reference assets via the `panoviewer.asset()` helper
+ * Templates / snippets reference assets via the `panoviewerAsset()` helper
  * exposed below so the path stays in one place.
  */
 
@@ -32,9 +32,9 @@ if (!function_exists('panoviewerAsset')) {
      * and the hash dir stays empty → 404 HTML → "blocked because of a
      * disallowed MIME type" in the browser.
      *
-     * Workaround: copy the source file into the published hash dir on each
-     * call (cheap; no-op when already present + mtime matches). Returns the
-     * canonical media URL Kirby would have generated.
+     * Workaround: derive the versioned hash dir from `$asset->mediaRoot()`,
+     * mirror the entire assets/ tree into it on first call, then return the
+     * canonical media URL Kirby would have generated. Idempotent + cheap.
      *
      * @param string $path  e.g. 'panoviewer.js', 'panoviewer.css', 'goheritage-bridge.js'
      * @return string
@@ -51,13 +51,17 @@ if (!function_exists('panoviewerAsset')) {
             return url('site/plugins/panoviewer/assets/' . ltrim($path, '/'));
         }
 
-        // Mirror the source file (and the rest of the assets folder when
-        // first asked) into the media hash dir so a direct GET succeeds.
-        $src      = $asset->root();
-        $destDir  = $plugin->mediaRoot();
-        $destFile = $destDir . '/' . $path;
-        if (is_file($src) && (!is_file($destFile) || filemtime($src) > filemtime($destFile))) {
-            panoviewerMirrorTree(dirname($src), $destDir, dirname($destFile));
+        // $asset->mediaRoot() resolves to the FILE path inside the versioned
+        // hash dir, e.g. media/plugins/goheritage/panoviewer/{hash}/panoviewer.js.
+        // The dir for THIS file → its parent. The hash root for the whole
+        // assets folder → climb until we hit the level that mirrors $srcRoot.
+        $destFile = $asset->mediaRoot();
+        $srcFile  = $asset->root();
+        $srcRoot  = dirname($srcFile, substr_count($path, '/') + 1);
+        $hashRoot = dirname($destFile, substr_count($path, '/') + 1);
+
+        if (is_file($srcFile) && (!is_file($destFile) || filemtime($srcFile) > filemtime($destFile))) {
+            panoviewerMirrorTree($srcRoot, $hashRoot);
         }
 
         return $asset->url();
@@ -67,13 +71,10 @@ if (!function_exists('panoviewerAsset')) {
      * Recursively copy any source files newer than their destination
      * counterparts (or missing) into the matching destination tree.
      */
-    function panoviewerMirrorTree(string $srcRoot, string $mediaRoot, string $destDir): void
+    function panoviewerMirrorTree(string $srcRoot, string $destRoot): void
     {
-        // First call ensures the whole assets/ folder is mirrored, not just
-        // the file we were asked about — sibling internals (panoviewer/*.js)
-        // are pulled in by the entry module via relative imports.
-        if (!is_dir($mediaRoot)) {
-            @mkdir($mediaRoot, 0755, true);
+        if (!is_dir($destRoot)) {
+            @mkdir($destRoot, 0755, true);
         }
         $iter = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($srcRoot, RecursiveDirectoryIterator::SKIP_DOTS),
@@ -81,7 +82,7 @@ if (!function_exists('panoviewerAsset')) {
         );
         foreach ($iter as $entry) {
             $rel  = substr($entry->getPathname(), strlen($srcRoot) + 1);
-            $dest = $mediaRoot . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $rel);
+            $dest = $destRoot . '/' . str_replace(DIRECTORY_SEPARATOR, '/', $rel);
             if ($entry->isDir()) {
                 if (!is_dir($dest)) @mkdir($dest, 0755, true);
             } else {

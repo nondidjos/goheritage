@@ -540,34 +540,30 @@ export class PanoViewer {
   }
 
   /**
-   * Matterport-style scene transition.
+   * Camera-walk transition with dolly-zoom feel.
    *
-   * Concept: from the camera's POV, "moving forward" toward the next scene
-   * means the OLD pano slides backward + fades out, while the NEW pano
-   * starts in front of the camera + fades in. Camera stays at origin; we
-   * translate the cube Groups along a small unit vector along the world-
-   * direction from old → new.
-   *
-   * Both groups are rendered together for ~360 ms then we lock to the new.
+   * The camera lives at origin. To fake "walking forward into the next
+   * scene", we use TWO simultaneous tricks:
+   *   1. OLD cube SCALES UP + slides forward (we're moving past / through it)
+   *   2. NEW cube starts SCALED UP (we're far away from it) and shrinks to
+   *      its real size while sliding in (arrival)
+   * Both fade against each other. The combined motion reads as 3D depth
+   * even without real geometry.
    */
   _startCubeTransition(oldGroup, newGroup, sc, worldOffset) {
-    // Cancel any in-flight transition cleanly.
+    // Cancel any in-flight transition cleanly. The previous OLD might be
+    // mid-fade — restore its materials before disposing.
     if (this._cubeTransition) {
       const t = this._cubeTransition;
       if (t.oldGroup !== newGroup) this.scene.remove(t.oldGroup);
       this._cubeTransition = null;
     }
 
-    // Direction (unit vector) from old → new in WORLD space.
     const dir = worldOffset.clone().normalize();
-    // Travel distance — small + brief reads as a confident step forward
-    // without giving frame drops time to spoil it. Cube radius is 500;
-    // stay well under so no seam shows at peak displacement.
-    const TRAVEL = 140;
+    const TRAVEL    = 180;     // viewer units moved during transition
+    const OLD_SCALE = 1.55;    // peak scale on OLD as camera "passes through"
+    const NEW_SCALE = 1.45;    // start scale on NEW (shrinks to 1 = arrival)
 
-    // Make both groups' faces use transparent materials (cube-mesh defaults
-    // are opaque). We lerp opacity via material.opacity but that requires
-    // transparent: true, so set it for the duration of the transition.
     const setTransparent = (group, transparent) => {
       group.traverse(c => {
         if (c.material) {
@@ -580,20 +576,18 @@ export class PanoViewer {
     setTransparent(oldGroup, true);
     setTransparent(newGroup, true);
 
-    // Place new at "ahead of camera" along dir, will move back to origin.
+    // Initial state for NEW: in front of us at scale 1.45, opacity 0.
     if (sc.pano_quat) {
       newGroup.quaternion.set(sc.pano_quat.x, sc.pano_quat.y, sc.pano_quat.z, sc.pano_quat.w);
     } else {
       newGroup.quaternion.identity();
     }
     newGroup.position.copy(dir).multiplyScalar(-TRAVEL);
+    newGroup.scale.setScalar(NEW_SCALE);
     if (newGroup.parent !== this.scene) this.scene.add(newGroup);
 
-    // Old already at origin; we'll translate along +dir (camera moves toward
-    // target = world appears to move away in -direction, but the visible
-    // effect of "we're walking forward into the pano" reads cleanest as
-    // OLD sliding away from us).
     oldGroup.position.set(0, 0, 0);
+    oldGroup.scale.setScalar(1);
 
     this._cubeGroup = newGroup;
     this.scene.background = new THREE.Color(0x000000);
@@ -601,8 +595,9 @@ export class PanoViewer {
 
     this._cubeTransition = {
       start: performance.now(),
-      duration: 320,
-      oldGroup, newGroup, dir, travel: TRAVEL,
+      duration: 460,
+      oldGroup, newGroup, dir,
+      travel: TRAVEL, oldScale: OLD_SCALE, newScale: NEW_SCALE,
     };
   }
 
@@ -612,21 +607,34 @@ export class PanoViewer {
     if (!t) return;
     const now = performance.now();
     const k = Math.min(1, (now - t.start) / t.duration);
-    // Ease out cubic for organic deceleration.
-    const e = 1 - Math.pow(1 - k, 3);
+    // Smoothstep — slightly different curve from cubic; reads more "dolly".
+    const e = k * k * (3 - 2 * k);
 
-    // Old slides forward + fades out; new pulls in to origin + fades in.
+    // OLD: slide forward + scale up + fade out.
     t.oldGroup.position.copy(t.dir).multiplyScalar(t.travel * e);
-    t.newGroup.position.copy(t.dir).multiplyScalar(-t.travel * (1 - e));
+    const oldS = 1 + (t.oldScale - 1) * e;
+    t.oldGroup.scale.setScalar(oldS);
 
-    const oldOp = 1 - e;
-    const newOp = e;
+    // NEW: pull in to origin + shrink to scale 1 + fade in.
+    t.newGroup.position.copy(t.dir).multiplyScalar(-t.travel * (1 - e));
+    const newS = t.newScale + (1 - t.newScale) * e;
+    t.newGroup.scale.setScalar(newS);
+
+    // Crossfade with slight bias so peak overlap is at e ~= 0.55 (avoids
+    // dead zone where both look ghostly).
+    const oldOp = Math.max(0, 1 - e * 1.2);
+    const newOp = Math.min(1, e * 1.2);
     t.oldGroup.traverse(c => { if (c.material) c.material.opacity = oldOp; });
     t.newGroup.traverse(c => { if (c.material) c.material.opacity = newOp; });
 
     if (k >= 1) {
-      // Finalise — strip old from scene, restore new to opaque.
       this.scene.remove(t.oldGroup);
+      // Reset OLD so it's clean for any future role.
+      t.oldGroup.position.set(0, 0, 0);
+      t.oldGroup.scale.setScalar(1);
+      // Finalise NEW — back to opaque, real size.
+      t.newGroup.position.set(0, 0, 0);
+      t.newGroup.scale.setScalar(1);
       t.newGroup.position.set(0, 0, 0);
       t.newGroup.traverse(c => {
         if (c.material) {

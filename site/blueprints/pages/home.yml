@@ -8,9 +8,19 @@ tabs:
   hero:
     label: Hero
     fields:
+      heroTag:
+        label: Surtitre (mono)
+        type: text
+        placeholder: "Patrimoine belge"
+        width: 1/2
       heroHeading:
         label: Titre principal
         type: text
+        width: 1/2
+      heroIntro:
+        label: Sous-titre / introduction
+        type: textarea
+        size: small
       heroImage:
         label: Image ou vidéo hero (paysage)
         type: files
@@ -23,6 +33,23 @@ tabs:
         type: files
         max: 1
         width: 1/2
+
+  marketplace:
+    label: Marketplace
+    icon: search
+    fields:
+      regionsHeading:
+        label: Titre de la section "Régions"
+        type: text
+        placeholder: "Explorer par région"
+      categoriesHeading:
+        label: Titre de la section "Catégories"
+        type: text
+        placeholder: "Par type de patrimoine"
+      featuredHeading:
+        label: Titre de la section "À l'affiche"
+        type: text
+        placeholder: "À l'affiche cette semaine"
         help: Remplace l'image hero sur mobile (≤ 640px)
 
   compare:

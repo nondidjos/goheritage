@@ -189,11 +189,104 @@ if ($gallery->count() === 0) {
             <span class="project-drawer__label">Informations</span>
         </div>
 
-        <!-- Rich text blocks -->
-        <?php if ($page->text()->isNotEmpty()): ?>
-            <div class="font-serif text-base text-ink leading-relaxed [&_h2]:font-sans [&_h2]:text-xl [&_h2]:mb-3 [&_h2]:mt-8 [&_p]:mb-4">
-                <?= $page->text()->toBlocks() ?>
-            </div>
+        <!-- ── Section: HISTOIRE ─────────────────────────────────────── -->
+        <section class="project-section project-section--history">
+            <header class="project-section__header">
+                <span class="project-section__eyebrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>Histoire & patrimoine</span>
+                </span>
+            </header>
+
+            <?php if ($page->text()->isNotEmpty()): ?>
+                <div class="font-serif text-base text-ink leading-relaxed [&_h2]:font-sans [&_h2]:text-xl [&_h2]:mb-3 [&_h2]:mt-8 [&_p]:mb-4">
+                    <?= $page->text()->toBlocks() ?>
+                </div>
+            <?php endif ?>
+        </section>
+
+        <!-- ── Section: COMMERCIAL ────────────────────────────────────── -->
+        <?php if ($page->isBookable() || $page->ownerContact()): ?>
+        <section class="project-section project-section--commercial">
+            <header class="project-section__header">
+                <span class="project-section__eyebrow project-section__eyebrow--commercial">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 12V7H4v10h6"></path>
+                        <path d="M12 22s4-3 4-8a4 4 0 1 0-8 0c0 5 4 8 4 8z"></path>
+                    </svg>
+                    <span>Réserver & visiter</span>
+                </span>
+                <?php if ($page->commercial_priceFrom()->isNotEmpty()): ?>
+                    <span class="project-section__price">
+                        À partir de <?= $page->commercial_priceFrom()->esc() ?>&nbsp;€
+                    </span>
+                <?php endif ?>
+            </header>
+
+            <?php if ($page->commercial_pitch()->isNotEmpty()): ?>
+                <p class="font-serif text-sm text-mid leading-relaxed mb-5">
+                    <?= $page->commercial_pitch()->esc() ?>
+                </p>
+            <?php endif ?>
+
+            <?php
+            $availabilities = $page->availabilities();
+            $catalog = availabilityCatalog();
+            ?>
+            <?php if ($availabilities): ?>
+                <div class="availability-grid">
+                    <?php foreach ($availabilities as $key): if (!isset($catalog[$key])) continue; $meta = $catalog[$key]; ?>
+                        <a href="<?= url('contact') ?>?as=visitor&property=<?= urlencode($page->title()->value()) ?>&subject=<?= urlencode($key) ?>"
+                           class="availability-chip"
+                           data-activity="<?= esc($key, 'attr') ?>">
+                            <span class="availability-chip__icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <?php switch ($meta['icon']):
+                                        case 'walk': ?>
+                                            <circle cx="13" cy="4" r="2"></circle><path d="M9 22l3-9 3 4 4 3"></path><path d="M9 13l-3-3 3-3"></path>
+                                            <?php break; case 'heart': ?>
+                                            <path d="M12 21s-7-4.35-7-11a4.5 4.5 0 0 1 8-2.85A4.5 4.5 0 0 1 19 10c0 6.65-7 11-7 11z"></path>
+                                            <?php break; case 'briefcase': ?>
+                                            <rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path>
+                                            <?php break; case 'camera': ?>
+                                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle>
+                                            <?php break; case 'bed': ?>
+                                            <path d="M2 4v16"></path><path d="M22 8v12"></path><path d="M2 14h20"></path><path d="M2 8h12a4 4 0 0 1 4 4"></path>
+                                            <?php break; case 'star': ?>
+                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                            <?php break; endswitch; ?>
+                                </svg>
+                            </span>
+                            <span class="availability-chip__label"><?= $meta['label'] ?></span>
+                            <span class="availability-chip__arrow" aria-hidden="true">→</span>
+                        </a>
+                    <?php endforeach ?>
+                </div>
+            <?php endif ?>
+
+            <?php $owner = $page->ownerContact(); if ($owner): ?>
+                <div class="owner-card">
+                    <p class="owner-card__eyebrow">Contact propriétaire</p>
+                    <?php if (!empty($owner['name'])): ?>
+                        <p class="owner-card__name"><?= esc($owner['name']) ?></p>
+                    <?php endif ?>
+                    <ul class="owner-card__list">
+                        <?php if (!empty($owner['email'])): ?>
+                            <li><a href="mailto:<?= esc($owner['email'], 'attr') ?>"><?= esc($owner['email']) ?></a></li>
+                        <?php endif ?>
+                        <?php if (!empty($owner['phone'])): ?>
+                            <li><a href="tel:<?= esc(preg_replace('/\s+/', '', $owner['phone']), 'attr') ?>"><?= esc($owner['phone']) ?></a></li>
+                        <?php endif ?>
+                        <?php if (!empty($owner['website'])): ?>
+                            <li><a href="<?= esc($owner['website'], 'attr') ?>" target="_blank" rel="noopener">Site web →</a></li>
+                        <?php endif ?>
+                    </ul>
+                </div>
+            <?php endif ?>
+        </section>
         <?php endif ?>
 
         <!-- Spec Sheet — monospace minimal -->
@@ -224,8 +317,12 @@ if ($gallery->count() === 0) {
             </div>
         <?php endif ?>
 
-        <!-- Tags -->
+        <!-- Tags — region (auto-derived) shown first, then user tags -->
         <div class="flex flex-wrap gap-2 mt-4">
+            <?php if ($region = $page->region()): ?>
+                <a href="<?= url('map') ?>?region=<?= urlencode($region) ?>"
+                   class="tag tag--region"><?= esc($page->regionLabel()) ?></a>
+            <?php endif ?>
             <?php foreach ($page->tags()->split(',') as $tag): ?>
                 <a href="<?= url('map') ?>?tag=<?= urlencode(trim($tag)) ?>" class="tag"><?= esc(trim($tag)) ?></a>
             <?php endforeach ?>

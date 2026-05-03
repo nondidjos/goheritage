@@ -116,7 +116,7 @@ tabs:
             label: Tags
             options: query
             query: site.index.pluck("tags", ",", true)
-            help: "Commencez à taper pour réutiliser un tag existant ou appuyez sur Entrée pour en créer un nouveau."
+            help: "La région est dérivée automatiquement du champ Lieu — pas besoin de l'ajouter ici."
 
           primary_tag:
             type: select
@@ -125,6 +125,77 @@ tabs:
             options: query
             query: site.index.pluck("tags", ",", true)
             help: "Tag affiché en badge sur les cartes. Si vide, le premier tag est utilisé."
+
+  # ── Tab : Commercial ──────────────────────────────────────────────────────
+  commercial:
+    label: Commercial
+    icon: cart
+    columns:
+      - width: 1/2
+        fields:
+          commercial_info:
+            label: false
+            type: info
+            theme: info
+            text: >
+              **Section commerciale** — séparée de l'historique. Activez les
+              activités proposées par cette propriété : un badge clickable
+              s'affichera côté visiteur.
+
+          avail_activities:
+            label: Activités proposées
+            type: checkboxes
+            columns: 2
+            options:
+              visite: Visites guidées
+              mariage: Mariages
+              seminaire: Séminaires / réceptions
+              tournage: Tournages / shootings
+              hebergement: Hébergement
+              evenement: Événements culturels
+
+          commercial_pitch:
+            label: Argumentaire commercial
+            type: textarea
+            size: small
+            help: Présentation courte des prestations (≤ 300 caractères). Affichée sous les badges.
+
+          commercial_priceFrom:
+            label: À partir de (€)
+            type: number
+            placeholder: "ex. 1500"
+            help: Prix de départ indicatif. Affiché sur les badges si renseigné.
+
+      - width: 1/2
+        fields:
+          owner_info:
+            label: false
+            type: info
+            theme: info
+            text: >
+              **Contact du propriétaire** — visible côté visiteur sur la
+              page projet. Laissez vide pour rediriger les demandes vers le
+              formulaire de contact général.
+
+          owner_name:
+            label: Nom du propriétaire / contact
+            type: text
+            placeholder: "ex. Famille de Theux"
+
+          owner_email:
+            label: E-mail
+            type: email
+            placeholder: "contact@chateau-x.be"
+
+          owner_phone:
+            label: Téléphone
+            type: tel
+            placeholder: "+32 …"
+
+          owner_website:
+            label: Site web
+            type: url
+            placeholder: "https://…"
 
   # ── Tab 3 : Modèle 3D ─────────────────────────────────────────────────────
   viewer:

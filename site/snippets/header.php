@@ -88,7 +88,7 @@ if ($isMapPage) {
     </button>
 
     <!-- navigation — right-aligned, 2 cols spaced out -->
-    <nav class="site-nav col-2 flex w-full items-center justify-between" id="site-nav" aria-label="Navigation principale">
+    <nav class="site-nav col-2 flex w-full items-center justify-between gap-4" id="site-nav" aria-label="Navigation principale">
       <?php foreach ($site->children()->listed()->not($site->homePage()) as $item): ?>
       <a
         class="font-sans text-sm uppercase tracking-wider text-ink no-underline transition-colors duration-150 hover:underline hover:text-ink"
@@ -96,6 +96,20 @@ if ($isMapPage) {
         <?php e($item->isOpen(), 'aria-current="page"') ?>
       ><?= $item->title()->html() ?></a>
       <?php endforeach ?>
+
+      <!-- cart button — placeholder (no backend yet) -->
+      <button
+        type="button"
+        class="cart-btn relative inline-flex items-center justify-center w-9 h-9 rounded-full border border-border text-ink hover:bg-surface transition-colors duration-150"
+        aria-label="Panier"
+        data-cart-count="0">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <span class="cart-badge absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-white text-[10px] font-mono leading-[18px] text-center hidden" style="background-color: var(--color-accent);">0</span>
+      </button>
 
       <!-- mobile close button -->
       <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Fermer le menu">
