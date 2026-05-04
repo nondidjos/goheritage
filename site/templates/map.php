@@ -3,6 +3,8 @@
 // left panel with search, filter, and card-style project list
 // right panel with maplibre map
 snippet('header');
+$isEmbedded  = !empty(get('embed'));
+$embedSuffix = $isEmbedded ? '?embed=1' : '';
 ?>
 
 <div class="map-layout w-full" id="map-layout">
@@ -69,7 +71,7 @@ snippet('header');
                 <line x1="9" y1="5.5" x2="11" y2="5.5" stroke="currentColor" stroke-width="1.1"/>
               </svg>
             </button>
-            <a class="map-card__btn map-card__btn--visit" href="<?= $project->url() ?>">
+            <a class="map-card__btn map-card__btn--visit" href="<?= $project->url() . $embedSuffix ?>">
               Voir le projet →
             </a>
           </div>
@@ -83,9 +85,17 @@ snippet('header');
 
   <?php /* right map */ ?>
   <div class="col-5 map-container" id="map-container">
+    <!-- Desktop fold toggle for the side panel (hidden on mobile via CSS) -->
+    <button type="button" id="map-fold-toggle" class="fold-toggle fold-toggle--map" aria-label="Afficher/masquer le panneau" title="Afficher/masquer le panneau">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+        <line x1="9" y1="3" x2="9" y2="21"></line>
+      </svg>
+    </button>
     <div id="heritage-map" class="absolute inset-0"
          data-sites="<?= htmlspecialchars($sitesJson, ENT_QUOTES, 'UTF-8') ?>"
-         data-key="<?= base64_encode(option('maptiler.key')) ?>"></div>
+         data-key="<?= base64_encode(option('maptiler.key')) ?>"
+         data-embed="<?= $isEmbedded ? '1' : '' ?>"></div>
   </div>
 
 </div>

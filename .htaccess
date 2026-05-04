@@ -8,6 +8,13 @@
 # http://yourdomain.com/about-us/team
 RewriteEngine on
 
+# Force HTTPS in production. Skip the redirect on local dev (loopback /
+# *.test) so Herd / php -S over plain HTTP keeps working. SiteGround sets
+# HTTPS=on once the Let's Encrypt cert is in place.
+RewriteCond %{HTTPS} off
+RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1|.*\.test)$ [NC]
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
 # make sure to set the RewriteBase correctly
 # if you are running the site in a subfolder;
 # otherwise links or the entire site will break.
@@ -66,11 +73,48 @@ AddOutputFilterByType DEFLATE application/x-javascript
 # (hardens against attacks from malicious file uploads)
 Header set Content-Type "text/plain" "expr=-z %{CONTENT_TYPE}"
 Header set X-Content-Type-Options "nosniff"
-Header set X-Frame-Options "SAMEORIGIN"
+
+# X-Frame-Options is the legacy anti-clickjacking header but it cannot list
+# multiple origins. We use Content-Security-Policy frame-ancestors instead so
+# the site can be embedded into govr.eu (Squarespace) while still rejecting
+# embedding from anywhere else.
+Header always unset X-Frame-Options
+Header set Content-Security-Policy "frame-ancestors 'self' https://govr.eu https://*.govr.eu https://*.squarespace.com https://*.sqsp.net;"
+
 Header set Referrer-Policy "strict-origin-when-cross-origin"
 Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
 
-# Uncomment once the site is served over HTTPS:
-# Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+# Allow same-origin font/CSS preload to be used cross-origin in iframes
+Header set Access-Control-Allow-Origin "*" "expr=%{REQUEST_URI} =~ m#^/assets/fonts/#"
 
+# HSTS: tell browsers to use HTTPS for the next year. Only sent on HTTPS
+# requests so it can't bite us during local-loopback HTTP testing.
+Header set Strict-Transport-Security "max-age=31536000; includeSubDomains" "expr=%{HTTPS} == 'on'"
+
+</IfModule>
+
+# Static asset caching. CSS/JS use a moderate cache so a deploy is reflected
+# within a day for returning visitors (no cache-busting query string is added
+# by Kirby's css()/js() helpers). Fonts and images are immutable enough to
+# get a long cache.
+<IfModule mod_expires.c>
+ExpiresActive On
+ExpiresByType text/css                    "access plus 1 day"
+ExpiresByType application/javascript      "access plus 1 day"
+ExpiresByType text/javascript             "access plus 1 day"
+ExpiresByType image/svg+xml               "access plus 1 month"
+ExpiresByType image/jpeg                  "access plus 1 month"
+ExpiresByType image/png                   "access plus 1 month"
+ExpiresByType image/webp                  "access plus 1 month"
+ExpiresByType image/avif                  "access plus 1 month"
+ExpiresByType font/woff                   "access plus 1 year"
+ExpiresByType font/woff2                  "access plus 1 year"
+ExpiresByType model/gltf-binary           "access plus 1 month"
+ExpiresByType model/obj                   "access plus 1 month"
+</IfModule>
+<IfModule mod_headers.c>
+# Belt-and-braces Cache-Control for fonts so CDNs/proxies see the freshness rule.
+<FilesMatch "\.(woff2?|ttf|otf)$">
+  Header set Cache-Control "public, max-age=31536000, immutable"
+</FilesMatch>
 </IfModule>

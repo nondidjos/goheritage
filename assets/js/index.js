@@ -361,4 +361,14 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.style.display = expanding ? 'none' : '';
         }
     });
+
+    // ── Project page: desktop info-panel fold toggle ──
+    var projectFoldToggle = document.getElementById('project-fold-toggle');
+    if (projectFoldToggle) {
+        projectFoldToggle.addEventListener('click', function () {
+            document.body.classList.toggle('is-info-collapsed');
+            // The viewer container size changed — let three.js / iframe react
+            window.dispatchEvent(new Event('resize'));
+        });
+    }
 });

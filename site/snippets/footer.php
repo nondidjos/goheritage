@@ -2,14 +2,16 @@
 /*
   Global footer — dark design.
 */
-$isMapPage = $page->template()->name() === 'map';
-$jsFiles = ['assets/js/index.js'];
+$isMapPage  = $page->template()->name() === 'map';
+$isEmbedded = !empty(get('embed'));
+$jsFiles    = ['assets/js/index.js'];
 if ($isMapPage) {
   $jsFiles[] = 'assets/js/map.js';
 }
 ?>
 </main>
 
+<?php if (!$isEmbedded): ?>
 <footer class="bg-ink text-white pt-20 pb-10">
   <div class="grid-7 mb-20">
 
@@ -74,6 +76,7 @@ if ($isMapPage) {
     </div>
   </div>
 </footer>
+<?php endif ?>
 
 <?php if ($isMapPage): ?>
   <script src="https://unpkg.com/maplibre-gl@5.16.0/dist/maplibre-gl.js"></script>

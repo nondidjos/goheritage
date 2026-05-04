@@ -1,0 +1,89 @@
+Title: Kiosque du Pavillon Chinois
+
+----
+
+Description: 
+
+----
+
+Text: 
+
+----
+
+Gallery: []
+
+----
+
+Cover: []
+
+----
+
+Location: 
+
+----
+
+Construction-date: 
+
+----
+
+Architect: 
+
+----
+
+Style: 
+
+----
+
+Dimensions: 
+
+----
+
+Protection-status: 
+
+----
+
+Lat: 
+
+----
+
+Lng: 
+
+----
+
+Date: 2026-04-17
+
+----
+
+Tags: 
+
+----
+
+Primary-tag: 
+
+----
+
+Viewer-url: 
+
+----
+
+Model-toggle: false
+
+----
+
+Model-obj: file://iytankf8jhchldwv
+
+----
+
+Model-texture: file://2a8b5d8klpohfsty
+
+----
+
+Annotations: []
+
+----
+
+Annotations-interior: []
+
+----
+
+Uuid: zih9f2fitpsn9ywc

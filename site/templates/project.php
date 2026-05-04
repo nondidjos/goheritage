@@ -1,6 +1,16 @@
 <?php
 snippet('header');
 
+// DRACO decoder ships with three.js. Locally we reference the local copy in
+// node_modules; in production we use the CDN-hosted decoder so node_modules
+// doesn't have to be deployed. Keep the version in sync with the importmap
+// in site/snippets/header.php.
+$threeVersion = '0.183.2';
+$isLocalDev   = in_array($kirby->environment()->host(), ['localhost', '127.0.0.1', 'goheritage.test'], true);
+$dracoPath    = $isLocalDev
+    ? url('node_modules/three/examples/jsm/libs/draco/')
+    : 'https://unpkg.com/three@' . $threeVersion . '/examples/jsm/libs/draco/';
+
 // Canonical filenames are set by the upload-overwrite plugin at upload time.
 // We prefer the canonical name; field UUID is kept as secondary fallback.
 // Canonical names set on upload; fall back to field UUID, then any file by extension/type
@@ -78,6 +88,7 @@ if ($gallery->count() === 0) {
 
 <div class="items-start pt-0 pb-10">
 
+    <?php if (!$isEmbedded): ?>
     <!-- Back button (top left) -->
     <div class="col-7 flex items-center mb-6 px-4 pt-4 md:pt-6">
         <a href="<?= $page->parent()->url() ?>" class="inline-flex items-center gap-3 font-mono text-sm md:text-base uppercase tracking-wider text-faint hover:text-ink transition-colors duration-150 no-underline p-2 md:p-3 -m-2 md:-m-3">
@@ -87,6 +98,7 @@ if ($gallery->count() === 0) {
             Retour
         </a>
     </div>
+    <?php endif ?>
 
     <!-- Project Header (spans full 7 cols) -->
     <div class="col-7 flex flex-col items-center mb-4 px-4 pt-4 project-header relative">
@@ -145,7 +157,7 @@ if ($gallery->count() === 0) {
         <!-- Tags -->
         <div class="flex flex-wrap gap-2 mt-4">
             <?php foreach ($page->tags()->split(',') as $tag): ?>
-                <a href="<?= url('map') ?>?tag=<?= urlencode(trim($tag)) ?>" class="tag"><?= esc(trim($tag)) ?></a>
+                <a href="<?= url('map') ?>?tag=<?= urlencode(trim($tag)) ?><?= $isEmbedded ? '&embed=1' : '' ?>" class="tag"><?= esc(trim($tag)) ?></a>
             <?php endforeach ?>
         </div>
 
@@ -170,6 +182,14 @@ if ($gallery->count() === 0) {
 
     <!-- ── Right: 3D Viewer (5 cols, sticky) ── -->
     <div class="col-5 sticky overflow-hidden rounded-md relative bg-ink z-50" id="viewer-container" style="top: 80px; height: calc(100vh - 100px); min-height: 500px;">
+
+        <!-- Desktop fold toggle for the info panel (hidden on mobile via CSS) -->
+        <button type="button" id="project-fold-toggle" class="fold-toggle" aria-label="Afficher/masquer les informations" title="Afficher/masquer les informations">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
+        </button>
 
         <?php if ($hasIframe): ?>
             <div id="model-poster" class="absolute inset-0 cursor-pointer z-10 transition-opacity duration-500">
@@ -212,7 +232,7 @@ if ($gallery->count() === 0) {
                  <?php if ($interiorGlbUrl):  ?>data-glb-interior="<?= $interiorGlbUrl ?>"<?php endif ?>
                  <?php if ($interiorTexUrl):  ?>data-texture-interior="<?= $interiorTexUrl ?>"<?php endif ?>
                  <?php if ($interiorNormUrl): ?>data-normal-interior="<?= $interiorNormUrl ?>"<?php endif ?>
-                 data-draco-path="<?= url('node_modules/three/examples/jsm/libs/draco/') ?>"
+                 data-draco-path="<?= $dracoPath ?>"
                  data-annotations="<?= htmlspecialchars($annotationsJson) ?>"
                  <?php if ($hotspotsExtUrl): ?>data-hotspots-json="<?= $hotspotsExtUrl ?>"<?php endif ?>
                  <?php if ($hotspotsIntUrl): ?>data-hotspots-json-interior="<?= $hotspotsIntUrl ?>"<?php endif ?>>

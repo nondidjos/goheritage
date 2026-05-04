@@ -505,3 +505,25 @@ main#map-main {
         font-size: 1.75rem;
     }
 }
+
+/* ── Map page: collapsed side panel (desktop only) ─────────────────── */
+@media (min-width: 64.0625rem) {
+    body.is-panel-collapsed .map-panel {
+        display: none !important;
+    }
+    body.is-panel-collapsed .map-container {
+        grid-column: 1 / -1 !important;
+    }
+}
+
+/* Hide map fold toggle on mobile — drawer behavior takes over there */
+@media (max-width: 64rem) {
+    #map-fold-toggle {
+        display: none;
+    }
+}
+
+/* In embed mode the map is the whole iframe → simpler height calc */
+body.is-embedded .map-layout {
+    height: 100dvh !important;
+}

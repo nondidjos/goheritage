@@ -48,6 +48,14 @@
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: 'metric' }), 'bottom-right');
 
+    // Embed mode: dismiss the spinner as soon as the basemap is painted, not
+    // when every tile has finished. Feels instant in an iframe.
+    map.on('load', function () {
+        if (typeof window.dismissEmbedLoader === 'function') {
+            window.dismissEmbedLoader();
+        }
+    });
+
     // ── State ────────────────────────────────────────────────────────────────
     var markers = {};
     var popups = {};
@@ -100,6 +108,18 @@
     var closeBtn = document.getElementById('map-panel-close');
     if (closeBtn && panel) {
         closeBtn.addEventListener('click', collapseDrawer);
+    }
+
+    // ── Desktop fold toggle: collapse the side panel completely ──
+    var mapFoldToggle = document.getElementById('map-fold-toggle');
+    if (mapFoldToggle) {
+        mapFoldToggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            document.body.classList.toggle('is-panel-collapsed');
+            // Container size changed — MapLibre needs to recompute
+            setTimeout(function () { map.resize(); }, 50);
+            setTimeout(function () { map.resize(); }, 350);
+        });
     }
 
     // Forward wheel events from popups so zooming still works without scrolling the page

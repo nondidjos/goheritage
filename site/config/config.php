@@ -11,6 +11,10 @@ use Kirby\Data\Data;
 
 return [
     'debug' => false,
+    // Force the live URL in production so internal links + assets pick up
+    // the correct subdomain regardless of how Apache hands the request to PHP.
+    // Override in config.localhost.php for development.
+    'url' => 'https://goheritage.govr.eu',
     'yaml.handler' => 'symfony',
     'mime' => [
         'types' => [

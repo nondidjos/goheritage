@@ -2,6 +2,7 @@
 // global header — included in all templates
 $isMapPage     = $page->template()->name() === 'map';
 $isProjectPage = $page->template()->name() === 'project';
+$isEmbedded    = !empty(get('embed'));
 $cssFiles      = ['assets/css/app.css', 'assets/css/custom.css'];
 if ($isMapPage) {
     $cssFiles[] = 'assets/css/map.css';
@@ -14,6 +15,39 @@ if ($isMapPage) {
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title><?= $page->title()->html() ?> — <?= $site->title()->html() ?></title>
   <meta name="description" content="<?= $page->description()->or($site->description())->html() ?>">
+  <?php if ($isEmbedded): ?>
+  <!-- Embed mode: preload critical fonts so they paint without a FOUC when
+       loaded cross-origin from an iframe. crossorigin is required because the
+       site sends Access-Control-Allow-Origin for /assets/fonts/ in .htaccess. -->
+  <link rel="preload" as="font" type="font/woff" crossorigin href="<?= url('assets/fonts/DMSans-Medium.woff') ?>">
+  <link rel="preload" as="font" type="font/woff" crossorigin href="<?= url('assets/fonts/IBMPlexMono-Medium.woff') ?>">
+  <link rel="preload" as="font" type="font/woff" crossorigin href="<?= url('assets/fonts/IBMPlexSerif-Regular-Latin1.woff') ?>">
+  <!-- Inline a tiny first-paint stylesheet so the iframe shows a neutral
+       background + spinner immediately, before app.css has loaded. -->
+  <style>
+    html, body { background: #faf9f7; color: #1a1a1a; margin: 0; }
+    #embed-loader {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: #faf9f7;
+      z-index: 9999;
+      transition: opacity .35s ease;
+    }
+    #embed-loader.is-hidden { opacity: 0; pointer-events: none; }
+    #embed-loader::after {
+      content: '';
+      width: 28px; height: 28px;
+      border: 2px solid rgba(0,0,0,.12);
+      border-top-color: rgba(0,0,0,.55);
+      border-radius: 50%;
+      animation: embed-spin .9s linear infinite;
+    }
+    @keyframes embed-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      #embed-loader::after { animation: none; }
+    }
+  </style>
+  <?php endif ?>
   <?= css($cssFiles) ?>
   <?php if ($isMapPage): ?>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.16.0/dist/maplibre-gl.css">
@@ -28,11 +62,24 @@ if ($isMapPage) {
   <?php endif ?>
   <?php if ($needsThreeJs): ?>
   <?= css('assets/css/viewer.css') ?>
+  <?php
+    // Three.js is loaded from a CDN in production (so we don't have to ship
+    // node_modules to the server) and from local node_modules in development
+    // (so it works fully offline). Pin the exact version that's in
+    // package.json so we don't get surprise breakage on upstream releases.
+    $threeVersion = '0.183.2';
+    $isLocalDev   = in_array($kirby->environment()->host(), ['localhost', '127.0.0.1', 'goheritage.test'], true);
+    if ($isLocalDev) {
+        $threeBase = url('node_modules/three');
+    } else {
+        $threeBase = 'https://unpkg.com/three@' . $threeVersion;
+    }
+  ?>
   <script type="importmap">
   {
     "imports": {
-      "three": "<?= url('node_modules/three/build/three.module.min.js') ?>",
-      "three/addons/": "<?= url('node_modules/three/examples/jsm/') ?>"
+      "three": "<?= $threeBase ?>/build/three.module.min.js",
+      "three/addons/": "<?= $threeBase ?>/examples/jsm/"
     }
   }
   </script>
@@ -40,8 +87,41 @@ if ($isMapPage) {
   <?php endif ?>
   <link rel="shortcut icon" type="image/x-icon" href="<?= url('favicon.ico') ?>">
 </head>
-<body>
+<body class="<?= $isEmbedded ? 'is-embedded' : '' ?>">
 
+<?php if ($isEmbedded): ?>
+<div id="embed-loader" aria-hidden="true"></div>
+<script>
+  // Embed loader: hide once the page is ready. Map and viewer scripts can also
+  // call window.dismissEmbedLoader() earlier — whichever happens first wins.
+  (function () {
+    var hidden = false;
+    window.dismissEmbedLoader = function () {
+      if (hidden) return;
+      hidden = true;
+      var el = document.getElementById('embed-loader');
+      if (!el) return;
+      el.classList.add('is-hidden');
+      setTimeout(function () { el.parentNode && el.parentNode.removeChild(el); }, 400);
+    };
+    // Dismiss as soon as the document is parsed and our stylesheets have
+    // applied — at that point the page's own UI (viewer progress bar, map
+    // canvas) is ready to take over. map.js / viewer.js can also dismiss
+    // earlier if they reach a meaningful ready state first.
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(window.dismissEmbedLoader, 50);
+      });
+    } else {
+      setTimeout(window.dismissEmbedLoader, 50);
+    }
+    // Hard fallback so we never trap the visitor behind a spinner.
+    setTimeout(window.dismissEmbedLoader, 6000);
+  })();
+</script>
+<?php endif ?>
+
+<?php if (!$isEmbedded): ?>
 <header class="sticky top-0 z-50 bg-white">
   <div class="grid-7 items-center py-4">
 
@@ -84,5 +164,6 @@ if ($isMapPage) {
 
   </div>
 </header>
+<?php endif ?>
 
 <main<?= $isMapPage ? ' id="map-main"' : '' ?>>

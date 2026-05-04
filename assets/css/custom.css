@@ -1197,3 +1197,78 @@ body {
         line-height: 1.2;
     }
 }
+
+/* ── Embed mode (?embed=1) — strips chrome for Squarespace iframes ──── */
+body.is-embedded {
+    background: var(--color-bg);
+}
+
+/* No header → viewer/map should start at top, not 80px down */
+body.is-embedded #viewer-container {
+    top: 1rem !important;
+    height: calc(100dvh - 2rem) !important;
+}
+
+body.is-embedded .map-layout {
+    height: 100dvh !important;
+}
+
+/* Hide the "Project Header" title block when embedded — host site has its own framing */
+body.is-embedded .project-header {
+    display: none;
+}
+
+/* ── Fold toggle button (project + map) ──────────────────────────────── */
+.fold-toggle {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 100;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-mid);
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+}
+
+.fold-toggle:hover {
+    background: #fff;
+    border-color: var(--color-ink);
+    color: var(--color-ink);
+}
+
+.fold-toggle svg {
+    transition: transform 0.2s ease;
+}
+
+/* When info/panel is collapsed, flip the icon to indicate it will re-open */
+body.is-info-collapsed #project-fold-toggle svg,
+body.is-panel-collapsed #map-fold-toggle svg {
+    transform: scaleX(-1);
+}
+
+/* ── Project page: collapsed info panel (desktop only) ──────────────── */
+@media (min-width: 64.0625rem) {
+    body.is-info-collapsed #project-content {
+        display: none !important;
+    }
+    body.is-info-collapsed #viewer-container {
+        grid-column: 1 / -1 !important;
+    }
+}
+
+/* Hide fold toggles on mobile — drawer behavior takes over there */
+@media (max-width: 64rem) {
+    #project-fold-toggle {
+        display: none;
+    }
+}
