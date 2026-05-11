@@ -142,9 +142,9 @@ panel.plugin('goheritage/model-converter', {
             // bpp calibrated from real outputs on 8192² architectural texture:
             //   q=88 → 24 MB (3.0 bpp),  q=82 → 5.5 MB (2.75 bpp at 4096²)
             // Pure-Sharp pipeline: ~31 s / ~11 s / ~7 s
-            { label: 'Haute',    size: 8192, quality: 88, bpp: 3.0  }, // ~24 Mo
-            { label: 'Standard', size: 4096, quality: 82, bpp: 2.75 }, // ~5.5 Mo
-            { label: 'Légère',   size: 2048, quality: 75, bpp: 2.0  }, // ~1 Mo
+            { label: 'Haute',    size: 4096, quality: 85, bpp: 2.8  }, // ~5.5 Mo
+            { label: 'Standard', size: 2048, quality: 80, bpp: 2.5 }, // ~1 Mo
+            { label: 'Légère',   size: 1024, quality: 75, bpp: 2.0  }, // ~300 Ko
           ],
         };
       },

@@ -368,7 +368,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // In compact mode (600-1024px) the sidebar overlays the viewer, so
         // start it collapsed — the viewer should be fully visible on first load.
         var compactMQ = window.matchMedia('(min-width: 37.5rem) and (max-width: 64rem)');
-        if (compactMQ.matches) {
+        if (compactMQ.matches || document.body.classList.contains('is-embedded')) {
             document.body.classList.add('is-info-collapsed');
         }
         // If the window resizes into or out of compact mode, update accordingly

@@ -304,7 +304,7 @@ if ($gallery->count() === 0) {
             </div>
             <style>
               .viewer-progress {
-                position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+                position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
                 width: 250px; text-align: center; pointer-events: none; z-index: 100;
                 transition: opacity 0.4s;
               }
