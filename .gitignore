@@ -96,3 +96,16 @@ kirby/
 check.php
 test.html
 lightsail-key.pem
+
+# SSH keys and sensitive server docs
+*.pem
+HANDOFF.md
+sftp.txt
+
+# Kirby content — binary/large media assets (tracked in storage, not git)
+content/**/*.jpg
+content/**/*.jpeg
+content/**/*.png
+content/**/*.webp
+content/**/*.glb
+content/**/*.mtl
