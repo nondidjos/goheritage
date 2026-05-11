@@ -9,12 +9,25 @@
  */
 use Kirby\Data\Data;
 
+// Detect local dev environments so we can flip a few options at request
+// time without depending on host-specific config files (which have proven
+// brittle when the dev hostname doesn't match exactly).
+$ghHost = $_SERVER['HTTP_HOST'] ?? '';
+$ghIsLocalDev = (
+    $ghHost === 'localhost'
+    || str_starts_with($ghHost, '127.')
+    || str_starts_with($ghHost, '192.168.')
+    || str_ends_with($ghHost, '.test')
+    || str_ends_with($ghHost, '.local')
+);
+
 return [
-    'debug' => false,
-    // Force the live URL in production so internal links + assets pick up
-    // the correct subdomain regardless of how Apache hands the request to PHP.
-    // Override in config.localhost.php for development.
-    'url' => 'https://goheritage.govr.eu',
+    'debug' => $ghIsLocalDev,
+    // Use root-relative URLs everywhere. Kirby's url() helper produces paths
+    // like "/assets/css/app.css" which work correctly on any hostname (local
+    // dev, staging, production) without ever hardcoding a domain. This also
+    // avoids the CORS trap of generating cross-origin asset URLs in HTML.
+    'url' => '/',
     'yaml.handler' => 'symfony',
     'mime' => [
         'types' => [
@@ -72,7 +85,7 @@ return [
             'system'
         ]
     ],
-    'maptiler.key' => 'REDACTED-ROTATE-THIS-KEY',
+    'maptiler.key' => '', // set in host-specific config (config.goheritage.test.php / config.localhost.php / config.<host>.php)
     'hooks' => [
         // File overwrite is handled by the custom API route in the
         // model-converter plugin (goheritage/upload-overwrite) which calls

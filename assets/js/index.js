@@ -365,6 +365,21 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Project page: desktop info-panel fold toggle ──
     var projectFoldToggle = document.getElementById('project-fold-toggle');
     if (projectFoldToggle) {
+        // In compact mode (600-1024px) the sidebar overlays the viewer, so
+        // start it collapsed — the viewer should be fully visible on first load.
+        var compactMQ = window.matchMedia('(min-width: 37.5rem) and (max-width: 64rem)');
+        if (compactMQ.matches) {
+            document.body.classList.add('is-info-collapsed');
+        }
+        // If the window resizes into or out of compact mode, update accordingly
+        compactMQ.addEventListener('change', function (e) {
+            if (e.matches) {
+                document.body.classList.add('is-info-collapsed');
+            } else {
+                document.body.classList.remove('is-info-collapsed');
+            }
+        });
+
         projectFoldToggle.addEventListener('click', function () {
             document.body.classList.toggle('is-info-collapsed');
             // The viewer container size changed — let three.js / iframe react

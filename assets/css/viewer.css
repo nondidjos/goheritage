@@ -488,8 +488,8 @@
     display: none;
 }
 
-/* ── Mobile: project page — viewer-first layout ───────────────────────────── */
-@media (max-width: 640px) {
+/* ── TIER 3: Mobile (< 600px) — viewer-first with bottom drawer ── */
+@media (max-width: 37.4375rem) {
     /* Prevent body scroll — drawer/viewer are fixed/full-height */
     body:has(#viewer-container) {
         overflow: hidden;

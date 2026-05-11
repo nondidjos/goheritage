@@ -1,0 +1,48 @@
+# rsync exclusion list for deploy.sh
+# Anything matched here is NOT pushed to production.
+
+# VCS / IDE / agent metadata
+.git/
+.gitignore
+.gitattributes
+.editorconfig
+.claude/
+.idea/
+.vscode/
+*.sublime-workspace
+
+# Local-only build inputs (we ship the compiled assets/css/app.css instead)
+node_modules/
+
+# Kirby runtime data — production owns these, we never overwrite
+site/accounts/
+site/sessions/
+site/cache/
+site/logs/
+
+# Production owns the content authored via the panel.
+# For the FIRST deploy only, comment out these two lines so the
+# initial content gets seeded. Re-enable them before subsequent deploys.
+content/
+media/
+
+# Source 3D files we do conversion against locally (Kirby keeps the .glb)
+*.obj
+*.mtl
+*_diffuse.png
+blender/
+
+# Ad-hoc dev cruft
+check.php
+test.html
+*.log
+.env
+.env.*
+npm-debug.log*
+
+# Deploy tooling itself (shouldn't ship)
+deploy/
+
+# Local dev configs that shouldn't run in production
+site/config/config.localhost.php
+site/config/config.goheritage.test.php

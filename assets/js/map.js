@@ -152,6 +152,9 @@
         el.setAttribute('role', 'button');
         el.setAttribute('aria-label', site.title);
 
+        var isEmbed = mapEl.dataset.embed === '1';
+        var popupUrl = site.url + (isEmbed ? '?embed=1' : '');
+        
         // popup — anchored above the marker, styled as a mini card
         var popup = new maplibregl.Popup({
             closeButton: true,
@@ -168,7 +171,7 @@
                 '</p>' +
                 '<p class="popup-title">' + escHtml(site.title) + '</p>' +
             '</div>' +
-            '<a class="btn popup-link" href="' + escHtml(site.url) + '">Voir le modèle →</a>'
+            '<a class="btn popup-link" href="' + escHtml(popupUrl) + '">Voir le modèle →</a>'
         );
 
         // close popup when its own close button is clicked — also deactivate

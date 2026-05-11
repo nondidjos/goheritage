@@ -44,6 +44,14 @@ panel.plugin('goheritage/model-converter', {
               :disabled="uploading"
             />
 
+            <!-- Progress bar: upload = real XHR fill, compress = time-weighted fill -->
+            <div v-if="uploading || anyCompressing" class="k-upload-overwrite-progress">
+              <div
+                class="k-upload-overwrite-progress__bar"
+                :style="{ width: (uploading ? uploadProgress : compressProgress) + '%' }"
+              ></div>
+            </div>
+
             <!-- File list -->
             <ul v-if="matchingFiles.length" class="k-upload-overwrite-list">
               <li v-for="f in matchingFiles" :key="f.filename" class="k-upload-overwrite-list__item">
@@ -85,10 +93,10 @@ panel.plugin('goheritage/model-converter', {
                   <button
                     type="button"
                     title="Compresser en JPEG"
-                    :disabled="f.compressing || presetFor(f) === 0"
+                    :disabled="f.compressing || globallyCompressing"
                     @click="compress(f)"
                     style="padding:2px 7px; border:none; background:transparent; cursor:pointer; display:flex; align-items:center; color:var(--color-text-dimmed);"
-                    :style="{ opacity: (f.compressing || presetFor(f) === 0) ? 0.4 : 1 }"
+                    :style="{ opacity: (f.compressing || globallyCompressing) ? 0.4 : 1 }"
                   >
                     <k-icon :type="f.compressing ? 'loader' : 'angle-right'" />
                   </button>
@@ -104,11 +112,6 @@ panel.plugin('goheritage/model-converter', {
                 </button>
               </li>
             </ul>
-
-            <!-- Status notice -->
-            <p v-if="message" :class="['k-upload-overwrite-notice', '--' + messageType]">
-              {{ message }}
-            </p>
 
           </div>
         </k-field>
@@ -128,16 +131,20 @@ panel.plugin('goheritage/model-converter', {
       data() {
         return {
           uploading: false,
-          convertingFile: '',   // filename currently being converted to GLB, or ''
-          message: '',
-          messageType: 'success',
+          uploadProgress: 0,     // 0-100, driven by XHR upload.onprogress
+          compressProgress: 0,   // 0-100, simulated over expected duration
+          _compressTimer: null,
+          convertingFile: '',    // filename currently being converted to GLB, or ''
+          globallyCompressing: false, // true while ANY compress job is running (cross-instance)
           localFiles: [],
           selectedPresets: {},
           presets: [
-            { label: 'Original', size: 8192, quality: 100, bpp: 8.0 },
-            { label: 'Haute', size: 8192, quality: 85, bpp: 1.875 },
-            { label: 'Standard', size: 4096, quality: 88, bpp: 2.5 },
-            { label: 'Légère', size: 2048, quality: 80, bpp: 3.0 },
+            // bpp calibrated from real outputs on 8192² architectural texture:
+            //   q=88 → 24 MB (3.0 bpp),  q=82 → 5.5 MB (2.75 bpp at 4096²)
+            // Pure-Sharp pipeline: ~31 s / ~11 s / ~7 s
+            { label: 'Haute',    size: 8192, quality: 88, bpp: 3.0  }, // ~24 Mo
+            { label: 'Standard', size: 4096, quality: 82, bpp: 2.75 }, // ~5.5 Mo
+            { label: 'Légère',   size: 2048, quality: 75, bpp: 2.0  }, // ~1 Mo
           ],
         };
       },
@@ -151,18 +158,29 @@ panel.plugin('goheritage/model-converter', {
         },
       },
 
+      mounted() {
+        // Keep globallyCompressing in sync across all upload-overwrite instances
+        // on the same page (e.g. exterior + interior texture fields).
+        this._onGlobalCompressStart = () => { this.globallyCompressing = true; };
+        this._onGlobalCompressEnd   = () => { this.globallyCompressing = false; };
+        window.addEventListener('goheritage:compress-start', this._onGlobalCompressStart);
+        window.addEventListener('goheritage:compress-end',   this._onGlobalCompressEnd);
+      },
+
+      beforeDestroy() {
+        window.removeEventListener('goheritage:compress-start', this._onGlobalCompressStart);
+        window.removeEventListener('goheritage:compress-end',   this._onGlobalCompressEnd);
+      },
+
       computed: {
         matchingFiles() {
           return this.localFiles;
         },
 
-        // True whenever any compression or conversion is in progress —
-        // used to update the dropzone label to "Compression…"
         anyCompressing() {
           return !!this.convertingFile || this.localFiles.some(f => f.compressing);
         },
 
-        // Kirby API encodes nested page IDs with "+" instead of "/"
         apiPageId() {
           return (this.pageId || '').replace(/\//g, '+');
         },
@@ -186,14 +204,14 @@ panel.plugin('goheritage/model-converter', {
             const exts = this.accept.split(',').map(e => e.trim().replace(/^\./, '').toLowerCase());
             const ext = file.name.split('.').pop().toLowerCase();
             if (!exts.includes(ext)) {
-              this.showMessage(`Extension non autorisée : .${ext}`, 'error');
+              this.$panel.notification.error('Extension non autorisée : .' + ext);
               if (this.$refs.fileInput) this.$refs.fileInput.value = '';
               return;
             }
           }
 
           this.uploading = true;
-          this.message = '';
+          this.uploadProgress = 0;
 
           const form = new FormData();
           form.append('file', file);
@@ -202,22 +220,28 @@ panel.plugin('goheritage/model-converter', {
           form.append('fieldName', this.fieldName || '');
 
           try {
-            const resp = await fetch('/api/goheritage/upload-overwrite', {
-              method: 'POST',
-              headers: { 'X-CSRF': panel.csrf },
-              body: form,
+            const xhr = await new Promise((resolve, reject) => {
+              const x = new XMLHttpRequest();
+              x.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                  this.uploadProgress = Math.round((e.loaded / e.total) * 100);
+                }
+              };
+              x.onload  = () => resolve(x);
+              x.onerror = () => reject(new Error('Erreur réseau'));
+              x.open('POST', '/api/goheritage/upload-overwrite');
+              x.setRequestHeader('X-CSRF', panel.csrf);
+              x.send(form);
             });
 
-            if (!resp.ok) {
-              const body = await resp.text().catch(() => '');
-              let errorMsg = resp.statusText;
-              try { const errJson = JSON.parse(body); if (errJson.error) errorMsg = errJson.error; } catch(e) {}
-              this.showMessage('Erreur : ' + errorMsg, 'error');
+            if (xhr.status < 200 || xhr.status >= 300) {
+              let errorMsg = xhr.statusText;
+              try { const errJson = JSON.parse(xhr.responseText); if (errJson.error) errorMsg = errJson.error; } catch(e) {}
+              this.$panel.notification.error(errorMsg);
             } else {
-              const json = await resp.json();
+              const json = JSON.parse(xhr.responseText);
               const verb = json.status === 'replaced' ? 'Remplacé' : 'Ajouté';
-              this.showMessage(`${verb} : ${json.filename}`, 'success');
-              // Update local list immediately so the file shows without waiting for reload
+              this.$panel.notification.success(verb + ' : ' + json.filename);
               const entry = { filename: json.filename, url: json.url, id: json.id };
               const idx = this.localFiles.findIndex(f => f.filename === json.filename);
               if (idx >= 0) this.localFiles.splice(idx, 1, entry);
@@ -225,9 +249,10 @@ panel.plugin('goheritage/model-converter', {
               this.$panel.view.reload();
             }
           } catch (err) {
-            this.showMessage('Erreur réseau : ' + err.message, 'error');
+            this.$panel.notification.error(err.message);
           } finally {
             this.uploading = false;
+            this.uploadProgress = 0;
             if (this.$refs.fileInput) this.$refs.fileInput.value = '';
           }
         },
@@ -235,9 +260,7 @@ panel.plugin('goheritage/model-converter', {
         confirmDelete(file) {
           this.$panel.dialog.open({
             component: 'k-remove-dialog',
-            props: {
-              text: `Supprimer "${file.filename}" ?`,
-            },
+            props: { text: `Supprimer "${file.filename}" ?` },
             on: {
               submit: () => {
                 this.$panel.dialog.close();
@@ -250,9 +273,7 @@ panel.plugin('goheritage/model-converter', {
         confirmDeleteAll() {
           this.$panel.dialog.open({
             component: 'k-remove-dialog',
-            props: {
-              text: `Supprimer tous les fichiers de ce champ ?`,
-            },
+            props: { text: `Supprimer tous les fichiers de ce champ ?` },
             on: {
               submit: () => {
                 this.$panel.dialog.close();
@@ -264,17 +285,16 @@ panel.plugin('goheritage/model-converter', {
 
         async deleteAll() {
           this.uploading = true;
-          this.message = 'Suppression en cours…';
           try {
             const toDelete = [...this.localFiles];
             for (const f of toDelete) {
               await this._rawDelete(f.filename);
               this.localFiles = this.localFiles.filter(x => x.filename !== f.filename);
             }
-            this.showMessage('Tous les fichiers ont été supprimés', 'success');
+            this.$panel.notification.success('Tous les fichiers supprimés');
             this.$panel.view.reload();
           } catch (err) {
-            this.showMessage('Erreur : ' + err.message, 'error');
+            this.$panel.notification.error(err.message);
           } finally {
             this.uploading = false;
           }
@@ -297,11 +317,26 @@ panel.plugin('goheritage/model-converter', {
         async deleteFile(file) {
           try {
             await this._rawDelete(file.filename);
-            this.showMessage(`Supprimé : ${file.filename}`, 'success');
+            this.$panel.notification.success('Fichier supprimé');
             this.$panel.view.reload();
           } catch (err) {
-            this.showMessage('Erreur : ' + err.message, 'error');
+            this.$panel.notification.error(err.message);
           }
+        },
+
+        _startCompressProgress(expectedMs) {
+          this.compressProgress = 0;
+          if (this._compressTimer) clearInterval(this._compressTimer);
+          const start = Date.now();
+          this._compressTimer = setInterval(() => {
+            this.compressProgress = Math.min(90, Math.round(((Date.now() - start) / expectedMs) * 90));
+          }, 400);
+        },
+
+        _stopCompressProgress(success) {
+          if (this._compressTimer) { clearInterval(this._compressTimer); this._compressTimer = null; }
+          this.compressProgress = success ? 100 : 0;
+          if (success) setTimeout(() => { this.compressProgress = 0; }, 400);
         },
 
         async compress(file) {
@@ -309,11 +344,19 @@ panel.plugin('goheritage/model-converter', {
           if (idx < 0) return;
 
           const presetIdx = this.presetFor(file);
-          // "Original" (index 0) means no compression — button is disabled for this case anyway
-          if (presetIdx === 0) return;
+          const preset    = this.presets[presetIdx];
+          if (!preset) return;
 
-          const preset = this.presets[presetIdx];
+          // Block concurrent jobs — the server only has 512 MB RAM.
+          if (this.globallyCompressing) {
+            this.$panel.notification.error('Compression déjà en cours, veuillez patienter.');
+            return;
+          }
 
+          // Notify all field instances on this page that a compress job is starting.
+          window.dispatchEvent(new CustomEvent('goheritage:compress-start'));
+          // Pure-Sharp pipeline measured times: 8192 ~31 s · 4096 ~11 s · 2048 ~7 s
+          this._startCompressProgress(preset.size >= 8192 ? 35000 : preset.size >= 4096 ? 13000 : 9000);
           this.$set(this.localFiles, idx, { ...file, compressing: true });
 
           try {
@@ -331,19 +374,20 @@ panel.plugin('goheritage/model-converter', {
               const body = await resp.text().catch(() => '');
               let errorMsg = resp.statusText;
               try { const errJson = JSON.parse(body); if (errJson.error) errorMsg = errJson.error; } catch(e) {}
-              this.showMessage('Erreur : ' + errorMsg, 'error');
+              this._stopCompressProgress(false);
+              this.$panel.notification.error(errorMsg);
               this.$set(this.localFiles, idx, { ...file, compressing: false });
             } else {
               let json = await resp.json().catch(() => null);
-              this.showMessage('Compressé ✓', 'success');
-              
+              this._stopCompressProgress(true);
+              this.$panel.notification.success('Texture compressée');
               if (json && json.filename) {
-                this.$set(this.localFiles, idx, { 
-                  ...file, 
-                  filename: json.filename, 
-                  size: json.size, 
-                  url: json.url, 
-                  compressing: false 
+                this.$set(this.localFiles, idx, {
+                  ...file,
+                  filename: json.filename,
+                  size: json.size,
+                  url: json.url,
+                  compressing: false
                 });
               } else {
                 this.$set(this.localFiles, idx, { ...file, compressing: false });
@@ -351,23 +395,21 @@ panel.plugin('goheritage/model-converter', {
               this.$panel.view.reload();
             }
           } catch (err) {
-            this.showMessage('Erreur : ' + err.message, 'error');
+            this._stopCompressProgress(false);
+            this.$panel.notification.error(err.message);
             this.$set(this.localFiles, idx, { ...file, compressing: false });
+          } finally {
+            window.dispatchEvent(new CustomEvent('goheritage:compress-end'));
           }
         },
 
         presetFor(f) {
           const v = this.selectedPresets[f.filename];
-          return v !== undefined ? parseInt(v) : 2; // default Standard
+          return v !== undefined ? parseInt(v) : 1; // default: Standard
         },
 
-        // Returns only compressed file presets (JPG),
-        // but all presets for PNG files.
         compressPresets(f) {
-          const isJpg = /\.jpe?g$/i.test(f.filename);
-          return this.presets
-            .map((p, i) => ({ ...p, idx: i }))
-            .filter(p => !isJpg || p.idx !== 0);
+          return this.presets.map((p, i) => ({ ...p, idx: i }));
         },
 
         estimateSize(f, preset) {
@@ -399,23 +441,20 @@ panel.plugin('goheritage/model-converter', {
               const body = await resp.text().catch(() => '');
               let errorMsg = resp.statusText;
               try { const errJson = JSON.parse(body); if (errJson.error) errorMsg = errJson.error; } catch(e) {}
-              this.showMessage('Erreur : ' + errorMsg, 'error');
+              this.$panel.notification.error(errorMsg);
             } else {
-              this.showMessage('Converti en GLB ✓', 'success');
+              this.$panel.notification.success('Converti en GLB');
               this.$panel.view.reload();
             }
           } catch (err) {
-            this.showMessage('Erreur : ' + err.message, 'error');
+            this.$panel.notification.error(err.message);
           } finally {
             this.convertingFile = '';
           }
         },
 
-        showMessage(text, type) {
-          this.message = text;
-          this.messageType = type;
-          setTimeout(() => { this.message = ''; }, 3500);
-        },
+        _onGlobalCompressStart() { this.globallyCompressing = true; },
+        _onGlobalCompressEnd()   { this.globallyCompressing = false; },
       },
     },
 
@@ -537,10 +576,7 @@ panel.plugin('goheritage/model-converter', {
             const resp = await fetch('/api/goheritage/geocode?q=' + encodeURIComponent(this.query), {
               headers: { 'X-CSRF': panel.csrf },
             });
-            if (!resp.ok) {
-              this.results = [];
-              return;
-            }
+            if (!resp.ok) { this.results = []; return; }
             const json = await resp.json();
             this.results = (json.features || []).map(f => ({
               label: f.place_name || f.text || '',
@@ -603,12 +639,9 @@ panel.plugin('goheritage/model-converter', {
         defaultOpen: Boolean,
       },
       data() {
-        return {
-          isOpen: this.defaultOpen
-        };
+        return { isOpen: this.defaultOpen };
       },
       mounted() {
-        // slight delay to ensure siblings are mounted by Vue before manipulating DOM
         setTimeout(() => this.updateVisibility(), 50);
       },
       methods: {
@@ -621,19 +654,18 @@ panel.plugin('goheritage/model-converter', {
           if (!col) return;
           let next = col.nextElementSibling;
           while (next) {
-            // STOP if the next column contains another accordion trigger wrapper
             if (next.querySelector('.k-accordion-trigger-field')) break;
             next.style.display = this.isOpen ? '' : 'none';
             next = next.nextElementSibling;
           }
-        }
+        },
       },
       template: `
         <div class="k-accordion-trigger-field" @click="toggle" style="cursor:pointer; user-select:none; display:flex; align-items:center; gap:0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem; margin-top: 1rem;" title="Déplier/Replier la section">
           <k-icon :type="isOpen ? 'angle-down' : 'angle-right'" style="color: var(--color-text-dimmed); margin-top: 2px;" />
           <h2 style="font-size: var(--text-base, 1rem); font-weight: 600;">{{ label }}</h2>
         </div>
-      `
+      `,
     },
   },
 

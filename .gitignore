@@ -50,6 +50,9 @@ Icon
 /site/config/.license
 /site/config/config.starterkit.test.php
 
+# Production host-specific config (contains API keys — never commit)
+/site/config/config.3.66.136.66.php
+
 
 
 # Massive 3D Models (do not track in git, exceeds 100MB)
@@ -92,3 +95,4 @@ kirby/
 # Temporary test files
 check.php
 test.html
+lightsail-key.pem

@@ -95,23 +95,19 @@
   background: var(--color-border);
 }
 
-/* Status notice */
-.k-upload-overwrite-notice {
-  margin: 0;
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--rounded);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  background: var(--color-background);
-  font-size: var(--text-sm);
+/* Progress bar */
+.k-upload-overwrite-progress {
+  height: 3px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
 }
 
-.k-upload-overwrite-notice.--success {
-  color: var(--color-green);
-  border-color: var(--color-green);
+.k-upload-overwrite-progress__bar {
+  height: 100%;
+  background: var(--color-focus);
+  border-radius: 2px;
+  transition: width 0.12s linear;
+  width: 0%;
 }
 
-.k-upload-overwrite-notice.--error {
-  color: var(--color-red);
-  border-color: var(--color-red);
-}

@@ -233,6 +233,28 @@ function initViewer(container) {
     return tex;
   }
 
+  // ── Convert any material to MeshBasicMaterial ────────────────────────────
+  // Photogrammetry models have lighting baked into the texture. Rendering them
+  // through PBR (MeshStandardMaterial) with scene lights applies lighting a
+  // second time, producing an over-bright, blue/white washed-out appearance.
+  // This helper swaps any non-basic material for a MeshBasicMaterial that
+  // simply displays the colour map without further lighting calculations.
+  function toBasicMaterial(m, materialSide) {
+    if (m.isMeshBasicMaterial) {
+      m.side = materialSide;
+      return m;
+    }
+    var basic = new THREE.MeshBasicMaterial({
+      map:         m.map         || null,
+      color:       m.map ? 0xffffff : (m.color ? m.color.clone() : new THREE.Color(0x888888)),
+      side:        materialSide,
+      transparent: m.transparent || false,
+      alphaMap:    m.alphaMap    || null,
+    });
+    m.dispose();
+    return basic;
+  }
+
   // ── Prepare model materials ──────────────────────────────────────────────
   function prepareModel(object, side) {
     // Exterior: DoubleSide (opaque backfaces visible from outside)
@@ -240,15 +262,21 @@ function initViewer(container) {
     var materialSide = (side === 'interior') ? THREE.FrontSide : THREE.DoubleSide;
 
     object.traverse(function (child) {
-      if (child.isMesh && child.material) {
-        var mats = Array.isArray(child.material) ? child.material : [child.material];
-        mats.forEach(function (m) { m.side = materialSide; });
+      if (!child.isMesh || !child.material) return;
+      if (Array.isArray(child.material)) {
+        child.material = child.material.map(function (m) { return toBasicMaterial(m, materialSide); });
+      } else {
+        child.material = toBasicMaterial(child.material, materialSide);
       }
     });
 
     scene.add(object);
     frameModel(object);
     hideProgress();
+
+    // Signal to the page that the viewer has a model rendered — CSS uses this
+    // to reveal the fold toggle button.
+    document.body.classList.add('viewer-is-ready');
 
     extractHotspots(object, side || 'exterior');
     buildLabels();
@@ -630,8 +658,11 @@ function initViewer(container) {
           });
         } else {
           model.traverse(function (child) {
-            if (child.isMesh && child.material) {
-              [].concat(child.material).forEach(function (m) { m.side = THREE.FrontSide; });
+            if (!child.isMesh || !child.material) return;
+            if (Array.isArray(child.material)) {
+              child.material = child.material.map(function (m) { return toBasicMaterial(m, THREE.FrontSide); });
+            } else {
+              child.material = toBasicMaterial(child.material, THREE.FrontSide);
             }
           });
         }
@@ -1076,5 +1107,16 @@ function escHtml(str) {
 
 document.addEventListener('DOMContentLoaded', function () {
   var container = document.getElementById('viewer-3d');
-  if (container) initViewer(container);
+  if (container) {
+    if (container.dataset.deferLoad === 'true') {
+      container.addEventListener('goheritage:load', function() {
+        initViewer(container);
+      }, { once: true });
+    } else {
+      initViewer(container);
+      // Non-embedded: viewer starts loading immediately, reveal the fold toggle
+      // right away (the model being loaded shows via the progress bar).
+      document.body.classList.add('viewer-is-ready');
+    }
+  }
 });

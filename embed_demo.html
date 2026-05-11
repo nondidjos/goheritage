@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoHéritage - Démo d'intégration</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #1a1a1a;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: white;
+            padding: 60px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.03);
+        }
+        h1 {
+            font-size: 3rem;
+            letter-spacing: -0.02em;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 1.125rem;
+            line-height: 1.6;
+            color: #666;
+            margin-bottom: 40px;
+            max-width: 800px;
+        }
+        .embed-wrapper {
+            width: 70%;
+            margin: 40px auto;
+            aspect-ratio: 16 / 10;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #eee;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            background: #000;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        code {
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Démonstration d'intégration</h1>
+        <p>
+            Voici un exemple de la manière dont le visualiseur 3D <strong>GoHéritage</strong> peut être intégré sur n'importe quel site web. 
+            En utilisant le paramètre <code>?embed=1</code>, l'interface s'adapte automatiquement : la navigation globale est masquée, 
+            un écran de démarrage élégant avec le titre et la localisation apparaît, et le modèle ne se charge qu'après l'interaction de l'utilisateur.
+        </p>
+
+        <div class="embed-wrapper">
+            <!-- Integration de l'iframe GoHéritage -->
+            <iframe 
+                src="http://goheritage.test/map/chapelle-saint-jerusalem?embed=1" 
+                allowfullscreen 
+                allow="xr-spatial-tracking; fullscreen">
+            </iframe>
+        </div>
+        
+        <p style="margin-top: 40px; font-size: 0.9rem; color: #999;">
+            L'iframe ci-dessus est dimensionnée à 70% de la largeur du conteneur, avec un ratio d'aspect conservé pour une expérience optimale.
+        </p>
+    </div>
+</body>
+</html>

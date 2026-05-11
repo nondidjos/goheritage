@@ -164,8 +164,21 @@ Kirby::plugin('goheritage/model-converter', [
                     $size    = max(256, min(8192, (int)($request->get('size',    4096))));
                     $quality = max(10,  min(100,  (int)($request->get('quality', 85))));
 
+                    // Kill any orphaned `convert` process left over from a previous
+                    // PHP timeout (the child keeps running after PHP is killed).
+                    @shell_exec('pkill -f "convert.*texture" 2>/dev/null');
+
+                    // Serialize concurrent compression jobs — the server only has 512 MB RAM.
+                    // A second request while one is running returns 503 immediately.
+                    $lockFile   = sys_get_temp_dir() . '/goheritage-compress.lock';
+                    $lockHandle = @fopen($lockFile, 'w');
+                    if (!$lockHandle || !flock($lockHandle, LOCK_EX | LOCK_NB)) {
+                        if ($lockHandle) @fclose($lockHandle);
+                        return Response::json(['error' => 'Une compression est déjà en cours. Veuillez patienter quelques instants.'], 503);
+                    }
+
                     try {
-                        set_time_limit(300);
+                        set_time_limit(600);
                         $kirby->impersonate('kirby');
                         compressTexture($file, $size, $quality);
                         $page = kirby()->page($pageId);
@@ -182,6 +195,9 @@ Kirby::plugin('goheritage/model-converter', [
                         return Response::json(['status' => 'ok']);
                     } catch (\Throwable $e) {
                         return Response::json(['error' => $e->getMessage()], 500);
+                    } finally {
+                        flock($lockHandle, LOCK_UN);
+                        @fclose($lockHandle);
                     }
                 },
             ],
@@ -366,6 +382,50 @@ Kirby::plugin('goheritage/model-converter', [
     'hooks' => [],
 ]);
 
+// ── Shared helpers ────────────────────────────────────────────────────────────
+
+/**
+ * Resolve the node binary.  Checks known platform paths before falling back
+ * to a bare "node" (works when /usr/bin is in PHP-FPM's PATH, which it is on
+ * the Bitnami/NodeSource stack).
+ */
+function goheritageNodeBin(): string {
+    static $resolved = null;
+    if ($resolved !== null) return $resolved;
+
+    $candidates = [
+        '/usr/bin/node',          // Linux — NodeSource / system package
+        '/usr/local/bin/node',
+        '/usr/bin/nodejs',
+        '/opt/homebrew/bin/node', // macOS arm64
+        'C:\\Program Files\\nodejs\\node.exe',
+        'C:\\Program Files (x86)\\nodejs\\node.exe',
+    ];
+    foreach ($candidates as $c) {
+        if (file_exists($c) && is_executable($c)) {
+            return $resolved = $c;
+        }
+    }
+    $which = PHP_OS_FAMILY === 'Windows' ? 'where node 2>nul' : 'which node 2>/dev/null';
+    $out   = @shell_exec($which);
+    if ($out) {
+        $path = trim(explode("\n", $out)[0]);
+        if ($path && file_exists($path)) return $resolved = $path;
+    }
+    return $resolved = 'node';
+}
+
+/**
+ * Append a timestamped line to site/logs/model-converter.log.
+ * Silently no-ops if the directory isn't writable.
+ */
+function goheritageLog(string $msg): void {
+    $logDir  = __DIR__ . '/../../logs';
+    $logFile = $logDir . '/model-converter.log';
+    if (!is_dir($logDir)) @mkdir($logDir, 0775, true);
+    @file_put_contents($logFile, '[' . date('Y-m-d H:i:s') . '] ' . $msg . "\n", FILE_APPEND | LOCK_EX);
+}
+
 /**
  * Maps a blueprint field name to the canonical filename base used on disk.
  * Returns null for fields that should keep the original upload name.
@@ -387,16 +447,8 @@ function goheritageCanonicalBase($fieldName) {
  * The resulting GLB replaces (or creates) a same-named .glb file on the page.
  */
 function convertObjToGlb($file) {
-    $nodeCandidates = [
-        'C:\\Program Files\\nodejs\\node.exe',
-        'C:\\Program Files (x86)\\nodejs\\node.exe',
-    ];
-    $node = 'node';
-    foreach ($nodeCandidates as $c) {
-        if (file_exists($c)) { $node = $c; break; }
-    }
-    
-    $obj2gltf = realpath(__DIR__ . '/../../../node_modules/obj2gltf/bin/obj2gltf.js');
+    $node          = goheritageNodeBin();
+    $obj2gltf      = realpath(__DIR__ . '/../../../node_modules/obj2gltf/bin/obj2gltf.js');
     $gltfTransform = realpath(__DIR__ . '/../../../node_modules/@gltf-transform/cli/bin/cli.js');
 
     $objPath  = $file->root();
@@ -405,46 +457,50 @@ function convertObjToGlb($file) {
     $tmpGlb   = $dir . '/' . $basename . '-tmp.glb';
     $finalGlb = $dir . '/' . $basename . '.glb';
 
+    goheritageLog("convertObjToGlb START  node=$node  obj=$objPath");
+    goheritageLog("  obj2gltf=" . ($obj2gltf ?: 'NOT FOUND'));
+    goheritageLog("  gltf-transform=" . ($gltfTransform ?: 'NOT FOUND'));
+
+    if (!$obj2gltf)      throw new \Exception('obj2gltf not found — run npm install on the server.');
+    if (!$gltfTransform) throw new \Exception('@gltf-transform/cli not found — run npm install on the server.');
+
     try {
         // step 1: obj → glb
-        $cmd1 = sprintf(
-            '"%s" "%s" -i %s -o %s --binary --unlit 2>&1',
-            $node,
-            $obj2gltf,
-            escapeshellarg($objPath),
-            escapeshellarg($tmpGlb)
-        );
+        $cmd1 = sprintf('"%s" --max-old-space-size=256 "%s" -i %s -o %s --binary --unlit 2>&1',
+            $node, $obj2gltf, escapeshellarg($objPath), escapeshellarg($tmpGlb));
+        goheritageLog("  cmd1: $cmd1");
         $output1 = []; $code1 = 0;
         exec($cmd1, $output1, $code1);
-    
+        goheritageLog("  exit=$code1  " . implode(' | ', $output1));
+
         if ($code1 !== 0 || !file_exists($tmpGlb)) {
-            error_log('[model-converter] obj2gltf failed: ' . implode("\n", $output1));
-            return;
+            $msg = "obj2gltf failed (exit $code1): " . implode("\n", $output1);
+            goheritageLog("ERROR: $msg");
+            throw new \Exception($msg);
         }
-    
+
         // step 2: draco compression
-        $cmd2 = sprintf(
-            '"%s" "%s" draco %s %s 2>&1',
-            $node,
-            $gltfTransform,
-            escapeshellarg($tmpGlb),
-            escapeshellarg($finalGlb)
-        );
+        $cmd2 = sprintf('"%s" --max-old-space-size=256 "%s" draco %s %s 2>&1',
+            $node, $gltfTransform, escapeshellarg($tmpGlb), escapeshellarg($finalGlb));
+        goheritageLog("  cmd2: $cmd2");
         $output2 = []; $code2 = 0;
         exec($cmd2, $output2, $code2);
-    
+        goheritageLog("  exit=$code2  " . implode(' | ', $output2));
+
         if ($code2 !== 0 || !file_exists($finalGlb)) {
-            error_log('[model-converter] gltf-transform draco failed: ' . implode("\n", $output2));
-            return;
+            $msg = "gltf-transform draco failed (exit $code2): " . implode("\n", $output2);
+            goheritageLog("ERROR: $msg");
+            throw new \Exception($msg);
         }
     } finally {
         if (file_exists($tmpGlb)) @unlink($tmpGlb);
     }
 
     try {
-        $page = $file->parent();
-        if ($page) {
+        $pageId = $file->parent()?->id();
+        if ($pageId) {
             kirby()->impersonate('kirby');
+            $page     = kirby()->page($pageId);
             $existing = $page->file($basename . '.glb');
             if ($existing) {
                 $existing->replace($finalGlb);
@@ -456,42 +512,48 @@ function convertObjToGlb($file) {
                 ]);
             }
         }
+        goheritageLog("convertObjToGlb OK");
     } catch (\Exception $e) {
+        goheritageLog("ERROR registering GLB: " . $e->getMessage());
         error_log('[model-converter] glb registration: ' . $e->getMessage());
     }
 }
 
 /**
- * convert a large texture to optimised jpeg using sharp-cli
+ * Convert a large PNG texture to an optimised JPEG using compress-texture.js.
  */
 function compressTexture($file, $size = 4096, $quality = 85) {
-    $nodeCandidates = [
-        'C:\\Program Files\\nodejs\\node.exe',
-        'C:\\Program Files (x86)\\nodejs\\node.exe',
-    ];
-    $node = 'node'; // fallback: use node from PATH (works on Linux/macOS)
-    foreach ($nodeCandidates as $c) {
-        if (file_exists($c)) { $node = $c; break; }
-    }
-
+    $node     = goheritageNodeBin();
     $script   = __DIR__ . '/compress-texture.js';
     $srcPath  = $file->root();
     $dir      = dirname($srcPath);
     $basename = pathinfo($srcPath, PATHINFO_FILENAME);
     $tmpPath  = $dir . '/' . $basename . '-tmp.jpg';
 
+    goheritageLog("compressTexture START  node=$node  src=$srcPath  size=$size  quality=$quality");
+
     try {
-        $cmd = sprintf('"%s" %s %s %s --size=%d --quality=%d 2>&1', $node, escapeshellarg($script), escapeshellarg($srcPath), escapeshellarg($tmpPath), $size, $quality);
+        $cmd = sprintf('"%s" --max-old-space-size=256 %s %s %s --size=%d --quality=%d 2>&1',
+            $node,
+            escapeshellarg($script),
+            escapeshellarg($srcPath),
+            escapeshellarg($tmpPath),
+            $size, $quality);
+        goheritageLog("  cmd: $cmd");
         $output = []; $code = 0;
         exec($cmd, $output, $code);
+        goheritageLog("  exit=$code  " . implode(' | ', $output));
 
         if ($code !== 0 || !file_exists($tmpPath)) {
-            throw new \Exception('[model-converter] compress-texture.js failed: ' . implode("\n", $output));
+            $msg = "compress-texture.js failed (exit $code): " . implode("\n", $output);
+            goheritageLog("ERROR: $msg");
+            throw new \Exception($msg);
         }
 
-        $page = $file->parent();
-        if ($page) {
+        $pageId = $file->parent()?->id();
+        if ($pageId) {
             kirby()->impersonate('kirby');
+            $page        = kirby()->page($pageId);
             $jpgFilename = $basename . '.jpg';
             $jpgRoot     = $dir . '/' . $jpgFilename;
             $existing    = $page->file($jpgFilename);
@@ -507,8 +569,10 @@ function compressTexture($file, $size = 4096, $quality = 85) {
                 ]);
             }
         }
+        goheritageLog("compressTexture OK");
     } catch (\Exception $e) {
-        throw new \Exception('[model-converter] compress texture exception: ' . $e->getMessage());
+        goheritageLog("EXCEPTION: " . $e->getMessage());
+        throw new \Exception('[model-converter] compressTexture: ' . $e->getMessage());
     } finally {
         if (file_exists($tmpPath)) @unlink($tmpPath);
     }
@@ -520,21 +584,15 @@ function compressTexture($file, $size = 4096, $quality = 85) {
  * Modifies the file in-place (tmp → replace).
  */
 function compressGlbTextures($file) {
-    $nodeCandidates = [
-        'C:\\Program Files\\nodejs\\node.exe',
-        'C:\\Program Files (x86)\\nodejs\\node.exe',
-    ];
-    $node = 'node';
-    foreach ($nodeCandidates as $c) {
-        if (file_exists($c)) { $node = $c; break; }
-    }
+    $node          = goheritageNodeBin();
     $gltfTransform = realpath(__DIR__ . '/../../../node_modules/@gltf-transform/cli/bin/cli.js');
+    goheritageLog("compressGlbTextures START  glb=" . $file->root());
     $glbPath = $file->root();
     $tmpPath = $glbPath . '.compressing.glb';
 
     // Step 1: resize embedded textures to max 4096 px
     $cmd1 = sprintf(
-        '"%s" "%s" resize %s %s --width 4096 --height 4096 2>&1',
+        '"%s" --max-old-space-size=256 "%s" resize %s %s --width 4096 --height 4096 2>&1',
         $node,
         $gltfTransform,
         escapeshellarg($glbPath),
@@ -551,7 +609,7 @@ function compressGlbTextures($file) {
     // Step 2: convert textures to WebP at quality 80
     $tmpPath2 = $glbPath . '.webp.glb';
     $cmd2 = sprintf(
-        '"%s" "%s" webp %s %s --quality 80 2>&1',
+        '"%s" --max-old-space-size=256 "%s" webp %s %s --quality 80 2>&1',
         $node,
         $gltfTransform,
         escapeshellarg($tmpPath),

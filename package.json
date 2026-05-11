@@ -1,17 +1,22 @@
 {
+  "name": "goheritage",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GoHéritage — 3D heritage visualization platform (Kirby CMS).",
   "scripts": {
     "build": "tailwindcss -i ./assets/css/input.css -o ./assets/css/app.css",
     "dev": "tailwindcss -i ./assets/css/input.css -o ./assets/css/app.css --watch"
   },
+  "//": "Runtime deps are the tools the model-converter / hotspot-detector plugins shell out to via exec(). They must be installed on the production server. Build-only tools (tailwind, three for local importmap) live in devDependencies.",
   "dependencies": {
-    "tailwindcss": "^4.1.18",
-    "three": "^0.183.2"
-  },
-  "devDependencies": {
     "@gltf-transform/cli": "^4.3.0",
     "@gltf-transform/functions": "^4.3.0",
-    "@tailwindcss/cli": "^4.1.18",
     "obj2gltf": "^3.2.0",
     "sharp-cli": "^5.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "tailwindcss": "^4.1.18",
+    "three": "^0.183.2"
   }
 }

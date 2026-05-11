@@ -1,4 +1,7 @@
 <?php
+// Define before snippet('header') so the title-bar markup below can use it.
+$isEmbedded = !empty(get('embed'));
+
 snippet('header');
 
 // DRACO decoder ships with three.js. Locally we reference the local copy in
@@ -6,7 +9,12 @@ snippet('header');
 // doesn't have to be deployed. Keep the version in sync with the importmap
 // in site/snippets/header.php.
 $threeVersion = '0.183.2';
-$isLocalDev   = in_array($kirby->environment()->host(), ['localhost', '127.0.0.1', 'goheritage.test'], true);
+$dracoHost    = $kirby->environment()->host() ?? '';
+$isLocalDev   = $dracoHost === 'localhost'
+             || str_starts_with($dracoHost, '127.')
+             || str_starts_with($dracoHost, '192.168.')
+             || str_ends_with($dracoHost, '.test')
+             || str_ends_with($dracoHost, '.local');
 $dracoPath    = $isLocalDev
     ? url('node_modules/three/examples/jsm/libs/draco/')
     : 'https://unpkg.com/three@' . $threeVersion . '/examples/jsm/libs/draco/';
@@ -110,78 +118,80 @@ if ($gallery->count() === 0) {
         </div>
     </div>
 
-    <!-- ── Left: Content & Specs (2 cols) — becomes bottom drawer on mobile ── -->
-    <div class="col-2 flex flex-col gap-8 pb-10 project-content" id="project-content">
+    <!-- ── Content and Viewer Wrapper for Animation ── -->
+    <div class="project-panels-wrapper">
+        <!-- ── Left: Content & Specs (2 cols) — becomes bottom drawer on mobile ── -->
+        <div class="flex flex-col gap-8 pb-10 project-content" id="project-content">
 
-        <!-- mobile drawer handle (hidden on desktop) -->
-        <div class="project-drawer__handle" id="project-drawer-handle">
-            <div class="project-drawer__bar"></div>
-            <span class="project-drawer__label">Informations</span>
-        </div>
-
-        <!-- Rich text blocks -->
-        <?php if ($page->text()->isNotEmpty()): ?>
-            <div class="font-serif text-base text-ink leading-relaxed [&_h2]:font-sans [&_h2]:text-xl [&_h2]:mb-3 [&_h2]:mt-8 [&_p]:mb-4">
-                <?= $page->text()->toBlocks() ?>
+            <!-- mobile drawer handle (hidden on desktop) -->
+            <div class="project-drawer__handle" id="project-drawer-handle">
+                <div class="project-drawer__bar"></div>
+                <span class="project-drawer__label">Informations</span>
             </div>
-        <?php endif ?>
 
-        <!-- Spec Sheet — monospace minimal -->
-        <?php
-        $specFields = [
-            ['label' => 'Construction', 'value' => $page->construction_date()],
-            ['label' => 'Architecte',   'value' => $page->architect()],
-            ['label' => 'Style',        'value' => $page->style()],
-            ['label' => 'Dimensions',   'value' => $page->dimensions()],
-            ['label' => 'Protection',   'value' => $page->protection_status()],
-        ];
-        $hasSpecs = false;
-        foreach ($specFields as $sf) { if ($sf['value']->isNotEmpty()) { $hasSpecs = true; break; } }
-        ?>
-        <?php if ($hasSpecs): ?>
-            <div class="spec-card">
-                <h3 class="font-mono text-xs uppercase tracking-widest text-ink mb-3">Fiche technique</h3>
-                <dl class="spec-card__grid">
-                    <?php foreach ($specFields as $sf): ?>
-                        <?php if ($sf['value']->isNotEmpty()): ?>
-                            <div class="spec-card__item">
-                                <dt class="spec-card__label"><?= $sf['label'] ?></dt>
-                                <dd class="spec-card__value"><?= $sf['value']->esc() ?></dd>
-                            </div>
-                        <?php endif ?>
-                    <?php endforeach ?>
-                </dl>
-            </div>
-        <?php endif ?>
-
-        <!-- Tags -->
-        <div class="flex flex-wrap gap-2 mt-4">
-            <?php foreach ($page->tags()->split(',') as $tag): ?>
-                <a href="<?= url('map') ?>?tag=<?= urlencode(trim($tag)) ?><?= $isEmbedded ? '&embed=1' : '' ?>" class="tag"><?= esc(trim($tag)) ?></a>
-            <?php endforeach ?>
-        </div>
-
-        <!-- Gallery -->
-        <?php if ($gallery->count()): ?>
-            <div>
-                <h3 class="font-mono text-xs uppercase tracking-widest text-ink mb-3">Galerie</h3>
-                <div class="grid grid-cols-2 gap-2">
-                    <?php foreach ($gallery as $image): ?>
-                        <a href="<?= $image->url() ?>" data-lightbox
-                           class="block aspect-square overflow-hidden rounded-md bg-border transition-transform hover:-translate-y-0.5 cursor-zoom-in">
-                            <img src="<?= $image->crop(400, 400)->url() ?>"
-                                 alt="<?= $image->alt()->or($page->title())->esc() ?>"
-                                 loading="lazy" class="w-full h-full object-cover">
-                        </a>
-                    <?php endforeach ?>
+            <!-- Rich text blocks -->
+            <?php if ($page->text()->isNotEmpty()): ?>
+                <div class="font-serif text-base text-ink leading-relaxed [&_h2]:font-sans [&_h2]:text-xl [&_h2]:mb-3 [&_h2]:mt-8 [&_p]:mb-4">
+                    <?= $page->text()->toBlocks() ?>
                 </div>
+            <?php endif ?>
+
+            <!-- Spec Sheet — monospace minimal -->
+            <?php
+            $specFields = [
+                ['label' => 'Construction', 'value' => $page->construction_date()],
+                ['label' => 'Architecte',   'value' => $page->architect()],
+                ['label' => 'Style',        'value' => $page->style()],
+                ['label' => 'Dimensions',   'value' => $page->dimensions()],
+                ['label' => 'Protection',   'value' => $page->protection_status()],
+            ];
+            $hasSpecs = false;
+            foreach ($specFields as $sf) { if ($sf['value']->isNotEmpty()) { $hasSpecs = true; break; } }
+            ?>
+            <?php if ($hasSpecs): ?>
+                <div class="spec-card">
+                    <h3 class="font-mono text-xs uppercase tracking-widest text-ink mb-3">Fiche technique</h3>
+                    <dl class="spec-card__grid">
+                        <?php foreach ($specFields as $sf): ?>
+                            <?php if ($sf['value']->isNotEmpty()): ?>
+                                <div class="spec-card__item">
+                                    <dt class="spec-card__label"><?= $sf['label'] ?></dt>
+                                    <dd class="spec-card__value"><?= $sf['value']->esc() ?></dd>
+                                </div>
+                            <?php endif ?>
+                        <?php endforeach ?>
+                    </dl>
+                </div>
+            <?php endif ?>
+
+            <!-- Tags -->
+            <div class="flex flex-wrap gap-2 mt-4">
+                <?php foreach ($page->tags()->split(',') as $tag): ?>
+                    <a href="<?= url('map') ?>?tag=<?= urlencode(trim($tag)) ?><?= $isEmbedded ? '&embed=1' : '' ?>" class="tag"><?= esc(trim($tag)) ?></a>
+                <?php endforeach ?>
             </div>
-        <?php endif ?>
 
-    </div>
+            <!-- Gallery -->
+            <?php if ($gallery->count()): ?>
+                <div>
+                    <h3 class="font-mono text-xs uppercase tracking-widest text-ink mb-3">Galerie</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <?php foreach ($gallery as $image): ?>
+                            <a href="<?= $image->url() ?>" data-lightbox
+                               class="block aspect-square overflow-hidden rounded-md bg-border transition-transform hover:-translate-y-0.5 cursor-zoom-in">
+                                <img src="<?= $image->crop(400, 400)->url() ?>"
+                                     alt="<?= $image->alt()->or($page->title())->esc() ?>"
+                                     loading="lazy" class="w-full h-full object-cover">
+                            </a>
+                        <?php endforeach ?>
+                    </div>
+                </div>
+            <?php endif ?>
 
-    <!-- ── Right: 3D Viewer (5 cols, sticky) ── -->
-    <div class="col-5 sticky overflow-hidden rounded-md relative bg-ink z-50" id="viewer-container" style="top: 80px; height: calc(100vh - 100px); min-height: 500px;">
+        </div>
+
+        <!-- ── Right: 3D Viewer (5 cols, sticky) ── -->
+        <div class="sticky overflow-hidden rounded-md relative bg-ink z-50" id="viewer-container" style="top: 80px; height: calc(100vh - 100px); min-height: 500px;">
 
         <!-- Desktop fold toggle for the info panel (hidden on mobile via CSS) -->
         <button type="button" id="project-fold-toggle" class="fold-toggle" aria-label="Afficher/masquer les informations" title="Afficher/masquer les informations">
@@ -191,7 +201,60 @@ if ($gallery->count() === 0) {
             </svg>
         </button>
 
+        <?php if ($isEmbedded): ?>
+        <!-- Embed mode splash screen: shows title, location, and play button -->
+        <div id="embed-splash" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-ink transition-opacity duration-500">
+            <!-- Blurred Background -->
+            <?php if ($posterUrl): ?>
+                <img src="<?= $posterUrl ?>" alt="" class="absolute inset-0 w-full h-full object-cover opacity-60 blur-md scale-105">
+            <?php endif ?>
+            
+            <!-- Dark overlay to ensure text is readable -->
+            <div class="absolute inset-0 bg-ink/40"></div>
+
+            <!-- Content -->
+            <div class="relative z-10 flex flex-col items-center text-center px-6">
+                <h1 class="font-thyssen text-4xl md:text-5xl text-white mb-3 drop-shadow-md"><?= $page->title()->esc() ?></h1>
+                
+                <div class="mb-8">
+                    <?php snippet('location-tag', ['location' => $page->location()->value(), 'class' => '!text-white/80']) ?>
+                </div>
+
+                <button id="embed-play-btn" class="bg-white/10 backdrop-blur-md border border-white/20 rounded-full w-20 h-20 flex items-center justify-center transform transition-transform duration-300 hover:scale-110 hover:bg-white/20 cursor-pointer text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" class="ml-2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                </button>
+                
+                <span class="font-sans text-xs text-white/80 mt-4 uppercase tracking-widest"><?= $viewerLabel ?></span>
+            </div>
+        </div>
+        
+        <script>
+        document.getElementById('embed-play-btn').addEventListener('click', function() {
+            var splash = document.getElementById('embed-splash');
+            splash.style.opacity = '0';
+            splash.style.pointerEvents = 'none';
+            
+            <?php if ($hasIframe): ?>
+            const iframe = document.createElement('iframe');
+            iframe.src = "<?= $viewerUrl ?>";
+            iframe.className = "w-full h-full border-none";
+            iframe.allowFullscreen = true;
+            iframe.allow = "xr-spatial-tracking; fullscreen";
+            document.getElementById('iframe-container').appendChild(iframe);
+            document.body.classList.add('viewer-is-ready');
+            <?php elseif ($hasModel): ?>
+            var viewer = document.getElementById('viewer-3d');
+            if (viewer) {
+                viewer.dispatchEvent(new Event('goheritage:load'));
+                // viewer-is-ready is added by viewer.js once the model finishes loading
+            }
+            <?php endif ?>
+        });
+        </script>
+        <?php endif ?>
+
         <?php if ($hasIframe): ?>
+            <?php if (!$isEmbedded): ?>
             <div id="model-poster" class="absolute inset-0 cursor-pointer z-10 transition-opacity duration-500">
                 <?php if ($posterUrl): ?>
                     <img src="<?= $posterUrl ?>" alt="<?= $page->title()->esc() ?>" class="w-full h-full object-cover">
@@ -207,7 +270,6 @@ if ($gallery->count() === 0) {
                     <span class="font-sans text-xs text-white"><?= $viewerLabel ?></span>
                 </div>
             </div>
-            <div id="iframe-container" class="absolute inset-0 z-0"></div>
             <script>
             document.getElementById('model-poster').addEventListener('click', function() {
                 this.style.opacity = '0';
@@ -220,10 +282,13 @@ if ($gallery->count() === 0) {
                 document.getElementById('iframe-container').appendChild(iframe);
             });
             </script>
+            <?php endif ?>
+            <div id="iframe-container" class="absolute inset-0 z-0"></div>
 
         <?php elseif ($hasModel): ?>
             <div id="viewer-3d"
                  class="w-full h-full bg-ink"
+                 data-defer-load="<?= $isEmbedded ? 'true' : 'false' ?>"
                  data-obj="<?= $objUrl ?>"
                  <?php if ($glbUrl): ?>data-glb="<?= $glbUrl ?>"<?php endif ?>
                  data-texture="<?= $texUrl ?>"
@@ -272,6 +337,8 @@ if ($gallery->count() === 0) {
         <?php endif ?>
 
 
+    </div>
+    <!-- End project-panels-wrapper -->
     </div>
 
 </div>

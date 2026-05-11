@@ -68,7 +68,12 @@ if ($isMapPage) {
     // (so it works fully offline). Pin the exact version that's in
     // package.json so we don't get surprise breakage on upstream releases.
     $threeVersion = '0.183.2';
-    $isLocalDev   = in_array($kirby->environment()->host(), ['localhost', '127.0.0.1', 'goheritage.test'], true);
+    $threeHost    = $kirby->environment()->host() ?? '';
+    $isLocalDev   = $threeHost === 'localhost'
+                 || str_starts_with($threeHost, '127.')
+                 || str_starts_with($threeHost, '192.168.')
+                 || str_ends_with($threeHost, '.test')
+                 || str_ends_with($threeHost, '.local');
     if ($isLocalDev) {
         $threeBase = url('node_modules/three');
     } else {
