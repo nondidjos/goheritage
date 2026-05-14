@@ -25,14 +25,20 @@ $dracoPath    = $isLocalDev
 $objFile          = $page->file('exterior.obj')         ?? $page->model_obj()->toFile();
 $interiorObjFile  = $page->file('interior.obj')         ?? $page->model_obj_interior()->toFile();
 
-$texFile          = $page->file('exterior-texture.jpg') ?? $page->file('exterior-texture.png')
+$texFile          = $page->file('exterior-texture.webp') ?? $page->file('exterior-texture.jpg') ?? $page->file('exterior-texture.png')
                     ?? $page->file('exterior-texture.jpeg') ?? $page->model_texture()->toFile();
 $normFile         = $page->file('exterior-normal.jpg')  ?? $page->file('exterior-normal.png')
                     ?? $page->file('exterior-normal.jpeg') ?? $page->model_normal()->toFile();
-$interiorTexFile  = $page->file('interior-texture.jpg') ?? $page->file('interior-texture.png')
+$interiorTexFile  = $page->file('interior-texture.webp') ?? $page->file('interior-texture.jpg') ?? $page->file('interior-texture.png')
                     ?? $page->file('interior-texture.jpeg') ?? $page->model_texture_interior()->toFile();
 $interiorNormFile = $page->file('interior-normal.jpg')  ?? $page->file('interior-normal.png')
                     ?? $page->file('interior-normal.jpeg') ?? $page->model_normal_interior()->toFile();
+
+// Progressive loading previews (auto-generated 1024 px JPEG companions)
+$texPreviewFile         = $texFile
+    ? $page->file(pathinfo($texFile->filename(), PATHINFO_FILENAME) . '-preview.jpg') : null;
+$interiorTexPreviewFile = $interiorTexFile
+    ? $page->file(pathinfo($interiorTexFile->filename(), PATHINFO_FILENAME) . '-preview.jpg') : null;
 
 $hotspotsExtFile = $page->file('hotspots-exterior.json') ?? $page->model_hotspots_json()->toFile();
 $hotspotsIntFile = $page->file('hotspots-interior.json') ?? $page->model_hotspots_json_interior()->toFile();
@@ -64,6 +70,8 @@ $interiorTexUrl   = $interiorTexFile  ? $interiorTexFile->url()  : null;
 $interiorNormUrl  = $interiorNormFile ? $interiorNormFile->url() : null;
 $texUrl           = $texFile ? $texFile->url() : null;
 $normUrl          = $normFile ? $normFile->url() : null;
+$texPreviewUrl         = $texPreviewFile         ? $texPreviewFile->url()         : null;
+$interiorTexPreviewUrl = $interiorTexPreviewFile ? $interiorTexPreviewFile->url() : null;
 
 // GLB: prefer canonical name, fall back to field UUID, then any GLB not already used as interior
 $interiorGlbFile = $page->file('interior.glb');
@@ -78,6 +86,7 @@ $glbUrl = $glbFile ? $glbFile->url() : null;
 
 $hasIframe  = ($viewerUrl !== null);
 $hasModel   = ($objUrl !== null || $interiorObjUrl !== null || $glbUrl !== null || $interiorGlbUrl !== null);
+$defaultSide = $page->model_toggle()->isTrue() ? 'interior' : 'exterior';
 
 $posterUrl = ($cover = $page->cover()->toFile())
     ? $cover->crop(1600, 700)->url()
@@ -292,15 +301,18 @@ if ($gallery->count() === 0) {
                  data-obj="<?= $objUrl ?>"
                  <?php if ($glbUrl): ?>data-glb="<?= $glbUrl ?>"<?php endif ?>
                  data-texture="<?= $texUrl ?>"
+                 <?php if ($texPreviewUrl): ?>data-texture-preview="<?= $texPreviewUrl ?>"<?php endif ?>
                  data-normal="<?= $normUrl ?>"
                  <?php if ($interiorObjUrl):  ?>data-obj-interior="<?= $interiorObjUrl ?>"<?php endif ?>
                  <?php if ($interiorGlbUrl):  ?>data-glb-interior="<?= $interiorGlbUrl ?>"<?php endif ?>
                  <?php if ($interiorTexUrl):  ?>data-texture-interior="<?= $interiorTexUrl ?>"<?php endif ?>
+                 <?php if ($interiorTexPreviewUrl): ?>data-texture-interior-preview="<?= $interiorTexPreviewUrl ?>"<?php endif ?>
                  <?php if ($interiorNormUrl): ?>data-normal-interior="<?= $interiorNormUrl ?>"<?php endif ?>
                  data-draco-path="<?= $dracoPath ?>"
                  data-annotations="<?= htmlspecialchars($annotationsJson) ?>"
                  <?php if ($hotspotsExtUrl): ?>data-hotspots-json="<?= $hotspotsExtUrl ?>"<?php endif ?>
-                 <?php if ($hotspotsIntUrl): ?>data-hotspots-json-interior="<?= $hotspotsIntUrl ?>"<?php endif ?>>
+                 <?php if ($hotspotsIntUrl): ?>data-hotspots-json-interior="<?= $hotspotsIntUrl ?>"<?php endif ?>
+                 data-default-side="<?= $defaultSide ?>">
             </div>
             <style>
               .viewer-progress {

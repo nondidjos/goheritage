@@ -2,10 +2,9 @@
 
 /**
  * Local development overrides for Herd's goheritage.test hostname.
- * Merged on top of config.php when Kirby detects this hostname.
- * Mirror of config.localhost.php for `*.test` domains.
+ * The base config now auto-detects *.test hostnames and flips
+ * 'debug' itself, so this file is intentionally minimal.
  */
 return [
-    'debug' => true,
-    'url'   => '/',
+    'maptiler.key' => 'REDACTED-ROTATE-THIS-KEY',
 ];

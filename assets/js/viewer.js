@@ -24,12 +24,14 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 function initViewer(container) {
   const objUrl = container.dataset.obj || null;
   const glbUrl = container.dataset.glb || null;
-  const texUrl = container.dataset.texture || null;
+  const texUrl        = container.dataset.texture        || null;
+  const texPreviewUrl = container.dataset.texturePreview || null;
 
   const dracoPath = container.dataset.dracoPath || null;
-  const interiorObjUrl = container.dataset.objInterior || null;
-  const interiorGlbUrl = container.dataset.glbInterior || null;
-  const interiorTexUrl = container.dataset.textureInterior || null;
+  const interiorObjUrl        = container.dataset.objInterior             || null;
+  const interiorGlbUrl        = container.dataset.glbInterior             || null;
+  const interiorTexUrl        = container.dataset.textureInterior         || null;
+  const interiorTexPreviewUrl = container.dataset.textureInteriorPreview  || null;
 
   const hotspotsJsonUrl = container.dataset.hotspotsJson || null;
   const hotspotsJsonInteriorUrl = container.dataset.hotspotsJsonInterior || null;
@@ -141,6 +143,9 @@ function initViewer(container) {
   var flyAnimation = null; // active fly-to RAF id
 
   // ── Dual-model state ─────────────────────────────────────────────────────
+  var defaultSide = (container.dataset.defaultSide === 'interior') ? 'interior' : 'exterior';
+  // Exterior always loads first; currentSide starts as 'exterior' regardless of
+  // defaultSide so that switchModel('interior') in prepareModel isn't a no-op.
   var currentSide = 'exterior';
   var modelObjects = { exterior: null, interior: null };
   var hotspotSets = { exterior: [], interior: [] };
@@ -233,6 +238,26 @@ function initViewer(container) {
     return tex;
   }
 
+  // ── Progressive texture upgrade ──────────────────────────────────────────
+  // Loads a high-res texture in the background; swaps all mesh materials on
+  // the model when it arrives.  The low-res preview stays visible until then.
+  function upgradeTexture(model, url, flipY, side) {
+    new THREE.TextureLoader().load(url, function (tex) {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.flipY = (flipY === undefined) ? true : flipY;
+      tex.generateMipmaps = false;
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      var newMat = new THREE.MeshBasicMaterial({ map: tex, side: side });
+      model.traverse(function (child) {
+        if (!child.isMesh) return;
+        var old = Array.isArray(child.material) ? child.material[0] : child.material;
+        child.material = newMat;
+        if (old && old !== newMat) { if (old.map) old.map.dispose(); old.dispose(); }
+      });
+    });
+  }
+
   // ── Convert any material to MeshBasicMaterial ────────────────────────────
   // Photogrammetry models have lighting baked into the texture. Rendering them
   // through PBR (MeshStandardMaterial) with scene lights applies lighting a
@@ -286,7 +311,13 @@ function initViewer(container) {
     // Store exterior model; build toggle once ready if any interior model is set
     modelObjects.exterior = object;
     hotspotSets.exterior = hotspots.slice();
-    if (interiorGlbDerivedUrl || interiorObjUrl) buildToggle();
+    if (interiorGlbDerivedUrl || interiorObjUrl) {
+      buildToggle();
+      // If the CMS toggle is set to interior, switch immediately after exterior loads
+      if (defaultSide === 'interior') {
+        switchModel('interior');
+      }
+    }
   }
 
   // ── Extract hotspots from JSON file or GLB Empties (fallback) ─────────────
@@ -461,6 +492,9 @@ function initViewer(container) {
   function buildToggle() {
     var toggle = document.createElement('div');
     toggle.className = 'viewer-toggle';
+    // buildToggle is always called from prepareModel (exterior path), so at this
+    // point currentSide === 'exterior'. switchModel() will flip is-active later
+    // if defaultSide === 'interior'.
     toggle.innerHTML =
       '<button class="viewer-toggle__btn is-active" data-side="exterior">Ext\u00e9rieur</button>' +
       '<button class="viewer-toggle__btn" data-side="interior">Int\u00e9rieur</button>';
@@ -572,16 +606,13 @@ function initViewer(container) {
       objFilename,
       function (model) {
         if (interiorTexUrl) {
-          var matParams = { map: loadTexture(interiorTexUrl), side: THREE.FrontSide };
-          var mat = new THREE.MeshBasicMaterial(matParams);
-          model.traverse(function (child) {
-            if (child.isMesh) child.material = mat;
-          });
+          var initUrl = interiorTexPreviewUrl || interiorTexUrl;
+          var mat = new THREE.MeshBasicMaterial({ map: loadTexture(initUrl), side: THREE.FrontSide });
+          model.traverse(function (child) { if (child.isMesh) child.material = mat; });
+          if (interiorTexPreviewUrl) upgradeTexture(model, interiorTexUrl, true, THREE.FrontSide);
         } else {
           var fallback = new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.FrontSide });
-          model.traverse(function (child) {
-            if (child.isMesh) child.material = fallback;
-          });
+          model.traverse(function (child) { if (child.isMesh) child.material = fallback; });
         }
 
         // Same hotspot extraction pattern as loadInteriorGlb
@@ -651,11 +682,10 @@ function initViewer(container) {
 
         // Apply texture if provided (GLB converted from OBJ won't have embedded texture)
         if (interiorTexUrl) {
-          var matParams = { map: loadTexture(interiorTexUrl, false), side: THREE.FrontSide };
-          var mat = new THREE.MeshBasicMaterial(matParams);
-          model.traverse(function (child) {
-            if (child.isMesh) child.material = mat;
-          });
+          var initUrl = interiorTexPreviewUrl || interiorTexUrl;
+          var mat = new THREE.MeshBasicMaterial({ map: loadTexture(initUrl, false), side: THREE.FrontSide });
+          model.traverse(function (child) { if (child.isMesh) child.material = mat; });
+          if (interiorTexPreviewUrl) upgradeTexture(model, interiorTexUrl, false, THREE.FrontSide);
         } else {
           model.traverse(function (child) {
             if (!child.isMesh || !child.material) return;
@@ -892,6 +922,34 @@ function initViewer(container) {
     ? objUrl.replace(/\.obj$/i, '.glb')
     : null);
 
+  // ── Fallback: start with interior as the only / primary model ───────────
+  // Called when the exterior model fails to load but an interior model exists.
+  function startAsInteriorOnly() {
+    // Remove any existing progress overlays (including the original one)
+    container.querySelectorAll('.viewer-progress').forEach(function (el) { el.remove(); });
+    var prog = document.createElement('div');
+    prog.className = 'viewer-progress';
+    prog.innerHTML =
+      '<div class="viewer-progress-bar"><div class="viewer-progress-fill"></div></div>' +
+      '<span class="viewer-progress-text">chargement…</span>';
+    container.appendChild(prog);
+
+    loadInteriorModel(function (object) {
+      scene.add(object);
+      frameModel(object);
+      prog.style.opacity = '0';
+      setTimeout(function () { prog.remove(); }, 400);
+      document.body.classList.add('viewer-is-ready');
+      currentSide = 'interior';
+      hotspots = hotspotSets.interior;
+      hotspots.forEach(function (hs) {
+        if (hs.labelObj) scene.add(hs.labelObj);
+      });
+      wireAnnotationPanel();
+      wireHotspotBlocks();
+    });
+  }
+
   // ── Load exterior model — GLB (converted from OBJ) preferred, OBJ fallback ─
   function loadExteriorGlb(onFail) {
     var loader = new GLTFLoader();
@@ -908,18 +966,23 @@ function initViewer(container) {
         if (objUrl) model.rotation.x = -Math.PI / 2;
         // Apply texture when GLB was converted from OBJ (no embedded texture)
         if (texUrl && objUrl) {
-          var matParams = { map: loadTexture(texUrl, false), side: THREE.DoubleSide };
-          var mat = new THREE.MeshBasicMaterial(matParams);
-          model.traverse(function (child) {
-            if (child.isMesh) child.material = mat;
-          });
+          var initUrl = texPreviewUrl || texUrl;
+          var mat = new THREE.MeshBasicMaterial({ map: loadTexture(initUrl, false), side: THREE.DoubleSide });
+          model.traverse(function (child) { if (child.isMesh) child.material = mat; });
+          if (texPreviewUrl) upgradeTexture(model, texUrl, false, THREE.DoubleSide);
         }
         prepareModel(model, 'exterior');
       },
       function (xhr) { updateProgress(xhr.loaded, xhr.total); },
       function (err) {
-        console.warn('glb load failed, falling back to obj:', err);
-        if (onFail) onFail();
+        console.warn('glb load failed, falling back:', err);
+        if (onFail) {
+          onFail();
+        } else if (interiorGlbDerivedUrl || interiorObjUrl) {
+          startAsInteriorOnly();
+        } else {
+          progressText.textContent = 'erreur de chargement';
+        }
       }
     );
   }
@@ -927,8 +990,12 @@ function initViewer(container) {
   function loadExteriorObj() {
     var manager = new THREE.LoadingManager();
     manager.onError = function (url) {
-      progressText.textContent = 'erreur de chargement';
-      console.error('failed to load:', url);
+      console.error('[viewer] exterior model load failed:', url);
+      if (interiorGlbDerivedUrl || interiorObjUrl) {
+        startAsInteriorOnly();
+      } else {
+        progressText.textContent = 'erreur de chargement';
+      }
     };
 
     var objLoader = new OBJLoader(manager);
@@ -940,11 +1007,10 @@ function initViewer(container) {
       objFilename,
       function (object) {
         if (texUrl) {
-          var matParams = { map: loadTexture(texUrl), side: THREE.DoubleSide };
-          var mat = new THREE.MeshBasicMaterial(matParams);
-          object.traverse(function (child) {
-            if (child.isMesh) child.material = mat;
-          });
+          var initUrl = texPreviewUrl || texUrl;
+          var mat = new THREE.MeshBasicMaterial({ map: loadTexture(initUrl), side: THREE.DoubleSide });
+          object.traverse(function (child) { if (child.isMesh) child.material = mat; });
+          if (texPreviewUrl) upgradeTexture(object, texUrl, true, THREE.DoubleSide);
         } else {
           var fallback = new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.DoubleSide });
           object.traverse(function (child) { if (child.isMesh) child.material = fallback; });

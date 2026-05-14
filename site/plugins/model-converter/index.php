@@ -34,6 +34,22 @@ Kirby::plugin('goheritage/model-converter', [
         },
     ],
 
+    // ── Pages collection method: sorted unique tags for select options ────
+    // Usage in blueprints: query: site.index.sortedUniqueTags()
+    'pagesMethods' => [
+        'sortedUniqueTags' => function () {
+            $tags = [];
+            foreach ($this as $page) {
+                foreach (explode(',', (string)$page->tags()) as $tag) {
+                    $tag = trim($tag);
+                    if ($tag !== '') $tags[$tag] = $tag;
+                }
+            }
+            sort($tags, SORT_STRING | SORT_FLAG_CASE);
+            return array_values($tags);
+        },
+    ],
+
     // ── Panel field ──────────────────────────────────────────────────────────
     'fields' => [
         'upload-overwrite' => [
@@ -168,28 +184,32 @@ Kirby::plugin('goheritage/model-converter', [
                     // PHP timeout (the child keeps running after PHP is killed).
                     @shell_exec('pkill -f "convert.*texture" 2>/dev/null');
 
-                    // Serialize concurrent compression jobs — the server only has 512 MB RAM.
+                    // Serialize all heavy jobs — the server only has 512 MB RAM.
                     // A second request while one is running returns 503 immediately.
-                    $lockFile   = sys_get_temp_dir() . '/goheritage-compress.lock';
+                    $lockFile   = sys_get_temp_dir() . '/goheritage-heavy.lock';
                     $lockHandle = @fopen($lockFile, 'w');
                     if (!$lockHandle || !flock($lockHandle, LOCK_EX | LOCK_NB)) {
                         if ($lockHandle) @fclose($lockHandle);
-                        return Response::json(['error' => 'Une compression est déjà en cours. Veuillez patienter quelques instants.'], 503);
+                        return Response::json(['error' => 'Un traitement est déjà en cours. Veuillez patienter.'], 503);
                     }
 
                     try {
                         set_time_limit(600);
                         $kirby->impersonate('kirby');
                         compressTexture($file, $size, $quality);
-                        $page = kirby()->page($pageId);
-                        $jpgFilename = pathinfo($filename, PATHINFO_FILENAME) . '.jpg';
-                        $newFile = $page->file($jpgFilename);
+                        $page            = kirby()->page($pageId);
+                        $base            = pathinfo($filename, PATHINFO_FILENAME);
+                        $webpFilename    = $base . '.webp';
+                        $previewFilename = $base . '-preview.jpg';
+                        $newFile         = $page->file($webpFilename);
+                        $previewFile     = $page->file($previewFilename);
                         if ($newFile) {
                             return Response::json([
-                                'status'   => 'ok',
-                                'filename' => $newFile->filename(),
-                                'size'     => $newFile->niceSize(),
-                                'url'      => $newFile->url() . '?t=' . time()
+                                'status'     => 'ok',
+                                'filename'   => $newFile->filename(),
+                                'size'       => $newFile->niceSize(),
+                                'url'        => $newFile->url() . '?t=' . time(),
+                                'previewUrl' => $previewFile ? $previewFile->url() . '?t=' . time() : null,
                             ]);
                         }
                         return Response::json(['status' => 'ok']);
@@ -234,6 +254,14 @@ Kirby::plugin('goheritage/model-converter', [
                         return Response::json(['error' => 'File must be an .obj'], 400);
                     }
 
+                    // Shared lock with compress-file — only one heavy job at a time.
+                    $lockFile   = sys_get_temp_dir() . '/goheritage-heavy.lock';
+                    $lockHandle = @fopen($lockFile, 'w');
+                    if (!$lockHandle || !flock($lockHandle, LOCK_EX | LOCK_NB)) {
+                        if ($lockHandle) @fclose($lockHandle);
+                        return Response::json(['error' => 'Un traitement est déjà en cours. Veuillez patienter.'], 503);
+                    }
+
                     try {
                         set_time_limit(3600);
                         $kirby->impersonate('kirby');
@@ -254,6 +282,9 @@ Kirby::plugin('goheritage/model-converter', [
                         return Response::json(['status' => 'ok']);
                     } catch (\Throwable $e) {
                         return Response::json(['error' => $e->getMessage()], 500);
+                    } finally {
+                        flock($lockHandle, LOCK_UN);
+                        @fclose($lockHandle);
                     }
                 },
             ],
@@ -454,8 +485,12 @@ function convertObjToGlb($file) {
     $objPath  = $file->root();
     $dir      = dirname($objPath);
     $basename = pathinfo($objPath, PATHINFO_FILENAME);
-    $tmpGlb   = $dir . '/' . $basename . '-tmp.glb';
-    $finalGlb = $dir . '/' . $basename . '.glb';
+    // Use two distinct temp names so neither conflicts with the target filename.
+    // $finalGlb MUST differ from "$basename.glb" — Kirby's createFile/replace
+    // copies from source to target; if source === target it fails with a PHP
+    // "Call to a member function template() on null" fatal error.
+    $tmpGlb   = $dir . '/' . $basename . '-step1.glb';
+    $finalGlb = $dir . '/' . $basename . '-step2.glb';
 
     goheritageLog("convertObjToGlb START  node=$node  obj=$objPath");
     goheritageLog("  obj2gltf=" . ($obj2gltf ?: 'NOT FOUND'));
@@ -494,28 +529,37 @@ function convertObjToGlb($file) {
         }
     } finally {
         if (file_exists($tmpGlb)) @unlink($tmpGlb);
+        if (file_exists($finalGlb)) @unlink($finalGlb);
     }
 
     try {
         $pageId = $file->parent()?->id();
         if ($pageId) {
             kirby()->impersonate('kirby');
-            $page     = kirby()->page($pageId);
-            $existing = $page->file($basename . '.glb');
+            $page        = kirby()->page($pageId);
+            $glbFilename = $basename . '.glb';
+            $existing    = $page->file($glbFilename);
             if ($existing) {
                 $existing->replace($finalGlb);
             } else {
                 $page->createFile([
                     'source'   => $finalGlb,
-                    'filename' => $basename . '.glb',
-                    'template' => 'model',
+                    'filename' => $glbFilename,
+                    'template' => 'default',
                 ]);
             }
         }
         goheritageLog("convertObjToGlb OK");
-    } catch (\Exception $e) {
-        goheritageLog("ERROR registering GLB: " . $e->getMessage());
+    } catch (\Throwable $e) {
+        // Catches both \Exception and PHP \Error (e.g. method-on-null fatals).
+        // If Kirby registration fails, copy the file manually so the viewer
+        // can still find it via $page->file('exterior.glb').
+        goheritageLog("ERROR registering GLB (fallback copy): " . $e->getMessage());
         error_log('[model-converter] glb registration: ' . $e->getMessage());
+        $targetPath = $dir . '/' . $basename . '.glb';
+        if (!file_exists($targetPath)) {
+            @copy($finalGlb, $targetPath);
+        }
     }
 }
 
@@ -528,7 +572,7 @@ function compressTexture($file, $size = 4096, $quality = 85) {
     $srcPath  = $file->root();
     $dir      = dirname($srcPath);
     $basename = pathinfo($srcPath, PATHINFO_FILENAME);
-    $tmpPath  = $dir . '/' . $basename . '-tmp.jpg';
+    $tmpPath  = $dir . '/' . $basename . '-tmp.webp';
 
     goheritageLog("compressTexture START  node=$node  src=$srcPath  size=$size  quality=$quality");
 
@@ -553,20 +597,39 @@ function compressTexture($file, $size = 4096, $quality = 85) {
         $pageId = $file->parent()?->id();
         if ($pageId) {
             kirby()->impersonate('kirby');
-            $page        = kirby()->page($pageId);
-            $jpgFilename = $basename . '.jpg';
-            $jpgRoot     = $dir . '/' . $jpgFilename;
-            $existing    = $page->file($jpgFilename);
+            $page         = kirby()->page($pageId);
+            $webpFilename = $basename . '.webp';
+            $webpRoot     = $dir . '/' . $webpFilename;
+            $existing     = $page->file($webpFilename);
             if ($existing) {
                 $existing->replace($tmpPath);
-            } elseif (file_exists($jpgRoot)) {
-                copy($tmpPath, $jpgRoot);
+            } elseif (file_exists($webpRoot)) {
+                copy($tmpPath, $webpRoot);
             } else {
                 $page->createFile([
                     'source'   => $tmpPath,
-                    'filename' => $jpgFilename,
+                    'filename' => $webpFilename,
                     'template' => 'image',
                 ]);
+            }
+
+            // Save companion 1024 px preview generated by Stage 3 of the script.
+            $tmpPreviewPath  = preg_replace('/\.webp$/', '-preview.jpg', $tmpPath);
+            if (file_exists($tmpPreviewPath)) {
+                $previewFilename = $basename . '-preview.jpg';
+                $previewRoot     = $dir . '/' . $previewFilename;
+                $existingPreview = $page->file($previewFilename);
+                if ($existingPreview) {
+                    $existingPreview->replace($tmpPreviewPath);
+                } elseif (file_exists($previewRoot)) {
+                    copy($tmpPreviewPath, $previewRoot);
+                } else {
+                    $page->createFile([
+                        'source'   => $tmpPreviewPath,
+                        'filename' => $previewFilename,
+                        'template' => 'image',
+                    ]);
+                }
             }
         }
         goheritageLog("compressTexture OK");
@@ -575,6 +638,8 @@ function compressTexture($file, $size = 4096, $quality = 85) {
         throw new \Exception('[model-converter] compressTexture: ' . $e->getMessage());
     } finally {
         if (file_exists($tmpPath)) @unlink($tmpPath);
+        $tmpPreviewPath = preg_replace('/\.webp$/', '-preview.jpg', $tmpPath);
+        if (file_exists($tmpPreviewPath)) @unlink($tmpPreviewPath);
     }
 }
 

@@ -95,6 +95,19 @@
   background: var(--color-border);
 }
 
+/* Tags field — cap the suggestions dropdown height so it doesn't
+   overflow on pages with many tags */
+.k-tags-input .k-autocomplete {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* Primary-tag select — the native <select> renders as a compact dropdown;
+   this rule kicks in on browsers that expose size-1 selects as a list */
+.k-field:has(.k-select-input) select {
+  max-height: 220px;
+}
+
 /* Progress bar */
 .k-upload-overwrite-progress {
   height: 3px;

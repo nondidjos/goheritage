@@ -25,7 +25,7 @@ panel.plugin('goheritage/model-converter', {
             <!-- Native Kirby dropzone -->
             <k-dropzone class="k-upload-overwrite-dropzone" :disabled="uploading" @drop="onDrop">
               <p class="k-upload-overwrite-dropzone-label">
-                {{ uploading ? 'Téléversement…' : (anyCompressing ? 'Compression…' : 'Déposer un fichier ici') }}
+                {{ uploading ? 'Téléversement…' : (convertingFile ? 'Conversion GLB…' : (anyCompressing ? 'Compression…' : 'Déposer un fichier ici')) }}
               </p>
               <k-button
                 size="sm"
@@ -67,10 +67,10 @@ panel.plugin('goheritage/model-converter', {
                   <button
                     type="button"
                     title="Convertir en GLB (Draco)"
-                    :disabled="!!convertingFile"
+                    :disabled="!!convertingFile || globallyBusy"
                     @click="convertObj(f)"
                     style="display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border:1px solid var(--color-border); border-radius:4px; background:transparent; cursor:pointer; font-size:0.65rem; font-family:var(--font-mono, monospace); color:var(--color-text-dimmed); text-transform:uppercase; letter-spacing:0.04em;"
-                    :style="{ opacity: !!convertingFile ? 0.4 : 1 }"
+                    :style="{ opacity: (!!convertingFile || globallyBusy) ? 0.4 : 1 }"
                   >
                     <k-icon :type="convertingFile === f.filename ? 'loader' : 'angle-right'" />
                     GLB
@@ -85,20 +85,22 @@ panel.plugin('goheritage/model-converter', {
                       @change="$set(selectedPresets, f.filename, parseInt($event.target.value))"
                       style="font-size:0.72rem; padding:2px 22px 2px 6px; border:none; background:transparent; color:var(--color-text); appearance:none; -webkit-appearance:none; cursor:pointer; outline:none; min-width:0;"
                     >
-                      <option v-for="(p, i) in compressPresets(f)" :key="i" :value="p.idx">{{ p.label }} ~{{ estimateSize(f, p) }}</option>
+                      <option v-for="(p, i) in compressPresets(f)" :key="i" :value="p.idx">{{ p.label }} {{ p.size }}px</option>
                     </select>
-                    <k-icon type="angle-down" style="position:absolute; right:5px; pointer-events:none; color:var(--color-text-dimmed);" />
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute; right:5px; pointer-events:none; color:var(--color-text-dimmed);"><path d="m6 9 6 6 6-6"/></svg>
                   </div>
                   <div style="width:1px; background:var(--color-border); flex-shrink:0;"></div>
                   <button
                     type="button"
                     title="Compresser en JPEG"
-                    :disabled="f.compressing || globallyCompressing"
+                    :disabled="f.compressing || globallyBusy"
                     @click="compress(f)"
                     style="padding:2px 7px; border:none; background:transparent; cursor:pointer; display:flex; align-items:center; color:var(--color-text-dimmed);"
-                    :style="{ opacity: (f.compressing || globallyCompressing) ? 0.4 : 1 }"
+                    :style="{ opacity: (f.compressing || globallyBusy) ? 0.4 : 1 }"
                   >
-                    <k-icon :type="f.compressing ? 'loader' : 'angle-right'" />
+                    <svg v-if="f.compressing" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:gh-spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                    <svg v-else-if="globallyBusy" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                   </button>
                   </div>
                 </div>
@@ -135,15 +137,15 @@ panel.plugin('goheritage/model-converter', {
           compressProgress: 0,   // 0-100, simulated over expected duration
           _compressTimer: null,
           convertingFile: '',    // filename currently being converted to GLB, or ''
-          globallyCompressing: false, // true while ANY compress job is running (cross-instance)
+          globallyBusy: false, // true while ANY compress or convert job is running (cross-instance)
           localFiles: [],
           selectedPresets: {},
           presets: [
             // bpp calibrated from real outputs on 8192² architectural texture:
-            //   q=88 → 24 MB (3.0 bpp),  q=82 → 5.5 MB (2.75 bpp at 4096²)
-            // Pure-Sharp pipeline: ~31 s / ~11 s / ~7 s
-            { label: 'Haute',    size: 4096, quality: 85, bpp: 2.8  }, // ~5.5 Mo
-            { label: 'Standard', size: 2048, quality: 80, bpp: 2.5 }, // ~1 Mo
+            //   q=88 → 24 MB, q=72 → 16 MB (1.9 bpp), q=82@4096² → 5.5 MB (2.75 bpp)
+            // Pure-Sharp pipeline: ~25 s / ~15 s / ~8 s
+            { label: 'Haute',    size: 8192, quality: 72, bpp: 1.9  }, // ~16 Mo
+            { label: 'Standard', size: 2048, quality: 80, bpp: 2.5  }, // ~1 Mo
             { label: 'Légère',   size: 1024, quality: 75, bpp: 2.0  }, // ~300 Ko
           ],
         };
@@ -159,17 +161,24 @@ panel.plugin('goheritage/model-converter', {
       },
 
       mounted() {
-        // Keep globallyCompressing in sync across all upload-overwrite instances
-        // on the same page (e.g. exterior + interior texture fields).
-        this._onGlobalCompressStart = () => { this.globallyCompressing = true; };
-        this._onGlobalCompressEnd   = () => { this.globallyCompressing = false; };
-        window.addEventListener('goheritage:compress-start', this._onGlobalCompressStart);
-        window.addEventListener('goheritage:compress-end',   this._onGlobalCompressEnd);
+        // Keep globallyBusy in sync across all upload-overwrite instances
+        // on the same page (exterior + interior fields, compress + convert).
+        this._onGlobalBusyStart = () => { this.globallyBusy = true; };
+        this._onGlobalBusyEnd   = () => { this.globallyBusy = false; };
+        window.addEventListener('goheritage:busy-start', this._onGlobalBusyStart);
+        window.addEventListener('goheritage:busy-end',   this._onGlobalBusyEnd);
+        // Inject Lucide spinner keyframe once
+        if (!document.getElementById('gh-spin-style')) {
+          const s = document.createElement('style');
+          s.id = 'gh-spin-style';
+          s.textContent = '@keyframes gh-spin { to { transform: rotate(360deg); } }';
+          document.head.appendChild(s);
+        }
       },
 
       beforeDestroy() {
-        window.removeEventListener('goheritage:compress-start', this._onGlobalCompressStart);
-        window.removeEventListener('goheritage:compress-end',   this._onGlobalCompressEnd);
+        window.removeEventListener('goheritage:busy-start', this._onGlobalBusyStart);
+        window.removeEventListener('goheritage:busy-end',   this._onGlobalBusyEnd);
       },
 
       computed: {
@@ -348,13 +357,13 @@ panel.plugin('goheritage/model-converter', {
           if (!preset) return;
 
           // Block concurrent jobs — the server only has 512 MB RAM.
-          if (this.globallyCompressing) {
-            this.$panel.notification.error('Compression déjà en cours, veuillez patienter.');
+          if (this.globallyBusy) {
+            this.$panel.notification.error('Un traitement est déjà en cours, veuillez patienter.');
             return;
           }
 
           // Notify all field instances on this page that a compress job is starting.
-          window.dispatchEvent(new CustomEvent('goheritage:compress-start'));
+          window.dispatchEvent(new CustomEvent('goheritage:busy-start'));
           // Pure-Sharp pipeline measured times: 8192 ~31 s · 4096 ~11 s · 2048 ~7 s
           this._startCompressProgress(preset.size >= 8192 ? 35000 : preset.size >= 4096 ? 13000 : 9000);
           this.$set(this.localFiles, idx, { ...file, compressing: true });
@@ -399,7 +408,7 @@ panel.plugin('goheritage/model-converter', {
             this.$panel.notification.error(err.message);
             this.$set(this.localFiles, idx, { ...file, compressing: false });
           } finally {
-            window.dispatchEvent(new CustomEvent('goheritage:compress-end'));
+            window.dispatchEvent(new CustomEvent('goheritage:busy-end'));
           }
         },
 
@@ -426,8 +435,11 @@ panel.plugin('goheritage/model-converter', {
         },
 
         async convertObj(file) {
-          if (this.convertingFile) return;
+          if (this.convertingFile || this.globallyBusy) return;
+          window.dispatchEvent(new CustomEvent('goheritage:busy-start'));
           this.convertingFile = file.filename;
+          // obj2gltf + draco typically takes 30–90 s depending on model size
+          this._startCompressProgress(70000);
           try {
             const params = new URLSearchParams({
               pageId:   this.pageId || '',
@@ -441,20 +453,24 @@ panel.plugin('goheritage/model-converter', {
               const body = await resp.text().catch(() => '');
               let errorMsg = resp.statusText;
               try { const errJson = JSON.parse(body); if (errJson.error) errorMsg = errJson.error; } catch(e) {}
+              this._stopCompressProgress(false);
               this.$panel.notification.error(errorMsg);
             } else {
+              this._stopCompressProgress(true);
               this.$panel.notification.success('Converti en GLB');
               this.$panel.view.reload();
             }
           } catch (err) {
+            this._stopCompressProgress(false);
             this.$panel.notification.error(err.message);
           } finally {
             this.convertingFile = '';
+            window.dispatchEvent(new CustomEvent('goheritage:busy-end'));
           }
         },
 
-        _onGlobalCompressStart() { this.globallyCompressing = true; },
-        _onGlobalCompressEnd()   { this.globallyCompressing = false; },
+        _onGlobalBusyStart() { this.globallyBusy = true; },
+        _onGlobalBusyEnd()   { this.globallyBusy = false; },
       },
     },
 
@@ -559,8 +575,8 @@ panel.plugin('goheritage/model-converter', {
           query: '',
           results: [],
           searching: false,
+          saving: false,
           debounceTimer: null,
-          saved: false,
         };
       },
       methods: {
@@ -592,14 +608,20 @@ panel.plugin('goheritage/model-converter', {
         async pick(result) {
           this.query   = result.label;
           this.results = [];
+          this.saving  = true;
           const id = (this.pageId || '').replace(/\//g, '+');
-          await this.$panel.api.patch('pages/' + id, {
-            lat: String(result.lat),
-            lng: String(result.lng),
-          });
-          this.saved = true;
-          setTimeout(() => { this.saved = false; }, 2500);
-          this.$panel.view.reload();
+          try {
+            await this.$panel.api.patch('pages/' + id, {
+              lat: parseFloat(result.lat.toFixed(6)),
+              lng: parseFloat(result.lng.toFixed(6)),
+            });
+            this.$panel.notification.success('Coordonnées enregistrées');
+            this.$panel.view.reload();
+          } catch (e) {
+            this.$panel.notification.error(e.message || 'Erreur lors de l\'enregistrement');
+          } finally {
+            this.saving = false;
+          }
         },
       },
       template: `
@@ -609,11 +631,11 @@ panel.plugin('goheritage/model-converter', {
               type="text"
               v-model="query"
               @input="onInput"
+              :disabled="saving"
               placeholder="Rechercher un lieu…"
               style="flex:1; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-background); color:var(--color-text); font-size:var(--text-sm); outline:none;"
             />
-            <span v-if="searching" style="font-size:0.7rem; color:var(--color-text-dimmed);">…</span>
-            <span v-if="saved" style="font-size:0.7rem; color:var(--color-green);">✓ Enregistré</span>
+            <k-icon v-if="searching || saving" type="loader" style="opacity:0.5;" />
           </div>
           <ul v-if="results.length" style="position:absolute; z-index:100; left:0; right:0; margin:2px 0 0; padding:0; list-style:none; background:var(--color-background); border:1px solid var(--color-border); border-radius:var(--rounded); box-shadow:0 4px 12px rgba(0,0,0,0.15); overflow:hidden;">
             <li
@@ -625,7 +647,7 @@ panel.plugin('goheritage/model-converter', {
               @mouseleave="$event.target.style.background=''"
             >
               {{ r.label }}
-              <span style="float:right; font-size:0.65rem; color:var(--color-text-dimmed); font-family:var(--font-mono);">{{ r.lat.toFixed(5) }}, {{ r.lng.toFixed(5) }}</span>
+              <span style="float:right; font-size:0.65rem; color:var(--color-text-dimmed); font-family:var(--font-mono);">{{ r.lat.toFixed(6) }}, {{ r.lng.toFixed(6) }}</span>
             </li>
           </ul>
         </k-field>
@@ -637,11 +659,26 @@ panel.plugin('goheritage/model-converter', {
         label: String,
         target: String,
         defaultOpen: Boolean,
+        // Optional: name of a toggle field whose value drives the initial state.
+        linkedToggle: String,
+        // true  → this section opens when the toggle is ON (interior)
+        // false → this section opens when the toggle is OFF (exterior)
+        openOnTrue: { type: Boolean, default: true },
       },
       data() {
         return { isOpen: this.defaultOpen };
       },
       mounted() {
+        if (this.linkedToggle) {
+          try {
+            // Kirby 3 Panel Vuex store — current content keyed by field name
+            const vals = this.$store.state.content.current;
+            if (vals && this.linkedToggle in vals) {
+              const toggleOn = vals[this.linkedToggle] === true || vals[this.linkedToggle] === 'true';
+              this.isOpen = this.openOnTrue ? toggleOn : !toggleOn;
+            }
+          } catch (_) {}
+        }
         setTimeout(() => this.updateVisibility(), 50);
       },
       methods: {
@@ -662,7 +699,7 @@ panel.plugin('goheritage/model-converter', {
       },
       template: `
         <div class="k-accordion-trigger-field" @click="toggle" style="cursor:pointer; user-select:none; display:flex; align-items:center; gap:0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem; margin-top: 1rem;" title="Déplier/Replier la section">
-          <k-icon :type="isOpen ? 'angle-down' : 'angle-right'" style="color: var(--color-text-dimmed); margin-top: 2px;" />
+          <svg v-if="isOpen" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--color-text-dimmed);flex-shrink:0;"><path d="m6 9 6 6 6-6"/></svg><svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--color-text-dimmed);flex-shrink:0;"><path d="m9 18 6-6-6-6"/></svg>
           <h2 style="font-size: var(--text-base, 1rem); font-weight: 600;">{{ label }}</h2>
         </div>
       `,
