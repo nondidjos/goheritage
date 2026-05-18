@@ -4,20 +4,10 @@ $isEmbedded = !empty(get('embed'));
 
 snippet('header');
 
-// DRACO decoder ships with three.js. Locally we reference the local copy in
-// node_modules; in production we use the CDN-hosted decoder so node_modules
-// doesn't have to be deployed. Keep the version in sync with the importmap
-// in site/snippets/header.php.
-$threeVersion = '0.183.2';
-$dracoHost    = $kirby->environment()->host() ?? '';
-$isLocalDev   = $dracoHost === 'localhost'
-             || str_starts_with($dracoHost, '127.')
-             || str_starts_with($dracoHost, '192.168.')
-             || str_ends_with($dracoHost, '.test')
-             || str_ends_with($dracoHost, '.local');
-$dracoPath    = $isLocalDev
-    ? url('node_modules/three/examples/jsm/libs/draco/')
-    : 'https://unpkg.com/three@' . $threeVersion . '/examples/jsm/libs/draco/';
+// DRACO decoder ships with three.js. We use the local copy in
+// node_modules so we don't rely on external CDNs which can fail
+// on the first load due to network/DNS timeouts.
+$dracoPath = url('node_modules/three/examples/jsm/libs/draco/');
 
 // Canonical filenames are set by the upload-overwrite plugin at upload time.
 // We prefer the canonical name; field UUID is kept as secondary fallback.
@@ -199,16 +189,16 @@ if ($gallery->count() === 0) {
 
         </div>
 
-        <!-- ── Right: 3D Viewer (5 cols, sticky) ── -->
-        <div class="sticky overflow-hidden rounded-md relative bg-ink z-50" id="viewer-container" style="top: 80px; height: calc(100vh - 100px); min-height: 500px;">
-
-        <!-- Desktop fold toggle for the info panel (hidden on mobile via CSS) -->
+        <!-- Desktop fold toggle for the info panel -->
         <button type="button" id="project-fold-toggle" class="fold-toggle" aria-label="Afficher/masquer les informations" title="Afficher/masquer les informations">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2"></rect>
                 <line x1="9" y1="3" x2="9" y2="21"></line>
             </svg>
         </button>
+
+        <!-- ── Right: 3D Viewer (5 cols, sticky) ── -->
+        <div class="sticky overflow-hidden rounded-md relative bg-ink z-50" id="viewer-container" style="top: 80px; height: calc(100vh - 100px); min-height: 500px;">
 
         <?php if ($isEmbedded): ?>
         <!-- Embed mode splash screen: shows title, location, and play button -->

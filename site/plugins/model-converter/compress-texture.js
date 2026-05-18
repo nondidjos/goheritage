@@ -56,6 +56,7 @@ if (requestedSize > MAX_SUPPORTED) {
 }
 
 const fillPath = path.join(os.tmpdir(), 'goheritage-fill-' + process.pid + '.jpg');
+const composedPath = path.join(os.tmpdir(), 'goheritage-comp-' + process.pid + '.jpg');
 const dstExt   = path.extname(dst).toLowerCase();
 const isWebP   = dstExt === '.webp';
 
@@ -63,7 +64,7 @@ async function run() {
   const sharp = require('sharp');
 
   // ── Query source dimensions ──────────────────────────────────────────────
-  const meta = await sharp(src).metadata();
+  const meta = await sharp(src, { limitInputPixels: false }).metadata();
   const srcW = meta.width;
   const srcH = meta.height;
   if (!srcW || !srcH) throw new Error('Could not read source dimensions from ' + src);
@@ -88,7 +89,7 @@ async function run() {
     //     fully opaque (255), anything below becomes fully transparent (0).
     //     This matches IM's "-channel alpha -threshold 50% +channel" and
     //     prevents semi-transparent UV-island edges from staining the grey fill.
-    const { data: rawSrc, info: rawInfo } = await sharp(src, { sequentialRead: true })
+    const { data: rawSrc, info: rawInfo } = await sharp(src, { sequentialRead: true, limitInputPixels: false })
       .resize(bW, bH, { fit: 'fill', kernel: 'lanczos3' })
       .ensureAlpha()
       .raw()
@@ -101,34 +102,48 @@ async function run() {
 
     const rawSpec = { raw: { width: rawInfo.width, height: rawInfo.height, channels: 4 } };
 
-    // 1b: Grey-fill + Gaussian blur σ4 at 2048 px from thresholded source.
+    // 1b: Grey-fill + Gaussian blur σ48 at 2048 px from thresholded source.
     //     flatten replaces transparent (α=0) pixels with #808080 only.
+    //     σ48 at 2048 px → ~144 px dilation, which becomes ~576 px after
+    //     4× upscale to 8192 px — enough to cover any UV island gap.
+    //     Alpha threshold (step 1a) prevents grey from bleeding into UV
+    //     island edges, so large σ is safe: it only fills transparent areas.
     const blurBuf = await sharp(rawSrc, rawSpec)
       .flatten({ background: { r: 128, g: 128, b: 128 } })
-      .blur(4)
+      .blur(48)
       .jpeg({ quality: 90 })
       .toBuffer();
 
     // 1c: Composite thresholded RGBA source OVER blur-fill; flatten; upscale.
     //     Both inputs are tiny (~12–16 MB each).
+    //     CRITICAL: We MUST upscale to the ORIGINAL size (srcW x srcH) so that we
+    //     can composite BEFORE downscaling.
     await sharp(blurBuf)
       .composite([{ input: rawSrc, ...rawSpec, blend: 'over', left: 0, top: 0 }])
       .flatten({ background: { r: 0, g: 0, b: 0 } })
-      .resize(tgtW, tgtH, { fit: 'fill', kernel: 'linear' })
+      .resize(srcW, srcH, { fit: 'fill', kernel: 'linear' })
       .jpeg({ quality: 85 })
       .toFile(fillPath);
 
     // ── Stage 2: composite + encode (~270 MB peak) ───────────────────────────
-    // dest-over: main pipeline image (source PNG with alpha) placed OVER the
-    // composite input (fill).
-    //   • Opaque UV-island pixels → source PNG colour (full resolution)
-    //   • Transparent background → fill colour (UV-dilated, seam-free)
-    // libvips reads fillPath sequentially (~3 MB at a time).  Peak is the
-    // decoded source PNG (~256 MB RGBA).
-    const pipeline = sharp(src, { sequentialRead: true })
-      .resize(tgtW, tgtH, { fit: 'inside', withoutEnlargement: true, kernel: 'lanczos3' })
-      .composite([{ input: fillPath, blend: 'dest-over', left: 0, top: 0 }])
-      .flatten({ background: { r: 0, g: 0, b: 0 } });
+    // Sharp applies .flatten() BEFORE .composite() internally, so using the
+    // source PNG as the base + flatten would turn its transparent pixels black
+    // before the fill ever composites behind them.
+    // Fix: use the fill as the base (it's already opaque, no flatten needed)
+    // and composite the source PNG on top with 'over'. Transparent source pixels
+    // reveal the fill; opaque pixels show the original texture color.
+    // We must still save full-res before downscaling — Sharp applies resize
+    // before composite, so the two-step approach is required.
+
+    await sharp(fillPath, { limitInputPixels: false })
+      .composite([{ input: src, blend: 'over', left: 0, top: 0 }])
+      .jpeg({ quality: 95 })
+      .toFile(composedPath);
+
+    // Now we safely downscale the fully opaque, composed image.
+    const pipeline = sharp(composedPath, { sequentialRead: true, limitInputPixels: false })
+      .resize(tgtW, tgtH, { fit: 'inside', withoutEnlargement: true, kernel: 'lanczos3' });
+
     if (isWebP) {
       await pipeline.webp({ quality, effort: 4 }).toFile(dst);
     } else {
@@ -151,6 +166,7 @@ async function run() {
 
   } finally {
     try { fs.unlinkSync(fillPath); } catch (_) {}
+    try { fs.unlinkSync(composedPath); } catch (_) {}
   }
 }
 

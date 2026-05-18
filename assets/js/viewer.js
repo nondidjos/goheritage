@@ -295,6 +295,15 @@ function initViewer(container) {
       }
     });
 
+    if (defaultSide === 'interior' && (interiorGlbDerivedUrl || interiorObjUrl)) {
+      extractHotspots(object, side || 'exterior');
+      modelObjects.exterior = object;
+      hotspotSets.exterior = hotspots.slice();
+      buildToggle();
+      switchModel('interior', true);
+      return;
+    }
+
     scene.add(object);
     frameModel(object);
     hideProgress();
@@ -313,10 +322,6 @@ function initViewer(container) {
     hotspotSets.exterior = hotspots.slice();
     if (interiorGlbDerivedUrl || interiorObjUrl) {
       buildToggle();
-      // If the CMS toggle is set to interior, switch immediately after exterior loads
-      if (defaultSide === 'interior') {
-        switchModel('interior');
-      }
     }
   }
 
@@ -519,21 +524,18 @@ function initViewer(container) {
   }
 
   // ── Switch between exterior / interior models ────────────────────────────
-  function switchModel(side) {
-    if (side === currentSide || !modelObjects.exterior) return;
+  function switchModel(side, immediate) {
+    if (side === currentSide && !immediate) return;
 
     var btns = container.querySelectorAll('.viewer-toggle__btn');
     btns.forEach(function (b) { b.disabled = true; });
 
-    // Capture camera so the angle is preserved across the swap
     var savedPos = camera.position.clone();
     var savedTarget = controls.target.clone();
 
-    // Fade to black
-    fadeEl.style.opacity = '1';
+    if (!immediate) fadeEl.style.opacity = '1';
 
     setTimeout(function () {
-      // Remove current model and its labels from the scene
       hotspotSets[currentSide].forEach(function (hs) {
         if (hs.labelObj) scene.remove(hs.labelObj);
       });
@@ -548,16 +550,21 @@ function initViewer(container) {
 
       function showSide(obj) {
         scene.add(obj);
-        updateModelBounds(obj);
-        camera.position.copy(savedPos);
-        controls.target.copy(savedTarget);
-        controls.update();
+        if (!immediate) {
+          updateModelBounds(obj);
+          camera.position.copy(savedPos);
+          controls.target.copy(savedTarget);
+          controls.update();
+        } else {
+          frameModel(obj);
+          hideProgress();
+          document.body.classList.add('viewer-is-ready');
+        }
         hotspots = hotspotSets[side];
         hotspots.forEach(function (hs) {
           if (hs.labelObj) scene.add(hs.labelObj);
         });
-        // Fade back in
-        fadeEl.style.opacity = '0';
+        if (!immediate) fadeEl.style.opacity = '0';
       }
 
       if (modelObjects[side]) {
@@ -565,7 +572,7 @@ function initViewer(container) {
       } else {
         loadInteriorModel(showSide);
       }
-    }, 260);
+    }, immediate ? 0 : 260);
   }
 
   // ── Dispatch to GLB or OBJ interior loader ───────────────────────────────
@@ -592,7 +599,7 @@ function initViewer(container) {
     prog.className = 'viewer-progress';
     prog.innerHTML =
       '<div class="viewer-progress-bar"><div class="viewer-progress-fill"></div></div>' +
-      '<span class="viewer-progress-text">chargement\u2026</span>';
+      '<span class="viewer-progress-text">chargement de l\'int\u00e9rieur\u2026</span>';
     container.appendChild(prog);
     var fill = prog.querySelector('.viewer-progress-fill');
     var text = prog.querySelector('.viewer-progress-text');
@@ -646,7 +653,7 @@ function initViewer(container) {
         if (xhr.total > 0) {
           var pct = Math.round((xhr.loaded / xhr.total) * 100);
           fill.style.width = pct + '%';
-          text.textContent = 'chargement\u2026 ' + pct + '%';
+          text.textContent = 'chargement de l\'int\u00e9rieur\u2026 ' + pct + '%';
         }
       },
       function (err) {
@@ -663,7 +670,7 @@ function initViewer(container) {
     prog.className = 'viewer-progress';
     prog.innerHTML =
       '<div class="viewer-progress-bar"><div class="viewer-progress-fill"></div></div>' +
-      '<span class="viewer-progress-text">chargement\u2026</span>';
+      '<span class="viewer-progress-text">chargement de l\'int\u00e9rieur\u2026</span>';
     container.appendChild(prog);
     var fill = prog.querySelector('.viewer-progress-fill');
     var text = prog.querySelector('.viewer-progress-text');
@@ -730,7 +737,7 @@ function initViewer(container) {
         if (xhr.total > 0) {
           var pct = Math.round((xhr.loaded / xhr.total) * 100);
           fill.style.width = pct + '%';
-          text.textContent = 'chargement\u2026 ' + pct + '%';
+          text.textContent = 'chargement de l\'int\u00e9rieur\u2026 ' + pct + '%';
         }
       },
       function (err) {
@@ -758,20 +765,48 @@ function initViewer(container) {
     var poiSection = document.querySelector('.poi-section[data-hotspot="' + id + '"]');
     if (poiSection && !poiSection.open) {
       poiSection.open = true;
-      var summary = poiSection.querySelector('.poi-section__summary');
-      if (summary) {
-        summary.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        poiSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
     }
 
-    // On mobile: open the drawer only when there's a section linked to this hotspot
     if (isMobile && poiSection) {
+      // Mobile: open the drawer first, then scroll within it after the animation
       var projectContent = document.getElementById('project-content');
       if (projectContent && !projectContent.classList.contains('is-expanded')) {
         projectContent.classList.add('is-expanded');
         document.body.style.overflow = 'hidden';
+        var _poi = poiSection;
+        var _panel = projectContent;
+        setTimeout(function () {
+          var scrollTarget = _poi.querySelector('.poi-section__summary') || _poi;
+          var panelRect = _panel.getBoundingClientRect();
+          var targetRect = scrollTarget.getBoundingClientRect();
+          if (targetRect.top < panelRect.top || targetRect.bottom > panelRect.bottom) {
+            _panel.scrollBy({ top: targetRect.top - panelRect.top - 8, behavior: 'smooth' });
+          }
+        }, 340); // drawer transition is 0.32 s
+      } else if (projectContent && poiSection) {
+        var scrollTarget = poiSection.querySelector('.poi-section__summary') || poiSection;
+        var panelRect = projectContent.getBoundingClientRect();
+        var targetRect = scrollTarget.getBoundingClientRect();
+        if (targetRect.top < panelRect.top || targetRect.bottom > panelRect.bottom) {
+          projectContent.scrollBy({ top: targetRect.top - panelRect.top - 8, behavior: 'smooth' });
+        }
+      }
+    } else if (poiSection && !document.body.classList.contains('is-info-collapsed')) {
+      // Desktop / compact with visible panel.
+      // scrollIntoView on a collapsed/hidden panel element scrolls the window to
+      // y=0 — always skip it when the panel is not displayed.
+      var scrollTarget = poiSection.querySelector('.poi-section__summary') || poiSection;
+      var panel = document.getElementById('project-content');
+      if (panel && panel.scrollHeight > panel.clientHeight) {
+        // Compact overlay sidebar: scroll within the panel, not the window
+        var panelRect = panel.getBoundingClientRect();
+        var targetRect = scrollTarget.getBoundingClientRect();
+        if (targetRect.top < panelRect.top || targetRect.bottom > panelRect.bottom) {
+          panel.scrollBy({ top: targetRect.top - panelRect.top - 8, behavior: 'smooth' });
+        }
+      } else {
+        // Full desktop layout: element is in normal flow, page scroll is correct
+        scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     }
 
@@ -1035,6 +1070,7 @@ function initViewer(container) {
         scene.add(object);
         frameModel(object);
         hideProgress();
+        document.body.classList.add('viewer-is-ready');
         // Activate the interior hotspot set and add labels to the scene
         currentSide = 'interior';
         hotspots = hotspotSets.interior;
@@ -1134,6 +1170,9 @@ function initViewer(container) {
     labelRenderer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    // Render immediately to prevent canvas clearing flicker during transitions
+    renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
   });
   observer.observe(container);
 

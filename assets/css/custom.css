@@ -1273,6 +1273,7 @@ body.is-panel-collapsed #map-fold-toggle svg {
     .project-panels-wrapper {
         flex-direction: row;
         align-items: stretch;
+        position: relative; /* anchor for the fold toggle */
     }
     #project-content {
         /* On a 7-column grid with 1.5rem gaps, 2 cols is: */
@@ -1289,6 +1290,13 @@ body.is-panel-collapsed #map-fold-toggle svg {
         width: 0; /* Allows flex-grow to smoothly take over */
     }
     
+    #project-fold-toggle {
+        /* Place the toggle exactly on the left edge of the viewer-container.
+           Viewer left edge = Sidebar width + 1.5rem gap. */
+        left: calc((100% - 1.5rem * 6) * 2 / 7 + 1.5rem * 1 + 1.5rem + 0.75rem);
+        transition: left 400ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
     body.is-info-collapsed #project-content {
         opacity: 0;
         width: 0;
@@ -1296,6 +1304,10 @@ body.is-panel-collapsed #map-fold-toggle svg {
         transform: translateX(-12px) scale(0.98);
         pointer-events: none;
         overflow: hidden;
+    }
+    
+    body.is-info-collapsed #project-fold-toggle {
+        left: 0.75rem; /* when sidebar is gone, viewer takes full width */
     }
 }
 
@@ -1336,6 +1348,7 @@ body.is-panel-collapsed #map-fold-toggle svg {
         flex-shrink: 0;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox: hide scrollbar to prevent layout shift */
 
         /* Solid white background — the blurred viewer behind is too dark for glass */
         background: #fff;
@@ -1471,6 +1484,113 @@ body.is-panel-collapsed #map-fold-toggle svg {
 @media (max-width: 37.4375rem) {
     #project-fold-toggle {
         display: none;
+    }
+}
+
+/* Hide scrollbar for compact sidebar in webkit to prevent layout shifts */
+@media (min-width: 37.5rem) and (max-width: 64rem) {
+    #project-content::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+/* ── Embedded mobile: side panel instead of bottom drawer ────────────── */
+/* On mobile (< 600px) inside an <iframe> the bottom-drawer UX breaks the
+   embed layout. Use the same overlay-sidebar approach as the compact tier:
+   a 280px panel slides in from the left, the fold toggle floats above it,
+   and the viewer always fills 100dvh.                                     */
+@media (max-width: 37.4375rem) {
+
+    body.is-embedded .items-start {
+        max-height: 100dvh;
+        overflow: hidden;
+    }
+
+    body.is-embedded .project-panels-wrapper {
+        position: relative;
+        min-height: 100dvh;
+        overflow: hidden;
+    }
+
+    /* Viewer: global is-embedded rule already sets 100dvh; fix positioning */
+    body.is-embedded #viewer-container {
+        position: sticky !important;
+        order: 0 !important;
+        z-index: auto !important;
+    }
+
+    /* Sidebar: override bottom drawer → left overlay panel */
+    body.is-embedded #project-content {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        right: auto !important;
+        width: min(280px, 85vw) !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        order: 0 !important;
+        z-index: 80 !important;
+
+        background: #fff !important;
+        border-radius: 0 12px 12px 0 !important;
+        border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+        box-shadow: 4px 0 32px rgba(0, 0, 0, 0.12) !important;
+        padding: 1.25rem 1.25rem 2rem !important;
+        gap: 0.875rem !important;
+
+        /* Side slide animation — not the bottom-drawer translateY */
+        transform: translateX(0) !important;
+        transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1),
+                    opacity 280ms ease,
+                    box-shadow 280ms ease !important;
+        will-change: transform;
+
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    body.is-embedded #project-content::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Collapsed: slide out to the left */
+    body.is-embedded.is-info-collapsed #project-content {
+        transform: translateX(-100%) !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Hide the bottom-drawer handle */
+    body.is-embedded .project-drawer__handle {
+        display: none !important;
+    }
+
+    /* Show the fold toggle (normally display:none below 600px) */
+    body.is-embedded #project-fold-toggle {
+        display: inline-flex !important;
+        position: absolute !important;
+        top: 0.75rem !important;
+        /* When open: sit just inside the sidebar's right edge */
+        left: calc(min(280px, 85vw) - 2.5rem) !important;
+        z-index: 90 !important;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.35s ease,
+                    left 380ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    body.is-embedded.viewer-is-ready #project-fold-toggle {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* Collapsed: move toggle to the viewer edge */
+    body.is-embedded.is-info-collapsed #project-fold-toggle {
+        left: 0.75rem !important;
     }
 }
 

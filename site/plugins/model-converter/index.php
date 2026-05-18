@@ -527,10 +527,14 @@ function convertObjToGlb($file) {
             goheritageLog("ERROR: $msg");
             throw new \Exception($msg);
         }
-    } finally {
+    } catch (\Throwable $e) {
         if (file_exists($tmpGlb)) @unlink($tmpGlb);
         if (file_exists($finalGlb)) @unlink($finalGlb);
+        throw $e;
     }
+    
+    // Cleanup temporary intermediate GLB
+    if (file_exists($tmpGlb)) @unlink($tmpGlb);
 
     try {
         $pageId = $file->parent()?->id();
@@ -560,6 +564,9 @@ function convertObjToGlb($file) {
         if (!file_exists($targetPath)) {
             @copy($finalGlb, $targetPath);
         }
+    } finally {
+        // Clean up the final temporary GLB file
+        if (file_exists($finalGlb)) @unlink($finalGlb);
     }
 }
 

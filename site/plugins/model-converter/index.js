@@ -25,7 +25,7 @@ panel.plugin('goheritage/model-converter', {
             <!-- Native Kirby dropzone -->
             <k-dropzone class="k-upload-overwrite-dropzone" :disabled="uploading" @drop="onDrop">
               <p class="k-upload-overwrite-dropzone-label">
-                {{ uploading ? 'Téléversement…' : (convertingFile ? 'Conversion GLB…' : (anyCompressing ? 'Compression…' : 'Déposer un fichier ici')) }}
+                {{ resizing ? 'Redimensionnement…' : (uploading ? 'Téléversement…' : (convertingFile ? 'Conversion GLB…' : (anyCompressing ? 'Compression…' : 'Déposer un fichier ici'))) }}
               </p>
               <k-button
                 size="sm"
@@ -45,10 +45,11 @@ panel.plugin('goheritage/model-converter', {
             />
 
             <!-- Progress bar: upload = real XHR fill, compress = time-weighted fill -->
-            <div v-if="uploading || anyCompressing" class="k-upload-overwrite-progress">
+            <div v-if="uploading || anyCompressing || resizing" class="k-upload-overwrite-progress">
               <div
                 class="k-upload-overwrite-progress__bar"
-                :style="{ width: (uploading ? uploadProgress : compressProgress) + '%' }"
+                :class="{ 'is-resizing': resizing }"
+                :style="{ width: resizing ? '100%' : (uploading ? uploadProgress : compressProgress) + '%' }"
               ></div>
             </div>
 
@@ -133,6 +134,7 @@ panel.plugin('goheritage/model-converter', {
       data() {
         return {
           uploading: false,
+          resizing: false,
           uploadProgress: 0,     // 0-100, driven by XHR upload.onprogress
           compressProgress: 0,   // 0-100, simulated over expected duration
           _compressTimer: null,
@@ -145,7 +147,7 @@ panel.plugin('goheritage/model-converter', {
             //   q=88 → 24 MB, q=72 → 16 MB (1.9 bpp), q=82@4096² → 5.5 MB (2.75 bpp)
             // Pure-Sharp pipeline: ~25 s / ~15 s / ~8 s
             { label: 'Haute',    size: 8192, quality: 72, bpp: 1.9  }, // ~16 Mo
-            { label: 'Standard', size: 2048, quality: 80, bpp: 2.5  }, // ~1 Mo
+            { label: 'Standard', size: 4096, quality: 82, bpp: 2.75 }, // ~5.5 Mo
             { label: 'Légère',   size: 1024, quality: 75, bpp: 2.0  }, // ~300 Ko
           ],
         };
@@ -222,8 +224,23 @@ panel.plugin('goheritage/model-converter', {
           this.uploading = true;
           this.uploadProgress = 0;
 
+          let uploadFile = file;
+          const ext = file.name.split('.').pop().toLowerCase();
+          if (['png', 'jpg', 'jpeg', 'webp'].includes(ext)) {
+            try {
+              this.resizing = true;
+              // Give the UI a frame to update the 'resizing' state before blocking the main thread
+              await new Promise(r => setTimeout(r, 50)); 
+              uploadFile = await this.resizeImageIfNeeded(file, 8192);
+            } catch (err) {
+              console.warn('Client-side resize failed, falling back to original:', err);
+            } finally {
+              this.resizing = false;
+            }
+          }
+
           const form = new FormData();
-          form.append('file', file);
+          form.append('file', uploadFile);
           form.append('pageId', this.pageId || '');
           form.append('template', this.template || 'default');
           form.append('fieldName', this.fieldName || '');
@@ -261,9 +278,51 @@ panel.plugin('goheritage/model-converter', {
             this.$panel.notification.error(err.message);
           } finally {
             this.uploading = false;
+            this.resizing = false;
             this.uploadProgress = 0;
             if (this.$refs.fileInput) this.$refs.fileInput.value = '';
           }
+        },
+
+        resizeImageIfNeeded(file, maxSize) {
+          return new Promise((resolve) => {
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+              URL.revokeObjectURL(url);
+              let w = img.width, h = img.height;
+              if (w <= maxSize && h <= maxSize) return resolve(file);
+
+              const scale = Math.min(maxSize / w, maxSize / h);
+              w = Math.round(w * scale);
+              h = Math.round(h * scale);
+
+              const canvas = document.createElement('canvas');
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              try {
+                // Ensure alpha preservation for PNGs
+                ctx.clearRect(0, 0, w, h);
+                ctx.drawImage(img, 0, 0, w, h);
+                // We use file.type to preserve PNG (alpha needed for UV dilation)
+                canvas.toBlob((blob) => {
+                  if (blob) {
+                    resolve(new File([blob], file.name, { type: file.type }));
+                  } else {
+                    resolve(file);
+                  }
+                }, file.type);
+              } catch (err) {
+                resolve(file);
+              }
+            };
+            img.onerror = () => {
+              URL.revokeObjectURL(url);
+              resolve(file);
+            };
+            img.src = url;
+          });
         },
 
         confirmDelete(file) {
