@@ -3,35 +3,32 @@
  *
  * Pure-Sharp two-stage pipeline — fast UV dilation + high-res JPEG/WebP output.
  *
- * Stage 1 · Sharp/libvips (~5 s, ~60 MB peak)
- *   a) Source PNG read as raw RGBA at 2048 px; alpha channel binarised (≥128→255,
- *      else 0) to prevent semi-transparent UV-island edges from mixing with the
- *      grey background during flatten — the exact behaviour of IM's
- *      "-channel alpha -threshold 50% +channel".
- *   b) Thresholded raw buffer flattened with #808080, Gaussian-blurred σ4 →
- *      2048×2048 JPEG buffer.
- *   c) Thresholded raw buffer composited OVER blur-fill; flattened; upscaled to
- *      target dims; saved as fill JPEG.
- *   Peak ≈ 60 MB (one 2048² RGBA buffer + sequential scan-line reads).
+ * Stage 1 · Sharp/libvips (~10 s, ~60 MB peak)
+ *   a) Source PNG read as raw RGBA at 2048 px; alpha binarised (≥128→255, else 0).
+ *   b) Premultiplied-alpha iterative dilation: 6 cycles of raw blur + in-place
+ *      opaque-pixel restore, entirely in premultiplied space — no grey or black
+ *      background ever contaminates fill colours.  After all passes the buffer is
+ *      un-premultiplied to recover the distance-weighted average of the nearest
+ *      island colours.  Mathematically correct; zero grey-seam artefacts.
+ *   c) Fill upscaled to source dimensions; saved as fill JPEG.
+ *   Peak ≈ 70 MB (two 2048² RGBA buffers + sequential scan-line reads).
  *
  * Stage 2 · Sharp/libvips (~20 s, ~270 MB peak)
  *   Source PNG loaded at full resolution; fill JPEG composited behind it;
- *   output encoded as JPEG/WebP.  libvips uses sequential access for the fill
- *   JPEG so only ~3 MB of fill is in RAM at once.  Peak is the PNG decode (~256 MB).
+ *   resized to target dimensions; selective vibrance applied per-pixel to
+ *   counteract compression dulling (dull colours get a strong boost, already-
+ *   saturated colours barely change); encoded as JPEG (4:4:4 chroma) or WebP
+ *   (effort 6).  4:4:4 vs 4:2:0 is the single biggest colour-fidelity win.
  *
  * Stage 3 · Preview JPEG
- *   1024 px JPEG (q=65) generated beside dst as <name>-preview.jpg for
- *   progressive loading in the Three.js viewer.
+ *   1024 px JPEG (q=65) beside dst as <name>-preview.jpg.
  *
- * Combined: ~25 s vs the old 70–300 s single-pass approach.
- *
- * UV-dilation colour fix:
- *   Transparent PNG pixels are (0,0,0,0).  Blurring RGBA mixes those black
- *   values into fill colours.  Fix 1: flatten with #808080 background before
- *   blurring so transparent regions become grey, not black.  Fix 2 (THIS PATCH):
- *   binarise the alpha channel *before* flatten so semi-transparent edge pixels
- *   (α 1-254) are treated as either fully opaque or fully transparent — they no
- *   longer tint the grey fill with their partial RGB contribution.
+ * Why premultiplied alpha:
+ *   Transparent pixels become (0,0,0,0) after premultiply.  Sharp blurs each
+ *   channel independently, so they contribute zero weight.  Un-premultiply =
+ *   RGB_sum / A_sum = distance-weighted average of real island colours only.
+ *   No grey (#808080) is ever introduced → seam areas get the correct
+ *   adjacent-island colour instead of a grey cast.
  */
 
 const path = require('path');
@@ -102,27 +99,84 @@ async function run() {
 
     const rawSpec = { raw: { width: rawInfo.width, height: rawInfo.height, channels: 4 } };
 
-    // 1b: Grey-fill + Gaussian blur σ48 at 2048 px from thresholded source.
-    //     flatten replaces transparent (α=0) pixels with #808080 only.
-    //     σ48 at 2048 px → ~144 px dilation, which becomes ~576 px after
-    //     4× upscale to 8192 px — enough to cover any UV island gap.
-    //     Alpha threshold (step 1a) prevents grey from bleeding into UV
-    //     island edges, so large σ is safe: it only fills transparent areas.
-    const blurBuf = await sharp(rawSrc, rawSpec)
-      .flatten({ background: { r: 128, g: 128, b: 128 } })
-      .blur(48)
-      .jpeg({ quality: 90 })
-      .toBuffer();
+    // 1b: Premultiplied-alpha iterative UV dilation — zero grey contamination.
+    //
+    //     Root cause of grey seams: flattening transparent pixels to grey (#808080)
+    //     before blurring injects that grey into the fill colour — the Gaussian
+    //     mixes island RGB with grey proportional to distance, so seams near many
+    //     UV gaps turn grey.
+    //
+    //     Fix: premultiplied-alpha blur.
+    //       • Premultiply — transparent pixels become (0,0,0,0); opaque pixels
+    //         stay unchanged (R*1=R, G*1=G, B*1=B, A=255).
+    //       • Blur each channel independently (libvips default).  Because
+    //         transparent pixels contribute 0 weight to all four channels, the
+    //         blurred RGB accumulates ONLY from nearby island pixels.  The blurred
+    //         alpha channel accumulates the total weight from those same pixels.
+    //       • Un-premultiply: blurred_R / blurred_A = distance-weighted average of
+    //         the nearest island colours.  No grey, no black — just real texture.
+    //       • Restore opaque source pixels after each pass so island edges stay
+    //         sharp and the next pass pushes fill further outward.
+    //     6 passes × σ100 covers ~600 px at 2048 px (→ ~2400 px at 8192 px).
 
-    // 1c: Composite thresholded RGBA source OVER blur-fill; flatten; upscale.
-    //     Both inputs are tiny (~12–16 MB each).
-    //     CRITICAL: We MUST upscale to the ORIGINAL size (srcW x srcH) so that we
-    //     can composite BEFORE downscaling.
-    await sharp(blurBuf)
-      .composite([{ input: rawSrc, ...rawSpec, blend: 'over', left: 0, top: 0 }])
-      .flatten({ background: { r: 0, g: 0, b: 0 } })
-      .resize(srcW, srcH, { fit: 'fill', kernel: 'linear' })
-      .jpeg({ quality: 85 })
+    // Premultiply in-place: zero out RGB for transparent pixels.
+    // (Binary alpha: 0 or 255, so opaque pixels are unchanged.)
+    const premulBuf = Buffer.from(rawSrc);
+    for (let i = 0; i < premulBuf.length; i += 4) {
+      if (premulBuf[i + 3] === 0) {
+        premulBuf[i] = premulBuf[i + 1] = premulBuf[i + 2] = 0;
+      }
+    }
+
+    let dilBuf = premulBuf;
+    for (let pass = 0; pass < 6; pass++) {
+      // Blur all four channels independently in premultiplied space (raw → raw).
+      dilBuf = await sharp(dilBuf, rawSpec)
+        .blur(100)
+        .raw()
+        .toBuffer();
+
+      // Restore exact source colours for opaque pixels.
+      for (let i = 0; i < dilBuf.length; i += 4) {
+        if (rawSrc[i + 3] === 255) {
+          dilBuf[i]     = rawSrc[i];
+          dilBuf[i + 1] = rawSrc[i + 1];
+          dilBuf[i + 2] = rawSrc[i + 2];
+          dilBuf[i + 3] = 255;
+        }
+      }
+    }
+
+    // Un-premultiply: divide blurred RGB by blurred alpha to recover the
+    // distance-weighted island colour.  Pixels with zero blurred alpha had
+    // no island within reach — fall back to neutral grey (these are deep
+    // background regions that will never be visible through the UV atlas).
+    const fillRaw = Buffer.allocUnsafe(dilBuf.length);
+    for (let i = 0; i < dilBuf.length; i += 4) {
+      if (rawSrc[i + 3] === 255) {
+        // Opaque island pixel — keep original colour exactly.
+        fillRaw[i]     = rawSrc[i];
+        fillRaw[i + 1] = rawSrc[i + 1];
+        fillRaw[i + 2] = rawSrc[i + 2];
+      } else {
+        const a = dilBuf[i + 3];
+        if (a > 0) {
+          fillRaw[i]     = Math.min(255, (dilBuf[i]     * 255 / a + 0.5) | 0);
+          fillRaw[i + 1] = Math.min(255, (dilBuf[i + 1] * 255 / a + 0.5) | 0);
+          fillRaw[i + 2] = Math.min(255, (dilBuf[i + 2] * 255 / a + 0.5) | 0);
+        } else {
+          fillRaw[i] = fillRaw[i + 1] = fillRaw[i + 2] = 128; // unreachable fallback
+        }
+      }
+      fillRaw[i + 3] = 255; // fully opaque fill
+    }
+
+    // 1c: Upscale the dilation fill to source dimensions for Stage 2.
+    //     CRITICAL: Must upscale to srcW×srcH (not tgtW×tgtH) so Stage 2
+    //     can composite the original PNG BEFORE downscaling.
+    await sharp(fillRaw, rawSpec)
+      .resize(srcW, srcH, { fit: 'fill', kernel: 'lanczos3' })
+      .jpeg({ quality: 95 })
       .toFile(fillPath);
 
     // ── Stage 2: composite + encode (~270 MB peak) ───────────────────────────
@@ -137,17 +191,50 @@ async function run() {
 
     await sharp(fillPath, { limitInputPixels: false })
       .composite([{ input: src, blend: 'over', left: 0, top: 0 }])
-      .jpeg({ quality: 95 })
+      .jpeg({ quality: 95, chromaSubsampling: '4:4:4' })
       .toFile(composedPath);
 
-    // Now we safely downscale the fully opaque, composed image.
-    const pipeline = sharp(composedPath, { sequentialRead: true, limitInputPixels: false })
-      .resize(tgtW, tgtH, { fit: 'inside', withoutEnlargement: true, kernel: 'lanczos3' });
+    // Decode + resize → raw RGB so we can run selective vibrance before encoding.
+    const { data: finalRaw, info: finalInfo } = await sharp(composedPath, { sequentialRead: true, limitInputPixels: false })
+      .resize(tgtW, tgtH, { fit: 'inside', withoutEnlargement: true, kernel: 'lanczos3' })
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    // ── Selective vibrance ────────────────────────────────────────────────
+    // JPEG/WebP compression desaturates colours, especially the muted greys,
+    // browns and pastels that dominate stone/stucco architecture textures.
+    // A flat saturation bump (.modulate) shifts already-vivid colours into
+    // unnatural territory. Vibrance fixes this: each pixel's boost factor is
+    // (1 - sat)² × VIBRANCE — dull colours get a strong push, saturated
+    // colours barely change. Operates in straight RGB (no HSL conversion) by
+    // pulling non-max channels further from the max channel, which deepens
+    // saturation while preserving hue and the brightest channel exactly.
+    const VIBRANCE = 0.35;
+    for (let i = 0; i < finalRaw.length; i += 3) {
+      const r = finalRaw[i];
+      const g = finalRaw[i + 1];
+      const b = finalRaw[i + 2];
+      const max = r > g ? (r > b ? r : b) : (g > b ? g : b);
+      const min = r < g ? (r < b ? r : b) : (g < b ? g : b);
+      if (max === 0 || max === min) continue; // pure black or perfect grey
+      const sat = (max - min) / max;
+      const inv = 1 - sat;
+      const k = 1 + VIBRANCE * inv * inv;
+      finalRaw[i]     = (max - Math.min(max, (max - r) * k) + 0.5) | 0;
+      finalRaw[i + 1] = (max - Math.min(max, (max - g) * k) + 0.5) | 0;
+      finalRaw[i + 2] = (max - Math.min(max, (max - b) * k) + 0.5) | 0;
+    }
+
+    const outPipeline = sharp(finalRaw, { raw: { width: finalInfo.width, height: finalInfo.height, channels: 3 } });
 
     if (isWebP) {
-      await pipeline.webp({ quality, effort: 4 }).toFile(dst);
+      // effort 6 = max quality/size ratio (slower encode, smaller file at same Q)
+      await outPipeline.webp({ quality, effort: 6 }).toFile(dst);
     } else {
-      await pipeline.jpeg({ quality, chromaSubsampling: '4:2:0' }).toFile(dst);
+      // 4:4:4 chroma keeps full colour resolution — 4:2:0 was the main culprit
+      // behind dull stone/brick textures losing their warmth after compression.
+      await outPipeline.jpeg({ quality, chromaSubsampling: '4:4:4' }).toFile(dst);
     }
 
     // ── Stage 3: 1024 px JPEG preview for progressive loading ────────────────

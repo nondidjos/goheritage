@@ -1217,10 +1217,6 @@ body.is-embedded .map-layout {
     height: 100dvh !important;
 }
 
-/* Hide the "Project Header" title block when embedded */
-body.is-embedded .project-header {
-    display: none;
-}
 
 /* ── Fold toggle button (project + map) ──────────────────────────────── */
 .fold-toggle {
@@ -1260,7 +1256,25 @@ body.is-panel-collapsed #map-fold-toggle svg {
     transform: scaleX(-1);
 }
 
-/* ── Project page: collapsed info panel (desktop only) ──────────────── */
+/* ── Project sidebar title (h1 + location inside the foldable panel) ── */
+.project-sidebar-title {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border, rgba(26,25,22,0.12));
+    margin-bottom: 0.5rem;
+    flex-shrink: 0;
+}
+
+.project-sidebar-title h1 {
+    font-size: 2.375rem;
+    line-height: 1.0;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    border: none !important;
+    text-decoration: none;
+    overflow-wrap: break-word;
+}
+
+/* ── Project page layout wrapper ─────────────────────────────────────── */
 .project-panels-wrapper {
     grid-column: 1 / -1;
     display: flex;
@@ -1268,46 +1282,138 @@ body.is-panel-collapsed #map-fold-toggle svg {
     gap: 1.5rem;
     width: 100%;
 }
-/* ── TIER 1: Full desktop (≥ 1024px) — wide side-by-side panel ─────── */
+/* ── TIER 1: Full desktop (≥ 1024px) — overlay sidebar (no reflow) ─── */
+/* Sidebar floats over a full-width viewer via position:absolute.        */
+/* Text never reflows because sidebar width never changes — only         */
+/* transform: translateX animates it in/out.                             */
 @media (min-width: 64.0625rem) {
     .project-panels-wrapper {
         flex-direction: row;
         align-items: stretch;
-        position: relative; /* anchor for the fold toggle */
+        position: relative;
+        /* Definite height so the absolute-positioned sidebar can use height:100% */
+        min-height: calc(100vh - 100px);
     }
-    #project-content {
-        /* On a 7-column grid with 1.5rem gaps, 2 cols is: */
-        width: calc((100% - 1.5rem * 6) * 2 / 7 + 1.5rem * 1);
-        flex-shrink: 0;
-        transition: width 400ms cubic-bezier(0.16, 1, 0.3, 1), 
-                    opacity 350ms ease, 
-                    transform 400ms cubic-bezier(0.16, 1, 0.3, 1), 
-                    margin 400ms cubic-bezier(0.16, 1, 0.3, 1);
-        transform-origin: left;
-    }
+
+    /* Viewer fills ALL width — sidebar overlays it from the left */
     #viewer-container {
         flex-grow: 1;
-        width: 0; /* Allows flex-grow to smoothly take over */
+        width: 100%;
     }
-    
+
+    /* Overlay sidebar — fixed width, slides in/out without touching viewer */
+    #project-content {
+        position: absolute !important;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 80;
+        width: 420px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(26,25,22,0.18) transparent;
+
+        background: var(--color-bg, #fff);
+        border-right: 1px solid var(--color-border, rgba(26,25,22,0.12));
+        padding: 1.75rem 1.75rem 2.5rem !important;
+        gap: 1.5rem !important;
+
+        transform: translateX(0);
+        transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1),
+                    opacity 350ms ease;
+        will-change: transform;
+
+        height: 100% !important;
+        max-height: 100% !important;
+    }
+
+    #project-content::-webkit-scrollbar { width: 3px; }
+    #project-content::-webkit-scrollbar-track { background: transparent; }
+    #project-content::-webkit-scrollbar-thumb {
+        background: rgba(26,25,22,0.18);
+        border-radius: 2px;
+    }
+
+    /* Fold toggle: sits at the viewer's left edge (right of the 420px sidebar) */
     #project-fold-toggle {
-        /* Place the toggle exactly on the left edge of the viewer-container.
-           Viewer left edge = Sidebar width + 1.5rem gap. */
-        left: calc((100% - 1.5rem * 6) * 2 / 7 + 1.5rem * 1 + 1.5rem + 0.75rem);
+        position: absolute !important;
+        top: 0.75rem;
+        left: calc(420px + 0.75rem);
+        z-index: 90;
+        opacity: 1;
+        pointer-events: auto;
+        display: inline-flex;
         transition: left 400ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    body.is-info-collapsed #project-content {
-        opacity: 0;
-        width: 0;
-        margin-right: -1.5rem; /* eliminate the gap */
-        transform: translateX(-12px) scale(0.98);
-        pointer-events: none;
-        overflow: hidden;
+    /* Sidebar overlays the full-width viewer — anything inside the viewer that
+       uses left:50% lands at the centre of the entire wrapper, not the visible
+       canvas. Shift right by half the sidebar width (420/2 = 210px) to re-centre
+       in the visible viewer area. Applies to: bottom toggle, loading screen. */
+    .viewer-toggle,
+    .viewer-progress {
+        left: calc(50% + 210px) !important;
+        transition: left 400ms cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
-    
+
+    /* Collapsed: sidebar gone, re-centre over the full viewer */
+    body.is-info-collapsed #project-content {
+        transform: translateX(-100%);
+        opacity: 0;
+        pointer-events: none;
+    }
+
     body.is-info-collapsed #project-fold-toggle {
-        left: 0.75rem; /* when sidebar is gone, viewer takes full width */
+        left: 0.75rem;
+    }
+
+    body.is-info-collapsed .viewer-toggle,
+    body.is-info-collapsed .viewer-progress {
+        left: 50% !important;
+    }
+
+    /* Desktop sidebar typography & spacing refinements */
+    #project-content .spec-card,
+    #project-content .annotation-panel {
+        padding-top: 1.25rem;
+        margin-top: 0.25rem;
+    }
+    #project-content .spec-card__heading,
+    #project-content .annotation-panel__heading {
+        font-size: 0.75rem;
+        letter-spacing: 0.12em;
+        margin-bottom: 1rem;
+    }
+    #project-content h3.font-mono {
+        font-size: 0.75rem !important;
+        letter-spacing: 0.12em;
+        margin-bottom: 1rem !important;
+    }
+    #project-content .spec-card__grid {
+        gap: 0.5rem;
+    }
+    #project-content .spec-card__value {
+        font-size: 0.875rem;
+    }
+    #project-content .annotation-entry {
+        padding: 0.875rem 0.625rem;
+    }
+    #project-content .annotation-entry__title {
+        font-size: 0.9375rem;
+    }
+    /* Tags: a bit more breathing room around them */
+    #project-content .flex.flex-wrap.gap-2.mt-4 {
+        margin-top: 0 !important;
+        gap: 0.5rem !important;
+    }
+    /* Rich text: looser leading on desktop where there's room */
+    #project-content .font-serif {
+        line-height: 1.65;
+    }
+    /* Gallery thumbnails: 2 columns with a touch more gap */
+    #project-content .grid.grid-cols-2 {
+        gap: 0.5rem !important;
     }
 }
 
@@ -1342,29 +1448,26 @@ body.is-panel-collapsed #map-fold-toggle svg {
         left: 0;
         bottom: 0;
         z-index: 80;
-        width: 300px;
+        width: 360px;
         min-width: 0;
-        max-width: 85%;
+        max-width: 88%;
         flex-shrink: 0;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        scrollbar-width: none; /* Firefox: hide scrollbar to prevent layout shift */
+        scrollbar-width: thin;
+        scrollbar-color: rgba(26,25,22,0.18) transparent;
 
-        /* Solid white background — the blurred viewer behind is too dark for glass */
-        background: #fff;
-        border-right: 1px solid rgba(0, 0, 0, 0.08);
-        box-shadow: 4px 0 32px rgba(0, 0, 0, 0.12);
+        background: var(--color-bg, #fff);
+        border-right: 1px solid var(--color-border, rgba(26,25,22,0.12));
 
         /* Layout */
-        padding: 1.25rem 1.25rem 2rem !important;
-        gap: 0.875rem !important;
-        border-radius: 0 12px 12px 0 !important;
+        padding: 1.5rem 1.5rem 2.25rem !important;
+        gap: 1.25rem !important;
 
         /* Slide animation */
         transform: translateX(0);
         transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1),
-                    opacity 280ms ease,
-                    box-shadow 280ms ease;
+                    opacity 280ms ease;
         will-change: transform;
 
         /* Cancel any mobile drawer styles from viewer.css */
@@ -1375,11 +1478,6 @@ body.is-panel-collapsed #map-fold-toggle svg {
     /* Hide the mobile drawer handle — the fold toggle handles this tier */
     #project-content .project-drawer__handle {
         display: none !important;
-    }
-
-    /* Project header stays hidden in embedded mode */
-    body.is-embedded .project-header {
-        display: none;
     }
 
     /* Viewer fills ALL available width — sidebar overlays it */
@@ -1402,7 +1500,7 @@ body.is-panel-collapsed #map-fold-toggle svg {
         position: absolute !important;
         top: 0.75rem;
         /* When sidebar is open: place it just inside the sidebar's right edge */
-        left: calc(300px - 2.5rem);
+        left: calc(360px - 2.5rem);
         z-index: 90;
         /* Hidden by default — JS reveals it after model loads */
         opacity: 0;
@@ -1416,11 +1514,21 @@ body.is-panel-collapsed #map-fold-toggle svg {
         transform: translateX(-100%);
         opacity: 0;
         pointer-events: none;
-        box-shadow: none;
     }
 
     body.is-info-collapsed #project-fold-toggle {
         left: 0.75rem;
+    }
+
+    /* Re-centre viewer overlays in visible canvas (360px sidebar → +180px offset) */
+    .viewer-toggle,
+    .viewer-progress {
+        left: calc(50% + 180px) !important;
+        transition: left 380ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    body.is-info-collapsed .viewer-toggle,
+    body.is-info-collapsed .viewer-progress {
+        left: 50% !important;
     }
 
     /* Viewer-ready: JS adds this class when the model has loaded */
@@ -1432,8 +1540,8 @@ body.is-panel-collapsed #map-fold-toggle svg {
     /* ── Compact sidebar typography ── */
     #project-content .font-thyssen,
     #project-content h1.font-thyssen {
-        font-size: 1.375rem !important;
-        line-height: 1.1 !important;
+        font-size: 1.625rem !important;
+        line-height: 1.05 !important;
         margin-bottom: 0.375rem !important;
         border: none !important;
     }
@@ -1443,7 +1551,7 @@ body.is-panel-collapsed #map-fold-toggle svg {
         letter-spacing: 0.08em !important;
     }
     #project-content .poi-section__title {
-        font-size: 0.9rem !important;
+        font-size: 1rem !important;
     }
     #project-content .font-serif,
     #project-content .poi-section__body {
@@ -1487,10 +1595,13 @@ body.is-panel-collapsed #map-fold-toggle svg {
     }
 }
 
-/* Hide scrollbar for compact sidebar in webkit to prevent layout shifts */
+/* Thin scrollbar for compact sidebar (webkit) */
 @media (min-width: 37.5rem) and (max-width: 64rem) {
-    #project-content::-webkit-scrollbar {
-        display: none;
+    #project-content::-webkit-scrollbar { width: 3px; }
+    #project-content::-webkit-scrollbar-track { background: transparent; }
+    #project-content::-webkit-scrollbar-thumb {
+        background: rgba(26,25,22,0.18);
+        border-radius: 2px;
     }
 }
 
@@ -1532,28 +1643,29 @@ body.is-panel-collapsed #map-fold-toggle svg {
         order: 0 !important;
         z-index: 80 !important;
 
-        background: #fff !important;
-        border-radius: 0 12px 12px 0 !important;
-        border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
-        box-shadow: 4px 0 32px rgba(0, 0, 0, 0.12) !important;
+        background: var(--color-bg, #fff) !important;
+        border-right: 1px solid var(--color-border, rgba(26,25,22,0.12)) !important;
         padding: 1.25rem 1.25rem 2rem !important;
         gap: 0.875rem !important;
 
         /* Side slide animation — not the bottom-drawer translateY */
         transform: translateX(0) !important;
         transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1),
-                    opacity 280ms ease,
-                    box-shadow 280ms ease !important;
+                    opacity 280ms ease !important;
         will-change: transform;
 
         overflow-y: auto !important;
         overflow-x: hidden !important;
         -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(26,25,22,0.18) transparent;
     }
 
-    body.is-embedded #project-content::-webkit-scrollbar {
-        display: none;
+    body.is-embedded #project-content::-webkit-scrollbar { width: 3px; }
+    body.is-embedded #project-content::-webkit-scrollbar-track { background: transparent; }
+    body.is-embedded #project-content::-webkit-scrollbar-thumb {
+        background: rgba(26,25,22,0.18);
+        border-radius: 2px;
     }
 
     /* Collapsed: slide out to the left */
@@ -1561,7 +1673,6 @@ body.is-panel-collapsed #map-fold-toggle svg {
         transform: translateX(-100%) !important;
         opacity: 0 !important;
         pointer-events: none !important;
-        box-shadow: none !important;
     }
 
     /* Hide the bottom-drawer handle */
@@ -1592,5 +1703,13 @@ body.is-panel-collapsed #map-fold-toggle svg {
     body.is-embedded.is-info-collapsed #project-fold-toggle {
         left: 0.75rem !important;
     }
+
+    /* Sidebar title: compact sizing for the narrow embedded panel */
+    body.is-embedded .project-sidebar-title h1 {
+        font-size: 1.25rem !important;
+        line-height: 1.1 !important;
+        margin-bottom: 0.25rem !important;
+    }
 }
+
 

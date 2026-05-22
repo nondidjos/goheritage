@@ -107,16 +107,6 @@ if ($gallery->count() === 0) {
     </div>
     <?php endif ?>
 
-    <!-- Project Header (spans full 7 cols) -->
-    <div class="col-7 flex flex-col items-center mb-4 px-4 pt-4 project-header relative">
-        <h1 class="font-thyssen text-[clamp(2.5rem,8vw,6rem)] text-center leading-[0.9] mb-5 border-none no-underline"><?= $page->title()->esc() ?></h1>
-        
-        <!-- Location (right aligned, but closer in flow) -->
-        <div class="flex justify-end w-full max-w-6xl pr-6">
-            <?php snippet('location-tag', ['location' => $page->location()->value()]) ?>
-        </div>
-    </div>
-
     <!-- ── Content and Viewer Wrapper for Animation ── -->
     <div class="project-panels-wrapper">
         <!-- ── Left: Content & Specs (2 cols) — becomes bottom drawer on mobile ── -->
@@ -126,6 +116,12 @@ if ($gallery->count() === 0) {
             <div class="project-drawer__handle" id="project-drawer-handle">
                 <div class="project-drawer__bar"></div>
                 <span class="project-drawer__label">Informations</span>
+            </div>
+
+            <!-- Project title — lives inside the foldable sidebar on all breakpoints -->
+            <div class="project-sidebar-title">
+                <h1 class="font-thyssen"><?= $page->title()->esc() ?></h1>
+                <?php snippet('location-tag', ['location' => $page->location()->value()]) ?>
             </div>
 
             <!-- Rich text blocks -->
