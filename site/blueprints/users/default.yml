@@ -1,17 +1,25 @@
-# User blueprints are used to create new user roles, define form fields for each user role and set role permissions.
-# By default, Kirby only has the `admin` role, a user role that is allowed to do anything.
-# The title is required, everything else is optional.
-# The default user blueprint does not define a role, but a standard set of fields
-# available for each defined user role with blueprints that only contain a title.
-# More about users, roles and permissions: https://getkirby.com/docs/guide/users/managing-users
+﻿# User blueprint ΓÇö defines fields & sections for every user role unless
+# overridden in a role-specific blueprint (e.g. author.yml).
 title: User
 
-columns:
-  - width: 1/2
+sections:
+
+  # ΓöÇΓöÇ 2FA enrollment / management ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  # Registered by site/plugins/totp-2fa. Renders the QR / verify /
+  # recovery-codes UI inline so each user can manage their own 2FA.
+  # totp_secret and totp_recovery_codes are written by the plugin's
+  # API only ΓÇö they are intentionally NOT exposed as raw fields here.
+  totp:
+    type: totp-section
+
+  # ΓöÇΓöÇ Standard profile fields (kept from the original blueprint) ΓöÇΓöÇ
+  profile:
+    type: fields
     fields:
       street:
         label: Street
         type: text
+        width: 1/2
       zip:
         label: ZIP
         type: text
@@ -19,16 +27,15 @@ columns:
       city:
         label: City
         type: text
-        width: 3/4
+        width: 1/4
       country:
         label: Country
         type: text
-
-  - width: 1/2
-    fields:
+        width: 1/2
       website:
         label: Website
         type: url
+        width: 1/2
       fediverse:
         label: Fediverse URL
         type: url
