@@ -695,3 +695,254 @@
         padding-top: 0.75rem;
     }
 }
+
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Viewer mode chips + panes
+ *
+ * The right-hand viewer area now hosts up to three swappable panes:
+ * 3D model, fullscreen image gallery, and fullscreen plans grid. Chips
+ * float over the viewer at the top-center; the active pane occupies the
+ * full container.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/* ── Chips overlay ────────────────────────────────────────────────── */
+.viewer-mode-chips {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    background: rgba(20, 20, 22, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+    pointer-events: auto;
+}
+
+.viewer-mode-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.78);
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+}
+
+.viewer-mode-chip:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.viewer-mode-chip:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 1px;
+}
+
+.viewer-mode-chip.is-active {
+    background: #fff;
+    color: #111;
+}
+
+.viewer-mode-chip svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+/* On narrow viewports collapse to icon-only to save horizontal space */
+@media (max-width: 32rem) {
+    .viewer-mode-chip span { display: none; }
+    .viewer-mode-chip      { padding: 8px; }
+}
+
+/* ── Panes ────────────────────────────────────────────────────────── */
+.viewer-pane {
+    position: absolute;
+    inset: 0;
+    display: none;
+    overflow: hidden;
+}
+
+.viewer-pane.is-active {
+    display: block;
+}
+
+/* Gallery + plans panes use a scrollable layout; the model pane keeps
+   its own fixed-fit layout (canvas/iframe sized to container). */
+.viewer-pane--gallery,
+.viewer-pane--plans {
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #0e0e10;
+    padding: 56px 18px 18px;
+    /* room for the chips overlay at the top */
+}
+
+/* Webkit scrollbar tweak so the dark pane doesn't get a glaring scrollbar */
+.viewer-pane--gallery::-webkit-scrollbar,
+.viewer-pane--plans::-webkit-scrollbar {
+    width: 8px;
+}
+.viewer-pane--gallery::-webkit-scrollbar-thumb,
+.viewer-pane--plans::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.16);
+    border-radius: 4px;
+}
+
+/* ── Gallery grid inside the gallery pane ─────────────────────────── */
+.viewer-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+}
+
+.viewer-gallery__item {
+    display: block;
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #1a1a1c;
+    cursor: zoom-in;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.viewer-gallery__item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+.viewer-gallery__item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Larger first cell so the gallery feels editorial rather than uniform */
+.viewer-gallery__item:first-child {
+    grid-column: span 2;
+    grid-row: span 2;
+    aspect-ratio: 1 / 1;
+}
+
+@media (max-width: 40rem) {
+    .viewer-gallery { grid-template-columns: repeat(2, 1fr); }
+    .viewer-gallery__item:first-child {
+        grid-column: span 2;
+        grid-row: auto;
+        aspect-ratio: 4 / 3;
+    }
+}
+
+/* ── Plans grid inside the plans pane ─────────────────────────────── */
+.viewer-plans {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.viewer-plans__item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 6px;
+    background: #1a1a1c;
+    color: #fff;
+    cursor: pointer;
+    text-decoration: none;
+    overflow: hidden;
+    transition: border-color 0.15s ease, transform 0.2s ease;
+    text-align: left;
+    font: inherit;
+}
+
+.viewer-plans__item:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.viewer-plans__item:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.55);
+    outline-offset: 2px;
+}
+
+.viewer-plans__item img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    background: #0a0a0c;
+}
+
+.viewer-plans__item-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.03),
+        rgba(255, 255, 255, 0.03) 6px,
+        transparent 6px,
+        transparent 12px
+    );
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.viewer-plans__caption {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+    font-size: 11px;
+    line-height: 1.3;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(0, 0, 0, 0.35);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.viewer-plans__ext {
+    display: inline-block;
+    padding: 2px 5px;
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 3px;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+@media (max-width: 40rem) {
+    .viewer-plans {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+}

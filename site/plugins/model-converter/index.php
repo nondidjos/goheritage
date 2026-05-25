@@ -117,11 +117,18 @@ Kirby::plugin('goheritage/model-converter', [
                 },
                 'rows' => function () {
                     $rows = [];
-                    foreach ($this->model()->files()->sortBy('filename', 'asc') as $f) {
+                    // Sort newest first — most useful for an inventory view
+                    // where you want to spot what was just uploaded.
+                    foreach ($this->model()->files()->sortBy('modified', 'desc') as $f) {
                         $rows[] = [
-                            'filename' => $f->filename(),
-                            'url'      => $f->url(),
-                            'size'     => $f->niceSize(),
+                            'filename'  => $f->filename(),
+                            'url'       => $f->url(),
+                            'size'      => $f->niceSize(),
+                            'extension' => strtoupper($f->extension()),
+                            // Two date formats: machine-readable for sorting,
+                            // human-readable for display.
+                            'modified'  => $f->modified('d.m.Y'),
+                            'modifiedIso' => $f->modified('c'),
                         ];
                     }
                     return $rows;
