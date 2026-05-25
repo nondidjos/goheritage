@@ -1,30 +1,30 @@
-﻿<?php
+<?php
 /**
  * totp-verify snippet
  *
  * Public-facing "enter your 2FA code" page. Reached after a successful
- * password login when the account has TOTP enabled ΓÇö the plugin's
+ * password login when the account has TOTP enabled — the plugin's
  * user.login:after hook stashes a pending challenge in the session and
  * logs the user back out so they can't poke /panel without finishing.
  *
  * Variables passed in by the route:
- *   $error    string|null  ΓÇö flash error to display
- *   $email    string       ΓÇö the email whose challenge is pending
- *   $expires  int          ΓÇö UNIX timestamp when the challenge times out
+ *   $error    string|null  — flash error to display
+ *   $email    string       — the email whose challenge is pending
+ *   $expires  int          — UNIX timestamp when the challenge times out
  */
 
 $error    = $error   ?? null;
 $email    = $email   ?? '';
 $expires  = $expires ?? 0;
 $secsLeft = max(0, $expires - time());
-$siteTitle = site()->title()->or('GoH├⌐ritage')->html();
+$siteTitle = site()->title()->or('GoHéritage')->html();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>V├⌐rification 2FA ΓÇö <?= $siteTitle ?></title>
+  <title>Vérification 2FA — <?= $siteTitle ?></title>
   <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="<?= url('assets/css/app.css') ?>?v=1">
   <link rel="stylesheet" href="<?= url('assets/css/custom.css') ?>?v=1">
@@ -104,9 +104,9 @@ $siteTitle = site()->title()->or('GoH├⌐ritage')->html();
     <div class="totp-card__icon">
       <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
-    <h1>V├⌐rification en 2 ├⌐tapes</h1>
+    <h1>Vérification en 2 étapes</h1>
     <p class="totp-card__sub">
-      Entrez le code ├á 6 chiffres affich├⌐ par votre application d'authentification.
+      Entrez le code à 6 chiffres affiché par votre application d'authentification.
       <br><span class="totp-card__email"><?= esc($email) ?></span>
     </p>
 
@@ -126,14 +126,14 @@ $siteTitle = site()->title()->or('GoH├⌐ritage')->html();
         maxlength="11"
         required
       >
-      <button type="submit" class="totp-form__submit">V├⌐rifier</button>
+      <button type="submit" class="totp-form__submit">Vérifier</button>
       <p class="totp-form__hint">
         Vous pouvez aussi utiliser un <strong>code de secours</strong> (format <code>xxxxx-xxxxx</code>).
         <br>
         <span class="totp-timer">Expire dans <span id="totp-countdown"><?= floor($secsLeft / 60) ?> min <?= $secsLeft % 60 ?> sec</span></span>
       </p>
       <p class="totp-form__hint">
-        Pas acc├¿s ├á votre application&nbsp;? <a href="<?= url('totp/cancel') ?>">Annuler et recommencer</a>
+        Pas accès à votre application&nbsp;? <a href="<?= url('totp/cancel') ?>">Annuler et recommencer</a>
       </p>
     </form>
   </div>

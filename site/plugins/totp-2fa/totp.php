@@ -1,12 +1,12 @@
-﻿<?php
+<?php
 
 /**
  * Minimal RFC 6238 TOTP implementation in pure PHP.
  *
- *   ΓÇó Algorithm:  SHA-1 (RFC 6238 default; supported by every authenticator)
- *   ΓÇó Digits:     6
- *   ΓÇó Period:     30 seconds
- *   ΓÇó Window:     ┬▒1 step (so a 30-second clock drift either way is tolerated)
+ *   • Algorithm:  SHA-1 (RFC 6238 default; supported by every authenticator)
+ *   • Digits:     6
+ *   • Period:     30 seconds
+ *   • Window:     ±1 step (so a 30-second clock drift either way is tolerated)
  *
  * No external dependencies. Audited against the RFC 6238 reference test
  * vectors (the comment block at the bottom shows the expected outputs for
@@ -20,7 +20,7 @@ class GoheritageTotp
 {
     private const DIGITS = 6;
     private const PERIOD = 30;
-    private const WINDOW = 1; // accept current ┬▒1 steps (90 sec total)
+    private const WINDOW = 1; // accept current ±1 steps (90 sec total)
     private const ALGO   = 'sha1';
 
     /** Generate a fresh 160-bit (20-byte) shared secret as Base32. */
@@ -75,9 +75,9 @@ class GoheritageTotp
     /**
      * Build the otpauth:// URI an authenticator app reads from a QR code.
      * Issuer is URL-encoded twice intentionally (once in the label, once in
-     * the issuer param) so apps like Authy show "GoH├⌐ritage: alice@x" cleanly.
+     * the issuer param) so apps like Authy show "GoHéritage: alice@x" cleanly.
      */
-    public static function provisioningUri(string $secretBase32, string $accountName, string $issuer = 'GoH├⌐ritage'): string
+    public static function provisioningUri(string $secretBase32, string $accountName, string $issuer = 'GoHéritage'): string
     {
         $label = rawurlencode($issuer) . ':' . rawurlencode($accountName);
         $params = http_build_query([
@@ -95,7 +95,7 @@ class GoheritageTotp
     {
         $codes = [];
         for ($i = 0; $i < $count; $i++) {
-            // 5 random bytes ΓåÆ 10 hex chars, grouped 5-5 for readability
+            // 5 random bytes → 10 hex chars, grouped 5-5 for readability
             $hex = bin2hex(random_bytes(5));
             $codes[] = substr($hex, 0, 5) . '-' . substr($hex, 5, 5);
         }
@@ -108,7 +108,7 @@ class GoheritageTotp
         return hash('sha256', strtolower(trim($code)));
     }
 
-    // ΓöÇΓöÇ Base32 helpers (RFC 4648, no padding output) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // ── Base32 helpers (RFC 4648, no padding output) ───────────────────
     private const B32_ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
     public static function base32Encode(string $data): string
@@ -157,5 +157,5 @@ class GoheritageTotp
  *   1111111111    050471
  *   1234567890    005924
  *
- * Spot-checked with this implementation ΓÇö passes all four.
+ * Spot-checked with this implementation — passes all four.
  */

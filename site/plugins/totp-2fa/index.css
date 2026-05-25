@@ -1,4 +1,4 @@
-﻿/* ΓöÇΓöÇ TOTP 2FA panel section styles ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ── TOTP 2FA panel section styles ────────────────────────────────── */
 
 .goheritage-totp-section {
     padding: 0.25rem 0;
@@ -56,7 +56,7 @@
     font-size: 0.82rem;
 }
 
-/* QR code container ΓÇö gives the SVG a centred white frame */
+/* QR code container — gives the SVG a centred white frame */
 .goheritage-totp-qr {
     display: flex;
     justify-content: center;

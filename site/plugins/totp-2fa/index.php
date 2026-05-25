@@ -1,41 +1,41 @@
-﻿<?php
+<?php
 
 /**
  * totp-2fa plugin
  *
  * Optional TOTP (RFC 6238) two-factor authentication for Kirby panel users.
  *
- *   ΓÇó Enrollment       ΓÇö user opens their profile ΓåÆ "Activer 2FA" section
+ *   • Enrollment       — user opens their profile → "Activer 2FA" section
  *                        reveals a QR code (otpauth:// URI) + recovery codes.
  *                        Verifying one code from the authenticator app
  *                        flips totp_enabled on the user record.
- *   ΓÇó Login intercept  ΓÇö after Kirby's password check we check totp_enabled.
+ *   • Login intercept  — after Kirby's password check we check totp_enabled.
  *                        If set, the user is redirected to /panel/totp where
  *                        they must enter a 6-digit code (or a recovery code)
  *                        before reaching the panel proper.
- *   ΓÇó Recovery codes   ΓÇö 10 single-use codes shown ONCE at enrollment.
+ *   • Recovery codes   — 10 single-use codes shown ONCE at enrollment.
  *                        Stored as SHA-256 hashes so a disk leak doesn't
  *                        reveal them. Consumed on use.
- *   ΓÇó Disable          ΓÇö user can disable from the same panel section by
+ *   • Disable          — user can disable from the same panel section by
  *                        re-entering one TOTP code or a recovery code.
  *
  * Storage:
- *   Three user content fields (no schema migration needed ΓÇö Kirby content
+ *   Three user content fields (no schema migration needed — Kirby content
  *   fields are created on first write):
- *     totp_secret          string (Base32)  ΓÇö the shared secret
- *     totp_enabled         bool             ΓÇö false until enrollment verified
- *     totp_recovery_codes  yaml             ΓÇö array of SHA-256 hashes
+ *     totp_secret          string (Base32)  — the shared secret
+ *     totp_enabled         bool             — false until enrollment verified
+ *     totp_recovery_codes  yaml             — array of SHA-256 hashes
  *
  * Security model:
- *   ΓÇó Secret is stored in the user content file (already protected by
+ *   • Secret is stored in the user content file (already protected by
  *     site/accounts ACL + .htaccess block on /site/).
- *   ΓÇó Verification uses hash_equals (constant-time) inside totp.php.
- *   ΓÇó Recovery codes are hashed at rest.
- *   ΓÇó Pending-login session token is short-lived (10 min) and bound to a
- *     specific user email ΓÇö can't be replayed for a different user.
+ *   • Verification uses hash_equals (constant-time) inside totp.php.
+ *   • Recovery codes are hashed at rest.
+ *   • Pending-login session token is short-lived (10 min) and bound to a
+ *     specific user email — can't be replayed for a different user.
  *
  * Pending-login flow (avoiding the "user is half logged-in" problem):
- *   1. POST /panel/login with credentials ΓåÆ Kirby validates password.
+ *   1. POST /panel/login with credentials → Kirby validates password.
  *   2. Our `user.login:after` hook checks totp_enabled.
  *   3. If enabled, hook logs the user OUT immediately and stores a
  *      "pending TOTP" record in the session (email + expiry).
@@ -54,12 +54,12 @@ require_once __DIR__ . '/totp.php';
 
 Kirby::plugin('goheritage/totp-2fa', [
 
-    // ΓöÇΓöÇ Panel API (admin user manages their own 2FA) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // ── Panel API (admin user manages their own 2FA) ──────────────────
     'api' => [
         'routes' => [
 
-            // GET /api/goheritage/totp/setup ΓÇö returns a fresh secret + QR URI.
-            // Doesn't commit anything yet ΓÇö only `confirm` writes to the user.
+            // GET /api/goheritage/totp/setup — returns a fresh secret + QR URI.
+            // Doesn't commit anything yet — only `confirm` writes to the user.
             [
                 'pattern' => 'goheritage/totp/setup',
                 'method'  => 'GET',
@@ -73,7 +73,7 @@ Kirby::plugin('goheritage/totp-2fa', [
                     return [
                         'secret' => $secret,
                         'uri'    => GoheritageTotp::provisioningUri($secret, $user->email()),
-                        'issuer' => 'GoH├⌐ritage',
+                        'issuer' => 'GoHéritage',
                     ];
                 },
             ],
@@ -121,7 +121,7 @@ Kirby::plugin('goheritage/totp-2fa', [
             ],
 
             // POST /api/goheritage/totp/disable
-            //   { code }   ΓÇö TOTP code OR recovery code
+            //   { code }   — TOTP code OR recovery code
             // Wipes the secret + enabled flag. Requires a valid code so a
             // hijacked session can't disable 2FA silently.
             [
@@ -134,7 +134,7 @@ Kirby::plugin('goheritage/totp-2fa', [
                         throw new KirbyException(['key' => 'access.panel', 'httpCode' => 401]);
                     }
                     if (!$user->totp_enabled()->toBool()) {
-                        throw new KirbyException(['fallback' => '2FA d├⌐j├á d├⌐sactiv├⌐.', 'httpCode' => 400]);
+                        throw new KirbyException(['fallback' => '2FA déjà désactivé.', 'httpCode' => 400]);
                     }
                     $code   = trim((string) ($this->requestBody()['code'] ?? ''));
                     $secret = $user->totp_secret()->value();
@@ -152,8 +152,8 @@ Kirby::plugin('goheritage/totp-2fa', [
                 },
             ],
 
-            // GET /api/goheritage/totp/status ΓÇö used by the panel section to
-            // show "Activ├⌐" / "Non activ├⌐" without exposing the secret.
+            // GET /api/goheritage/totp/status — used by the panel section to
+            // show "Activé" / "Non activé" without exposing the secret.
             [
                 'pattern' => 'goheritage/totp/status',
                 'method'  => 'GET',
@@ -172,7 +172,7 @@ Kirby::plugin('goheritage/totp-2fa', [
         ],
     ],
 
-    // ΓöÇΓöÇ Public routes ΓÇö the TOTP challenge step after password login ΓöÇΓöÇ
+    // ── Public routes — the TOTP challenge step after password login ──
     //
     // The pending-challenge state is stored in a JSON file on disk + a
     // short-lived cookie that points to it (NOT in Kirby's session,
@@ -184,7 +184,7 @@ Kirby::plugin('goheritage/totp-2fa', [
             'pattern' => 'totp/verify',
             'method'  => 'GET|POST',
             'action'  => function () {
-                // Cheap GC each request ΓÇö keeps the pending dir tidy
+                // Cheap GC each request — keeps the pending dir tidy
                 goheritage_totp_prune_pending();
                 $pending = goheritage_totp_load_pending();
 
@@ -215,7 +215,7 @@ Kirby::plugin('goheritage/totp-2fa', [
                         }
                         return go('/panel');
                     } else {
-                        $error = 'Code invalide. R├⌐essayez ou utilisez un code de secours.';
+                        $error = 'Code invalide. Réessayez ou utilisez un code de secours.';
                     }
                 }
 
@@ -227,7 +227,7 @@ Kirby::plugin('goheritage/totp-2fa', [
             },
         ],
 
-        // GET /totp/cancel ΓÇö user explicitly abandons the 2FA challenge
+        // GET /totp/cancel — user explicitly abandons the 2FA challenge
         // (from the "Annuler et recommencer" link). Clears the pending
         // marker so they don't see a stale challenge if they hit /totp/verify
         // again. Always redirects to /panel/login.
@@ -240,7 +240,7 @@ Kirby::plugin('goheritage/totp-2fa', [
         ],
     ],
 
-    // ΓöÇΓöÇ Hooks ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // ── Hooks ─────────────────────────────────────────────────────────
     'hooks' => [
         // After Kirby validates the password, gate the session behind a
         // TOTP challenge if the user has 2FA enabled.
@@ -274,7 +274,7 @@ Kirby::plugin('goheritage/totp-2fa', [
         },
     ],
 
-    // ΓöÇΓöÇ User methods ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    // ── User methods ──────────────────────────────────────────────────
     'userMethods' => [
         'has2FA' => function () {
             return $this->totp_enabled()->toBool();
@@ -284,7 +284,7 @@ Kirby::plugin('goheritage/totp-2fa', [
 
 
 /**
- * ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ * ──────────────────────────────────────────────────────────────────────
  * Pending-TOTP storage helpers
  *
  * Cookie name      : goheritage_totp_pending  (HttpOnly, Secure, SameSite=Lax)
@@ -294,7 +294,7 @@ Kirby::plugin('goheritage/totp-2fa', [
  *
  * We use cookie+file (not Kirby's session) because $user->logout() may
  * destroy the session, which would orphan the pending marker.
- * ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ * ──────────────────────────────────────────────────────────────────────
  */
 function goheritage_totp_pending_dir(): string
 {
@@ -321,7 +321,7 @@ function goheritage_totp_store_pending(string $email, int $ttlSec): void
 
     // HttpOnly is intentionally FALSE so the panel's JS interceptor can
     // detect this cookie and redirect to /totp/verify. The cookie value
-    // is only a random pointer ΓÇö the actual email/expiry live in the
+    // is only a random pointer — the actual email/expiry live in the
     // server-side file, so a pointer leak via JS gets an attacker nothing
     // (they still can't authenticate without the right TOTP code).
     // Guarded so CLI tests + edge cases where headers leaked don't trigger
@@ -397,7 +397,7 @@ function goheritage_totp_check_user_code(User $user, string $code): bool
     $code   = trim($code);
     $secret = $user->totp_secret()->value();
 
-    // Try TOTP first ΓÇö fast, no disk writes on success
+    // Try TOTP first — fast, no disk writes on success
     if ($secret && GoheritageTotp::verify($secret, preg_replace('/\s+/', '', $code))) {
         return true;
     }

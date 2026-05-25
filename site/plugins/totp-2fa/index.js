@@ -1,16 +1,16 @@
-﻿/**
+/**
  * totp-2fa panel plugin
  *
  * Provides:
- *   ΓÇó `totp-section`  ΓÇö drop-in user-blueprint section showing 2FA status,
+ *   • `totp-section`  — drop-in user-blueprint section showing 2FA status,
  *     enrollment dialog (QR code + verify), recovery codes, and disable.
- *   ΓÇó Login interceptor ΓÇö after a successful POST /api/auth/login response
+ *   • Login interceptor — after a successful POST /api/auth/login response
  *     we check whether the session is actually still logged in. If not, we
  *     redirect to /totp/verify (the user.login:after hook has stashed a
  *     pending challenge in the session).
  *
  * QR code rendering uses qrcode-svg (single-file vanilla JS, ~10 KB,
- * MIT licensed). Loaded lazily from CDN ΓÇö only paid for when a user opens
+ * MIT licensed). Loaded lazily from CDN — only paid for when a user opens
  * the 2FA enrollment dialog.
  */
 
@@ -23,7 +23,7 @@ panel.plugin('goheritage/totp-2fa', {
           <div class="goheritage-totp-section">
 
             <div v-if="loading" class="goheritage-totp-section__loading">
-              <k-icon type="loader" /> ChargementΓÇª
+              <k-icon type="loader" /> Chargement…
             </div>
 
             <template v-else>
@@ -32,23 +32,23 @@ panel.plugin('goheritage/totp-2fa', {
               <div v-if="status.enabled" class="goheritage-totp-section__row">
                 <div class="goheritage-totp-section__status goheritage-totp-section__status--on">
                   <k-icon type="check" />
-                  <span><strong>2FA activ├⌐e</strong> ΓÇö {{ status.codes_remaining }} code(s) de secours restants.</span>
+                  <span><strong>2FA activée</strong> — {{ status.codes_remaining }} code(s) de secours restants.</span>
                 </div>
-                <k-button icon="lock-open" theme="negative" @click="openDisable">D├⌐sactiver</k-button>
+                <k-button icon="lock-open" theme="negative" @click="openDisable">Désactiver</k-button>
               </div>
 
               <!-- Not enabled -->
               <div v-else class="goheritage-totp-section__row">
                 <div class="goheritage-totp-section__status">
                   <k-icon type="alert" />
-                  <span>2FA non activ├⌐e. Renforcez la s├⌐curit├⌐ de votre compte avec une application d'authentification (Google Authenticator, Authy, 1PasswordΓÇª).</span>
+                  <span>2FA non activée. Renforcez la sécurité de votre compte avec une application d'authentification (Google Authenticator, Authy, 1Password…).</span>
                 </div>
                 <k-button icon="lock" variant="filled" theme="positive" @click="openEnroll">Activer 2FA</k-button>
               </div>
 
             </template>
 
-            <!-- ΓöÇΓöÇ Enrollment dialog ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ -->
+            <!-- ── Enrollment dialog ─────────────────────────── -->
             <k-dialog
               v-if="enrollOpen"
               :submit-button="false"
@@ -64,7 +64,7 @@ panel.plugin('goheritage/totp-2fa', {
                 Ou entrez manuellement&nbsp;: <code>{{ enroll.secret }}</code>
               </k-text>
 
-              <k-text><strong>2. Entrez le code ├á 6 chiffres</strong> affich├⌐ par l'application pour v├⌐rifier.</k-text>
+              <k-text><strong>2. Entrez le code à 6 chiffres</strong> affiché par l'application pour vérifier.</k-text>
 
               <k-input
                 v-model="enroll.code"
@@ -81,31 +81,31 @@ panel.plugin('goheritage/totp-2fa', {
 
               <k-button-group>
                 <k-button :disabled="enroll.code.length !== 6 || enroll.submitting" icon="check" variant="filled" theme="positive" @click="submitEnroll">
-                  {{ enroll.submitting ? 'V├⌐rificationΓÇª' : 'V├⌐rifier et activer' }}
+                  {{ enroll.submitting ? 'Vérification…' : 'Vérifier et activer' }}
                 </k-button>
               </k-button-group>
             </k-dialog>
 
-            <!-- ΓöÇΓöÇ Recovery codes dialog (after enrollment) ΓöÇΓöÇΓöÇΓöÇ -->
+            <!-- ── Recovery codes dialog (after enrollment) ──── -->
             <k-dialog
               v-if="recoveryCodes"
-              :submit-button="{ text: 'J\\'ai sauvegard├⌐ mes codes', icon: 'check', theme: 'positive' }"
+              :submit-button="{ text: 'J\\'ai sauvegardé mes codes', icon: 'check', theme: 'positive' }"
               :cancel-button="false"
               @submit="closeRecovery"
               @close="closeRecovery"
               size="medium"
             >
-              <k-text><strong>Sauvegardez ces codes</strong> dans un endroit s├╗r ΓÇö ils servent si vous perdez l'acc├¿s ├á votre application d'authentification. Chaque code n'est utilisable qu'une seule fois.</k-text>
+              <k-text><strong>Sauvegardez ces codes</strong> dans un endroit sûr — ils servent si vous perdez l'accès à votre application d'authentification. Chaque code n'est utilisable qu'une seule fois.</k-text>
               <ul class="goheritage-totp-codes">
                 <li v-for="c in recoveryCodes" :key="c">{{ c }}</li>
               </ul>
               <k-button-group>
                 <k-button icon="copy" @click="copyCodes">Copier la liste</k-button>
-                <k-button icon="download" @click="downloadCodes">T├⌐l├⌐charger</k-button>
+                <k-button icon="download" @click="downloadCodes">Télécharger</k-button>
               </k-button-group>
             </k-dialog>
 
-            <!-- ΓöÇΓöÇ Disable dialog ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ -->
+            <!-- ── Disable dialog ─────────────────────────────── -->
             <k-dialog
               v-if="disableOpen"
               :submit-button="false"
@@ -113,7 +113,7 @@ panel.plugin('goheritage/totp-2fa', {
               @cancel="closeDisable"
               size="medium"
             >
-              <k-text><strong>D├⌐sactiver 2FA</strong> ΓÇö entrez un code TOTP ou un code de secours pour confirmer.</k-text>
+              <k-text><strong>Désactiver 2FA</strong> — entrez un code TOTP ou un code de secours pour confirmer.</k-text>
               <k-input
                 v-model="disableForm.code"
                 type="text"
@@ -125,7 +125,7 @@ panel.plugin('goheritage/totp-2fa', {
               <k-text v-if="disableForm.error" theme="negative">{{ disableForm.error }}</k-text>
               <k-button-group>
                 <k-button :disabled="!disableForm.code || disableForm.submitting" icon="lock-open" variant="filled" theme="negative" @click="submitDisable">
-                  {{ disableForm.submitting ? 'V├⌐rificationΓÇª' : 'D├⌐sactiver' }}
+                  {{ disableForm.submitting ? 'Vérification…' : 'Désactiver' }}
                 </k-button>
               </k-button-group>
             </k-dialog>
@@ -135,7 +135,7 @@ panel.plugin('goheritage/totp-2fa', {
       `,
 
       computed: {
-        label() { return 'Authentification ├á deux facteurs'; },
+        label() { return 'Authentification à deux facteurs'; },
       },
 
       data() {
@@ -160,7 +160,7 @@ panel.plugin('goheritage/totp-2fa', {
           try {
             this.status = await this.$api.get('goheritage/totp/status');
           } catch (e) {
-            // Likely unauthorised ΓÇö leave defaults
+            // Likely unauthorised — leave defaults
           } finally {
             this.loading = false;
           }
@@ -175,7 +175,7 @@ panel.plugin('goheritage/totp-2fa', {
             this.enrollOpen = true;
             this.$nextTick(() => this.renderQR(r.uri));
           } catch (e) {
-            this.$panel.notification.error('Impossible de g├⌐n├⌐rer un secret : ' + e.message);
+            this.$panel.notification.error('Impossible de générer un secret : ' + e.message);
           }
         },
 
@@ -207,7 +207,7 @@ panel.plugin('goheritage/totp-2fa', {
             s.onload  = renderInto;
             s.onerror = () => {
               if (this.$refs.qrContainer) {
-                this.$refs.qrContainer.innerHTML = '<p style="color:#a00">QR indisponible ΓÇö saisissez le secret manuellement.</p>';
+                this.$refs.qrContainer.innerHTML = '<p style="color:#a00">QR indisponible — saisissez le secret manuellement.</p>';
               }
             };
             document.head.appendChild(s);
@@ -225,7 +225,7 @@ panel.plugin('goheritage/totp-2fa', {
             this.enrollOpen   = false;
             this.recoveryCodes = r.recovery_codes;
             await this.loadStatus();
-            this.$panel.notification.success('2FA activ├⌐e');
+            this.$panel.notification.success('2FA activée');
           } catch (e) {
             this.enroll.error = e.message || 'Erreur';
           } finally {
@@ -241,14 +241,14 @@ panel.plugin('goheritage/totp-2fa', {
           const text = (this.recoveryCodes || []).join('\n');
           if (navigator.clipboard) {
             navigator.clipboard.writeText(text).then(
-              () => this.$panel.notification.success('Codes copi├⌐s'),
-              () => this.$panel.notification.error('Impossible de copier ΓÇö s├⌐lectionnez manuellement.')
+              () => this.$panel.notification.success('Codes copiés'),
+              () => this.$panel.notification.error('Impossible de copier — sélectionnez manuellement.')
             );
           }
         },
 
         downloadCodes() {
-          const text = '# Codes de secours GoH├⌐ritage ΓÇö ' + new Date().toISOString() + '\n'
+          const text = '# Codes de secours GoHéritage — ' + new Date().toISOString() + '\n'
                      + '# Chaque code est utilisable une seule fois.\n\n'
                      + (this.recoveryCodes || []).join('\n');
           const blob = new Blob([text], { type: 'text/plain' });
@@ -273,7 +273,7 @@ panel.plugin('goheritage/totp-2fa', {
             await this.$api.post('goheritage/totp/disable', { code: this.disableForm.code.trim() });
             this.disableOpen = false;
             await this.loadStatus();
-            this.$panel.notification.success('2FA d├⌐sactiv├⌐e');
+            this.$panel.notification.success('2FA désactivée');
           } catch (e) {
             this.disableForm.error = e.message || 'Erreur';
           } finally {
@@ -285,7 +285,7 @@ panel.plugin('goheritage/totp-2fa', {
   },
 });
 
-// ΓöÇΓöÇ Login-flow interceptor ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── Login-flow interceptor ──────────────────────────────────────────
 // When the user submits the login form and 2FA is enabled, the
 // user.login:after hook stores a pending-TOTP marker (cookie+file) then
 // logs them out. The panel JS sees the login API return success and
@@ -293,7 +293,7 @@ panel.plugin('goheritage/totp-2fa', {
 //
 // We intercept that flow: as soon as we see a successful login API call,
 // we check for the goheritage_totp_pending cookie. If present, the user
-// has 2FA enabled ΓÇö redirect straight to /totp/verify instead of letting
+// has 2FA enabled — redirect straight to /totp/verify instead of letting
 // the panel do its dance. If absent (no 2FA), we don't interfere.
 (function () {
   if (!window.fetch) return;
@@ -314,7 +314,7 @@ panel.plugin('goheritage/totp-2fa', {
 
         // Defer briefly so the Set-Cookie header from the login hook lands.
         // Then check for the pending-TOTP cookie. If it's there, we know
-        // the user has 2FA ΓÇö go to verify. Otherwise let the panel do its
+        // the user has 2FA — go to verify. Otherwise let the panel do its
         // normal thing.
         setTimeout(function () {
           if (cookieExists()) {

@@ -1,18 +1,18 @@
-﻿# User blueprint ΓÇö defines fields & sections for every user role unless
+# User blueprint — defines fields & sections for every user role unless
 # overridden in a role-specific blueprint (e.g. author.yml).
 title: User
 
 sections:
 
-  # ΓöÇΓöÇ 2FA enrollment / management ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  # ── 2FA enrollment / management ──────────────────────────────────
   # Registered by site/plugins/totp-2fa. Renders the QR / verify /
   # recovery-codes UI inline so each user can manage their own 2FA.
   # totp_secret and totp_recovery_codes are written by the plugin's
-  # API only ΓÇö they are intentionally NOT exposed as raw fields here.
+  # API only — they are intentionally NOT exposed as raw fields here.
   totp:
     type: totp-section
 
-  # ΓöÇΓöÇ Standard profile fields (kept from the original blueprint) ΓöÇΓöÇ
+  # ── Standard profile fields (kept from the original blueprint) ──
   profile:
     type: fields
     fields:
