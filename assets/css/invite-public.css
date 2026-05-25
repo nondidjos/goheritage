@@ -1,0 +1,314 @@
+/* ──────────────────────────────────────────────────────────────────────
+ * invite-public.css — landing + registration form
+ *
+ * Standalone styles for /invite/<token>. Inherits the site's font variables
+ * (--font-mono / --font-sans / --color-ink) but doesn't depend on the panel
+ * stylesheet — public visitors won't have it loaded.
+ * ────────────────────────────────────────────────────────────────────── */
+
+.invite-page {
+    max-width: 680px;
+    margin: 4rem auto;
+    padding: 0 1.25rem 4rem;
+}
+
+/* ── Active state: project preview card + form ─────────────────────── */
+.invite-card {
+    background: #fff;
+    border: 1px solid var(--color-border, rgba(26, 25, 22, 0.12));
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 16px 56px rgba(0, 0, 0, 0.06);
+}
+
+.invite-card__preview {
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--color-ink, #1a1916);
+    position: relative;
+}
+
+.invite-card__preview-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.1) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 1.5rem 1.75rem;
+    color: #fff;
+}
+
+.invite-card__chip {
+    display: inline-block;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 0.3rem 0.6rem;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 4px;
+    margin-bottom: 0.625rem;
+    backdrop-filter: blur(8px);
+}
+
+.invite-card__project-title {
+    font-family: var(--font-thyssen, var(--font-sans, system-ui));
+    font-size: 2.25rem;
+    line-height: 1;
+    margin: 0 0 0.25rem;
+}
+
+.invite-card__location {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.85;
+    margin: 0;
+}
+
+.invite-card__intro {
+    padding: 2rem 1.75rem 0;
+}
+
+.invite-card__intro h1 {
+    font-family: var(--font-thyssen, var(--font-sans, system-ui));
+    font-size: 2rem;
+    margin: 0 0 0.5rem;
+}
+
+.invite-card__body {
+    padding: 1.5rem 1.75rem 2rem;
+}
+
+.invite-card__message {
+    display: flex;
+    gap: 0.625rem;
+    align-items: flex-start;
+    background: var(--color-surface, #F0EFE9);
+    border-left: 3px solid var(--color-ink, #1a1916);
+    padding: 0.875rem 1rem;
+    margin: 0 0 1.5rem;
+    font-family: var(--font-serif, Georgia);
+    font-size: 0.9375rem;
+    color: var(--color-mid, #4A4845);
+    line-height: 1.5;
+    border-radius: 0 6px 6px 0;
+}
+
+.invite-card__message svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--color-faint, #8C8A85);
+}
+
+/* ── Form ──────────────────────────────────────────────────────────── */
+.invite-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.invite-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.invite-form__label {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-faint, #8C8A85);
+}
+
+.invite-form__field input {
+    font-family: var(--font-sans, system-ui);
+    font-size: 0.9375rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--color-border, rgba(26, 25, 22, 0.18));
+    border-radius: 6px;
+    background: #fff;
+    color: var(--color-ink, #1a1916);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.invite-form__field input:focus {
+    outline: none;
+    border-color: var(--color-ink, #1a1916);
+    box-shadow: 0 0 0 3px rgba(26, 25, 22, 0.08);
+}
+
+.invite-form__hint {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.7rem;
+    color: var(--color-faint, #8C8A85);
+}
+
+.invite-form__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+@media (max-width: 480px) {
+    .invite-form__row { grid-template-columns: 1fr; }
+}
+
+.invite-form__errors {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0.75rem 1rem;
+    background: #fff0ec;
+    border: 1px solid #ffb8a8;
+    border-radius: 6px;
+    color: #a8321a;
+    font-family: var(--font-sans, system-ui);
+    font-size: 0.875rem;
+}
+
+.invite-form__errors li + li {
+    margin-top: 0.25rem;
+}
+
+.invite-form__meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    background: var(--color-surface, #F0EFE9);
+    border-radius: 6px;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.72rem;
+    color: var(--color-faint, #8C8A85);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.invite-form__role {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.invite-form__role strong {
+    color: var(--color-ink, #1a1916);
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+    text-transform: lowercase;
+}
+
+.invite-form__submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.25rem;
+    border: none;
+    border-radius: 6px;
+    background: var(--color-ink, #1a1916);
+    color: #fff;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+    margin-top: 0.5rem;
+}
+
+.invite-form__submit:hover {
+    background: #000;
+    transform: translateY(-1px);
+}
+
+.invite-form__legal {
+    font-family: var(--font-serif, Georgia);
+    font-size: 0.78rem;
+    color: var(--color-faint, #8C8A85);
+    line-height: 1.5;
+    margin: 0;
+    text-align: center;
+}
+
+
+/* ── Non-active states ─────────────────────────────────────────────── */
+.invite-status {
+    text-align: center;
+    padding: 4rem 1.5rem;
+    background: #fff;
+    border: 1px solid var(--color-border, rgba(26, 25, 22, 0.12));
+    border-radius: 14px;
+}
+
+.invite-status__icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface, #F0EFE9);
+    border-radius: 50%;
+    color: var(--color-mid, #4A4845);
+}
+
+.invite-status__title {
+    font-family: var(--font-thyssen, var(--font-sans, system-ui));
+    font-size: 1.875rem;
+    margin: 0 0 0.5rem;
+    color: var(--color-ink, #1a1916);
+}
+
+.invite-status__body {
+    font-family: var(--font-serif, Georgia);
+    font-size: 1rem;
+    color: var(--color-mid, #4A4845);
+    line-height: 1.55;
+    margin: 0 auto 2rem;
+    max-width: 32rem;
+}
+
+.invite-status__cta {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: var(--color-ink, #1a1916);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 6px;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: background 0.15s ease;
+}
+
+.invite-status__cta:hover {
+    background: #000;
+    text-decoration: none;
+}
+
+.invite-status__back {
+    display: block;
+    margin-top: 1.5rem;
+    color: var(--color-faint, #8C8A85);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.invite-status__back:hover {
+    color: var(--color-ink, #1a1916);
+}

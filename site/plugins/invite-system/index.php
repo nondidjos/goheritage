@@ -208,6 +208,7 @@ class GoheritageInviteStore
     }
 }
 
+
 /**
  * Builds the plain-text email body sent to the invitee.
  * Kept simple — most enterprise mail filters mangle HTML emails from
@@ -239,6 +240,7 @@ function goheritage_invite_email_body(array $invite, $project, string $url): str
     return implode("\n", $lines);
 }
 
+// ── Plugin registration ────────────────────────────────────────────────
 Kirby::plugin('goheritage/invite-system', [
 
     // ── Panel area (registers the PHP-side route for the invites view) ─
@@ -380,6 +382,170 @@ Kirby::plugin('goheritage/invite-system', [
                             'httpCode' => 503,
                         ]);
                     }
-        ]
-    ]
+
+                    $project = !empty($invite['project_id']) ? page($invite['project_id']) : null;
+                    $url     = url('invite/' . $invite['token']);
+
+                    try {
+                        kirby()->email([
+                            'to'      => $to,
+                            'from'    => kirby()->option('email.from', 'noreply@goheritage.eu'),
+                            'fromName' => 'GoHéritage',
+                            'subject' => $project
+                                ? 'Invitation à rejoindre « ' . $project->title()->value() . ' »'
+                                : 'Invitation à rejoindre GoHéritage',
+                            'template' => null,
+                            'body'    => goheritage_invite_email_body($invite, $project, $url),
+                        ]);
+                    } catch (\Throwable $e) {
+                        throw new KirbyException([
+                            'fallback' => 'Échec de l\'envoi : ' . $e->getMessage(),
+                            'httpCode' => 500,
+                        ]);
+                    }
+                    return ['ok' => true, 'to' => $to];
+                },
+            ],
+        ],
+    ],
+
+    // ── Public routes ──────────────────────────────────────────────────
+    'routes' => [
+
+        // Landing — recipient clicks the invite link.
+        [
+            'pattern' => 'invite/(:any)',
+            'action'  => function ($token) {
+                $store  = new GoheritageInviteStore();
+                $invite = $store->load($token);
+                $status = $invite ? $store->status($invite) : 'invalid';
+
+                // If already logged in as the inviting team, just go to panel
+                if ($status === 'active' && kirby()->user()) {
+                    $target = $invite['project_id'] ? page($invite['project_id'])?->url() : null;
+                    return go($target ?? '/panel');
+                }
+
+                return snippet('invite-landing', [
+                    'invite'    => $invite,
+                    'status'    => $status,
+                    'errors'    => [],
+                    'form_data' => ['email' => $invite['hint_email'] ?? '', 'name' => ''],
+                    'token'     => $token,
+                ], true);
+            },
+        ],
+
+        // POST handler for the signup form.
+        [
+            'pattern' => 'register',
+            'method'  => 'POST',
+            'action'  => function () {
+                $token = (string) get('token');
+                $store = new GoheritageInviteStore();
+                $invite = $store->load($token);
+                $status = $invite ? $store->status($invite) : 'invalid';
+
+                if ($status !== 'active') {
+                    return snippet('invite-landing', [
+                        'invite'    => $invite,
+                        'status'    => $status,
+                        'errors'    => [],
+                        'form_data' => [],
+                        'token'     => $token,
+                    ], true);
+                }
+
+                $email           = trim((string) get('email'));
+                $name            = trim((string) get('name'));
+                $password        = (string) get('password');
+                $passwordConfirm = (string) get('password_confirm');
+
+                $errors = [];
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $errors[] = 'Adresse email invalide.';
+                }
+                if ($name === '') {
+                    $errors[] = 'Le nom est requis.';
+                }
+                if (strlen($password) < 8) {
+                    $errors[] = 'Le mot de passe doit faire au moins 8 caractères.';
+                }
+                if ($password !== $passwordConfirm) {
+                    $errors[] = 'Les mots de passe ne correspondent pas.';
+                }
+                if (empty($errors) && kirby()->users()->find($email)) {
+                    $errors[] = 'Un compte existe déjà avec cette adresse. Connectez-vous au panneau pour accéder à votre projet.';
+                }
+
+                if (!empty($errors)) {
+                    return snippet('invite-landing', [
+                        'invite'    => $invite,
+                        'status'    => $status,
+                        'errors'    => $errors,
+                        'form_data' => ['email' => $email, 'name' => $name],
+                        'token'     => $token,
+                    ], true);
+                }
+
+                // Atomically claim the token BEFORE creating the user so a
+                // crash during user-create can't double-spend the invite.
+                if (!$store->consume($token, $email)) {
+                    return snippet('invite-landing', [
+                        'invite'    => $invite,
+                        'status'    => 'used',
+                        'errors'    => [],
+                        'form_data' => [],
+                        'token'     => $token,
+                    ], true);
+                }
+
+                // User creation needs admin privileges. Impersonate Kirby
+                // (the system user) so the role baked into the invite is
+                // applied without a logged-in admin session.
+                try {
+                    kirby()->impersonate('kirby');
+                    $user = kirby()->users()->create([
+                        'name'     => $name,
+                        'email'    => $email,
+                        'password' => $password,
+                        'role'     => $invite['role'],
+                        'language' => 'fr',
+                    ]);
+                    kirby()->impersonate();
+                } catch (\Throwable $e) {
+                    // User creation failed — roll back the consume so the
+                    // invite can be retried.
+                    $invite['used_at'] = null;
+                    $invite['used_by'] = null;
+                    file_put_contents(
+                        kirby()->root('accounts') . '/.invites/' . $token . '.json',
+                        json_encode($invite, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+                    );
+                    return snippet('invite-landing', [
+                        'invite'    => $invite,
+                        'status'    => 'active',
+                        'errors'    => ['Erreur lors de la création du compte : ' . $e->getMessage()],
+                        'form_data' => ['email' => $email, 'name' => $name],
+                        'token'     => $token,
+                    ], true);
+                }
+
+                // Auto-login the new user
+                try {
+                    $user->loginPasswordless();
+                } catch (\Throwable $e) {
+                    // Non-fatal — they can log in manually
+                }
+
+                // Redirect: project if scoped, otherwise panel.
+                $target = null;
+                if (!empty($invite['project_id'])) {
+                    $page = page($invite['project_id']);
+                    if ($page) $target = $page->url();
+                }
+                return go($target ?? '/panel');
+            },
+        ],
+    ],
 ]);
