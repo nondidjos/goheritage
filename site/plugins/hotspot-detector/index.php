@@ -3,11 +3,20 @@
 /**
  * GoHéritage — Hotspot Detector plugin
  *
- * Reads hotspot JSON files and populates two separate annotation structure
- * fields on the project page: `annotations` (exterior) and
- * `annotations_interior` (interior).
+ * Reads hotspot JSON files (exterior + interior) and populates a single
+ * `annotations` structure field on the project page, tagging each row
+ * with a `location: exterior|interior` value so the viewer knows which
+ * model to attach the marker to.
  *
- * Runs automatically whenever a JSON file is uploaded to a project page.
+ * Up to May 2026 this plugin wrote to two separate fields, `annotations`
+ * and `annotations_interior`. That doubled-up structure was hard to keep
+ * in sync and forced every reader to know about both fields. After the
+ * merge a single field carries both scopes; `scripts/migrate-annotations.php`
+ * lifted existing content into the new shape.
+ *
+ * Runs automatically on every JSON upload (`file.create:after`) and
+ * replacement (`file.replace:after`) for `.json` files attached to a
+ * project page.
  */
 
 use Kirby\Cms\App as Kirby;
@@ -15,7 +24,6 @@ use Kirby\Data\Yaml;
 
 Kirby::plugin('goheritage/hotspot-detector', [
 
-    // ── Hooks: auto-detect when a JSON is uploaded ────────────────────────
     'hooks' => [
         'file.create:after' => function ($file) {
             $page = $file->parent();
@@ -35,30 +43,31 @@ Kirby::plugin('goheritage/hotspot-detector', [
 ]);
 
 
-// ── Core ──────────────────────────────────────────────────────────────────────
+// ── Core ──────────────────────────────────────────────────────────────────
 
 /**
  * Read both JSON fields, parse exterior/interior hotspots separately,
- * merge into `annotations` and `annotations_interior`, persist.
+ * merge them into a single `annotations` structure tagged by location,
+ * and persist back to the page.
  */
 function detectAndSaveHotspots($page) {
 
     $exteriorHotspots = [];
     $interiorHotspots = [];
 
-    // Exterior JSON → exterior section
+    // Exterior JSON → exterior scope
     $extFile = resolveFileField($page, 'model_hotspots_json');
     if ($extFile) {
         $exteriorHotspots = parseJsonHotspotsByScope($extFile->root(), 'exterior');
     }
 
-    // Interior JSON → interior section
+    // Interior JSON → interior scope
     $intFile = resolveFileField($page, 'model_hotspots_json_interior');
     if ($intFile) {
         $interiorHotspots = parseJsonHotspotsByScope($intFile->root(), 'interior');
     }
 
-    // GLB fallback when no JSON at all
+    // GLB fallback when no JSON at all (counts as exterior)
     if (empty($exteriorHotspots) && empty($interiorHotspots)) {
         $glb = $page->files()->filterBy('extension', 'glb')->first();
         if ($glb) {
@@ -74,43 +83,60 @@ function detectAndSaveHotspots($page) {
         ];
     }
 
-    [$extMerged, $extAdded, $extSkipped] = mergeAnnotations(
-        $page, $exteriorHotspots, 'annotations'
-    );
-    [$intMerged, $intAdded, $intSkipped] = mergeAnnotations(
-        $page, $interiorHotspots, 'annotations_interior'
+    // Merge into the single `annotations` field. The merger walks the
+    // existing rows (which may include rows in either scope) and only
+    // touches rows belonging to the scope we're updating, so editing
+    // the exterior JSON doesn't wipe interior hotspots and vice versa.
+    [$merged, $added, $skipped] = mergeAnnotations(
+        $page,
+        array_merge(
+            tagLocation($exteriorHotspots, 'exterior'),
+            tagLocation($interiorHotspots, 'interior'),
+        ),
+        // Which scopes are we updating right now? Used to decide which
+        // existing rows to replace vs. preserve.
+        scopesUpdating($exteriorHotspots, $interiorHotspots)
     );
 
-    $update = [];
-    if (!empty($exteriorHotspots)) $update['annotations']          = Yaml::encode($extMerged);
-    if (!empty($interiorHotspots)) $update['annotations_interior'] = Yaml::encode($intMerged);
-
-    if (!empty($update)) {
-        try {
-            kirby()->impersonate('kirby');
-            $page->update($update);
-        } catch (\Throwable $e) {
-            error_log('[hotspot-detector] update failed: ' . $e->getMessage());
-            return ['status' => 'error', 'message' => $e->getMessage(),
-                    'count' => 0, 'added' => 0, 'skipped' => 0, 'hotspots' => []];
-        }
+    try {
+        kirby()->impersonate('kirby');
+        $page->update(['annotations' => Yaml::encode($merged)]);
+    } catch (\Throwable $e) {
+        error_log('[hotspot-detector] update failed: ' . $e->getMessage());
+        return ['status' => 'error', 'message' => $e->getMessage(),
+                'count' => 0, 'added' => 0, 'skipped' => 0, 'hotspots' => []];
     }
 
-    $totalCount   = count($extMerged)   + count($intMerged);
-    $totalAdded   = $extAdded   + $intAdded;
-    $totalSkipped = $extSkipped + $intSkipped;
-    $allHotspots  = array_merge($exteriorHotspots, $interiorHotspots);
-
+    $allHotspots = array_merge($exteriorHotspots, $interiorHotspots);
     return [
         'status'   => 'ok',
-        'count'    => $totalCount,
-        'added'    => $totalAdded,
-        'skipped'  => $totalSkipped,
+        'count'    => count($merged),
+        'added'    => $added,
+        'skipped'  => $skipped,
         'hotspots' => $allHotspots,
-        'message'  => $totalCount . ' hotspot(s) détecté(s) ('
-                      . $totalAdded . ' nouveau(x), '
-                      . $totalSkipped . ' existant(s) conservé(s))',
+        'message'  => count($merged) . ' hotspot(s) — '
+                      . $added   . ' nouveau(x), '
+                      . $skipped . ' existant(s) conservé(s)',
     ];
+}
+
+/**
+ * Tag each hotspot dict with a `location` value, so the merger can
+ * group/track them by scope.
+ */
+function tagLocation(array $hotspots, string $location): array {
+    return array_map(fn ($h) => $h + ['location' => $location], $hotspots);
+}
+
+/**
+ * Which scopes are we updating in this run? Used by the merger to decide
+ * which previously-stored rows to keep vs. overwrite.
+ */
+function scopesUpdating(array $ext, array $int): array {
+    $scopes = [];
+    if (!empty($ext)) $scopes[] = 'exterior';
+    if (!empty($int)) $scopes[] = 'interior';
+    return $scopes;
 }
 
 /**
@@ -123,41 +149,60 @@ function resolveFileField($page, $fieldName) {
 }
 
 /**
- * Merge a list of hotspot definitions into an existing annotations field,
- * preserving user-written descriptions and titles.
+ * Merge incoming hotspots into the existing `annotations` field.
  *
- * Returns [$merged, $added, $skipped].
+ *   $page             — the page being updated
+ *   $incoming         — array of ['id', 'title', 'camera_mode', 'location']
+ *   $scopesUpdating   — array of location values being refreshed this run.
+ *                       Existing rows in OTHER locations are left untouched;
+ *                       rows in the updated locations are diffed by id so
+ *                       user-edited titles/descriptions survive.
+ *
+ * Returns [$merged, $added, $skipped] where $merged is the YAML-ready row
+ * list ordered as [other-scope rows kept] + [updated scope rows].
  */
-function mergeAnnotations($page, array $hotspots, string $field): array {
-    $existing = [];
-    $raw = $page->content()->get($field);
+function mergeAnnotations($page, array $incoming, array $scopesUpdating): array {
+    // Bucket existing rows by id (within updated scopes) and keep a
+    // verbatim copy of rows in unchanged scopes for re-emission.
+    $existingByScope = ['exterior' => [], 'interior' => []];
+    $preserved       = []; // rows we'll re-emit untouched
+
+    $raw = $page->content()->get('annotations');
     if ($raw->isNotEmpty()) {
         foreach ($raw->toStructure() as $ann) {
-            $id = $ann->hotspot_id()->value();
-            if ($id) {
-                $existing[$id] = [
-                    'hotspot_id'  => $id,
-                    'title'       => $ann->title()->value(),
-                    'camera_mode' => $ann->camera_mode()->value() ?: 'fly',
-                    'description' => $ann->description()->value(),
-                ];
+            $scope = $ann->location()->or('exterior')->value();
+            $row = [
+                'location'    => $scope,
+                'hotspot_id'  => $ann->hotspot_id()->value(),
+                'title'       => $ann->title()->value(),
+                'camera_mode' => $ann->camera_mode()->or('fly')->value(),
+                'description' => $ann->description()->value(),
+            ];
+
+            if (in_array($scope, $scopesUpdating, true)) {
+                $id = $row['hotspot_id'];
+                if ($id) $existingByScope[$scope][$id] = $row;
+            } else {
+                $preserved[] = $row;
             }
         }
     }
 
-    $merged  = [];
+    $merged  = $preserved;
     $added   = 0;
     $skipped = 0;
 
-    foreach ($hotspots as $hs) {
-        if (isset($existing[$hs['id']])) {
-            // Keep user's title/description; only fill title if blank
-            $row = $existing[$hs['id']];
+    foreach ($incoming as $hs) {
+        $scope = $hs['location'];
+        if (isset($existingByScope[$scope][$hs['id']])) {
+            // Keep the user's edits; only backfill an empty title.
+            $row = $existingByScope[$scope][$hs['id']];
             if (empty($row['title'])) $row['title'] = $hs['title'];
             $merged[] = $row;
             $skipped++;
         } else {
             $merged[] = [
+                'location'    => $scope,
                 'hotspot_id'  => $hs['id'],
                 'title'       => $hs['title'],
                 'camera_mode' => $hs['camera_mode'],
@@ -187,27 +232,19 @@ function parseJsonHotspotsByScope(string $jsonPath, string $scope): array {
     $data = json_decode(file_get_contents($jsonPath), true);
     if (!is_array($data)) return [];
 
-    // Scoped format
     if (isset($data['exterior']) || isset($data['interior'])) {
         $nodes = $data[$scope]['hotspots'] ?? [];
         return extractHotspotNodes($nodes);
     }
-
-    // Flat format: { "hotspots": [...] }
     if (isset($data['hotspots']) && is_array($data['hotspots'])) {
         return extractHotspotNodes($data['hotspots']);
     }
-
-    // Flat format: { "annotations": [...] }
     if (isset($data['annotations']) && is_array($data['annotations'])) {
         return extractHotspotNodes($data['annotations']);
     }
-
-    // Root array
     if (array_is_list($data)) {
         return extractHotspotNodes($data);
     }
-
     return [];
 }
 
@@ -219,7 +256,7 @@ function extractHotspotNodes(array $nodes): array {
     $out = [];
     foreach ($nodes as $key => $node) {
         if (!is_array($node)) continue;
-        $id   = $node['id'] ?? $node['hotspot_id'] ?? (is_string($key) ? $key : null) ?? $node['name'] ?? null;
+        $id = $node['id'] ?? $node['hotspot_id'] ?? (is_string($key) ? $key : null) ?? $node['name'] ?? null;
         if (empty($id) && isset($node['uuid'])) {
             $id = 'hotspot_' . substr($node['uuid'], 0, 6);
         }
