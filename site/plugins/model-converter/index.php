@@ -26,11 +26,34 @@ F::$types['document'][] = 'json';
 
 Kirby::plugin('goheritage/model-converter', [
 
-    // ── Page method: merged annotation list for blueprint queries ─────────
+    // ── Page methods ──────────────────────────────────────────────────────
     'pageMethods' => [
+        /**
+         * All annotations on this page. Backwards-compatible: as of May 2026
+         * `annotations` is a single field with a `location` column. Earlier
+         * versions kept `annotations_interior` as a separate structure;
+         * if a page hasn't been migrated yet we still merge it in.
+         */
         'allAnnotations' => function () {
-            return $this->annotations()->toStructure()
-                ->add($this->annotations_interior()->toStructure());
+            $merged = $this->annotations()->toStructure();
+            // Legacy interior field (pre-merge) — pages migrated by
+            // scripts/migrate-annotations.php no longer have this set,
+            // but we keep the fallback for safety.
+            if ($this->annotations_interior()->isNotEmpty()) {
+                $merged = $merged->add($this->annotations_interior()->toStructure());
+            }
+            return $merged;
+        },
+
+        /**
+         * Annotations filtered by location. Pass 'exterior' or 'interior'.
+         * Rows without a `location` value default to 'exterior'.
+         */
+        'annotationsFor' => function (string $location = 'exterior') {
+            return $this->allAnnotations()->filter(function ($a) use ($location) {
+                $loc = $a->location()->or('exterior')->value();
+                return $loc === $location;
+            });
         },
     ],
 
