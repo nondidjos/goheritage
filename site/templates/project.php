@@ -1,4 +1,29 @@
 <?php
+// ── Access control ───────────────────────────────────────────────────────
+// New visibility model (private / link / public) gates non-admin access.
+// Backward-compat: pages without a `visibility` field fall back to status
+// (listed → public, draft → private) via visibilityResolved().
+//
+// Admins always see the page (so the panel preview still works).
+$panelUser = $kirby->user();
+$isAdmin   = $panelUser && $panelUser->isAdmin();
+
+if (!$isAdmin) {
+    $sharedKey = get('key');
+    if (!$page->canBeViewedWithToken($sharedKey)) {
+        // Use Kirby's standard 404 so private pages don't leak their existence.
+        $kirby->response()->code(404);
+        echo $site->errorPage()->render();
+        exit;
+    }
+}
+
+// Section visibility helper — admins see everything; everyone else respects
+// the per-section toggles set on the page.
+$canSee = function (string $section) use ($page, $isAdmin) {
+    return $isAdmin || $page->sectionVisible($section);
+};
+
 // Define before snippet('header') so the title-bar markup below can use it.
 $isEmbedded = !empty(get('embed'));
 
@@ -38,19 +63,20 @@ $hotspotsIntUrl  = $hotspotsIntFile ? $hotspotsIntFile->url() : null;
 $viewerUrl = $page->viewer_url()->isNotEmpty() ? $page->viewer_url()->esc() : null;
 $viewerLabel = $page->viewer_label()->isNotEmpty() ? $page->viewer_label()->esc() : 'Explorer le Modèle 3D';
 
-// Build annotation data from both exterior and interior CMS structure fields
+// Build annotation data from the unified `annotations` structure
+// (each row carries a `location: exterior|interior` value). Legacy
+// pages with the old separate `annotations_interior` field are still
+// folded in via the `allAnnotations()` page method until they're
+// migrated by scripts/migrate-annotations.php.
 $annotationsData = [];
-foreach ([$page->annotations(), $page->annotations_interior()] as $field) {
-    if ($field->isNotEmpty()) {
-        foreach ($field->toStructure() as $ann) {
-            $annotationsData[] = [
-                'id'          => $ann->hotspot_id()->value(),
-                'title'       => $ann->title()->value(),
-                'description' => $ann->description()->value(),
-                'camera_mode' => $ann->camera_mode()->or('fly')->value(),
-            ];
-        }
-    }
+foreach ($page->allAnnotations() as $ann) {
+    $annotationsData[] = [
+        'id'          => $ann->hotspot_id()->value(),
+        'title'       => $ann->title()->value(),
+        'description' => $ann->description()->value(),
+        'camera_mode' => $ann->camera_mode()->or('fly')->value(),
+        'location'    => $ann->location()->or('exterior')->value(),
+    ];
 }
 $annotationsJson = json_encode($annotationsData, JSON_UNESCAPED_UNICODE);
 
@@ -76,6 +102,20 @@ $glbUrl = $glbFile ? $glbFile->url() : null;
 
 $hasIframe  = ($viewerUrl !== null);
 $hasModel   = ($objUrl !== null || $interiorObjUrl !== null || $glbUrl !== null || $interiorGlbUrl !== null);
+
+// Visibility: when the owner has not exposed the 3D model section, suppress
+// the viewer/iframe entirely and fall through to the poster image. Admins
+// keep full access (handled via $canSee).
+if (!$canSee('model')) {
+    $hasIframe = false;
+    $hasModel  = false;
+}
+
+// Annotations follow the same gating: if hidden, blank the JSON so the
+// viewer doesn't render hotspot markers at all.
+if (!$canSee('annotations')) {
+    $annotationsJson = '[]';
+}
 $defaultSide = $page->model_toggle()->isTrue() ? 'interior' : 'exterior';
 
 $posterUrl = ($cover = $page->cover()->toFile())
@@ -91,6 +131,32 @@ if ($gallery->count() === 0) {
                         && !str_contains(strtolower($f->filename()), 'normal_'))
         ->sortBy('sort');
 }
+
+// ── View-mode chips ─────────────────────────────────────────────────────
+// The right-hand viewer area can swap between 3D model, fullscreen image
+// gallery, and fullscreen plans. Each mode is its own pane inside
+// #viewer-container; floating chips on top let the visitor switch.
+//
+// A mode only contributes a chip + pane when it has content AND the
+// owner has opted to expose it via visibility ($canSee). When only one
+// mode is available we suppress the chip row entirely — a single chip
+// with no alternatives is just noise.
+$plansList      = $page->plans();
+$hasGalleryPane = $canSee('gallery') && $gallery->count() > 0;
+$hasPlansPane   = $canSee('plans')   && $plansList && $plansList->count() > 0;
+// The model pane is always present — even when there's nothing to show it
+// falls back to the cover image / "Vue 3D prochainement" placeholder, which
+// is the page's intended hero. So we don't gate it on $hasModel.
+$hasModelPane   = true;
+
+$availableModes = [];
+if ($hasModelPane)   $availableModes[] = 'model';
+if ($hasGalleryPane) $availableModes[] = 'gallery';
+if ($hasPlansPane)   $availableModes[] = 'plans';
+$showModeChips  = count($availableModes) > 1;
+// Default mode = first available. Model is always first, so this
+// effectively means "3D when possible, else gallery, else plans".
+$defaultMode = $availableModes[0] ?? 'model';
 ?>
 
 <div class="items-start pt-0 pb-10">
@@ -143,7 +209,7 @@ if ($gallery->count() === 0) {
             $hasSpecs = false;
             foreach ($specFields as $sf) { if ($sf['value']->isNotEmpty()) { $hasSpecs = true; break; } }
             ?>
-            <?php if ($hasSpecs): ?>
+            <?php if ($hasSpecs && $canSee('info')): ?>
                 <div class="spec-card">
                     <h3 class="font-mono text-xs uppercase tracking-widest text-ink mb-3">Fiche technique</h3>
                     <dl class="spec-card__grid">
@@ -159,6 +225,14 @@ if ($gallery->count() === 0) {
                 </div>
             <?php endif ?>
 
+            <!-- Plans now have their own pane in the viewer area
+                 (rendered above in the right column). We still need the
+                 OpenSeadragon modal + script on the page so clicks on
+                 plan tiles can open the fullscreen viewer — that's what
+                 modalOnly=true gives us. The sidebar no longer shows
+                 a duplicate plans list. -->
+            <?php if ($canSee('plans')) snippet('plan-viewer', ['modalOnly' => true]) ?>
+
             <!-- Tags -->
             <div class="flex flex-wrap gap-2 mt-4">
                 <?php foreach ($page->tags()->split(',') as $tag): ?>
@@ -166,22 +240,9 @@ if ($gallery->count() === 0) {
                 <?php endforeach ?>
             </div>
 
-            <!-- Gallery -->
-            <?php if ($gallery->count()): ?>
-                <div>
-                    <h3 class="font-mono text-xs uppercase tracking-widest text-ink mb-3">Galerie</h3>
-                    <div class="grid grid-cols-2 gap-2">
-                        <?php foreach ($gallery as $image): ?>
-                            <a href="<?= $image->url() ?>" data-lightbox
-                               class="block aspect-square overflow-hidden rounded-md bg-border transition-transform hover:-translate-y-0.5 cursor-zoom-in">
-                                <img src="<?= $image->crop(400, 400)->url() ?>"
-                                     alt="<?= $image->alt()->or($page->title())->esc() ?>"
-                                     loading="lazy" class="w-full h-full object-cover">
-                            </a>
-                        <?php endforeach ?>
-                    </div>
-                </div>
-            <?php endif ?>
+            <!-- Gallery + plans no longer live in the sidebar — they
+                 each get their own fullscreen pane in the viewer area
+                 (switch via the chips on top of the viewer). -->
 
         </div>
 
@@ -193,8 +254,53 @@ if ($gallery->count() === 0) {
             </svg>
         </button>
 
-        <!-- ── Right: 3D Viewer (5 cols, sticky) ── -->
-        <div class="sticky overflow-hidden rounded-md relative bg-ink z-50" id="viewer-container" style="top: 80px; height: calc(100vh - 100px); min-height: 500px;">
+        <!-- ── Right: Viewer (5 cols, sticky) ──
+             The viewer area now hosts up to three swappable panes:
+             3D model, image gallery, and plans grid. The chip overlay
+             on top lets the visitor switch between them; chips for
+             empty modes are suppressed server-side. -->
+        <div class="sticky overflow-hidden rounded-md relative bg-ink z-50"
+             id="viewer-container"
+             data-default-mode="<?= esc($defaultMode) ?>"
+             style="top: 80px; height: calc(100vh - 100px); min-height: 500px;">
+
+        <?php if ($showModeChips): ?>
+        <!-- Floating mode chips (top, centered) ─────────────────────── -->
+        <div class="viewer-mode-chips" role="tablist" aria-label="Mode d'affichage">
+            <?php
+            $modeIcons = [
+                'model'   => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+                'gallery' => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+                'plans'   => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',
+            ];
+            $modeLabels = [
+                'model'   => 'Modèle 3D',
+                'gallery' => 'Galerie',
+                'plans'   => 'Plans',
+            ];
+            foreach ($availableModes as $mode):
+                $isDefault = ($mode === $defaultMode);
+            ?>
+            <button
+                type="button"
+                class="viewer-mode-chip<?= $isDefault ? ' is-active' : '' ?>"
+                data-mode-target="<?= esc($mode) ?>"
+                role="tab"
+                aria-selected="<?= $isDefault ? 'true' : 'false' ?>"
+                aria-controls="viewer-pane-<?= esc($mode) ?>"
+            >
+                <?= $modeIcons[$mode] ?>
+                <span><?= esc($modeLabels[$mode]) ?></span>
+            </button>
+            <?php endforeach ?>
+        </div>
+        <?php endif ?>
+
+        <!-- ── MODEL PANE ─────────────────────────────────────────────── -->
+        <div class="viewer-pane viewer-pane--model<?= $defaultMode === 'model' ? ' is-active' : '' ?>"
+             id="viewer-pane-model"
+             data-mode-pane="model"
+             role="tabpanel">
 
         <?php if ($isEmbedded): ?>
         <!-- Embed mode splash screen: shows title, location, and play button -->
@@ -334,11 +440,139 @@ if ($gallery->count() === 0) {
             </div>
         <?php endif ?>
 
+        </div>
+        <!-- End MODEL PANE -->
+
+        <!-- ── GALLERY PANE ───────────────────────────────────────────── -->
+        <?php if ($hasGalleryPane): ?>
+        <div class="viewer-pane viewer-pane--gallery<?= $defaultMode === 'gallery' ? ' is-active' : '' ?>"
+             id="viewer-pane-gallery"
+             data-mode-pane="gallery"
+             role="tabpanel">
+            <div class="viewer-gallery">
+                <?php foreach ($gallery as $idx => $image):
+                    // Larger crops here than the sidebar thumbnails because
+                    // the viewer pane gets the full 5-col width. Lazy-load
+                    // everything past the first image so scroll-down doesn't
+                    // block initial paint.
+                ?>
+                <a href="<?= $image->url() ?>"
+                   data-lightbox
+                   class="viewer-gallery__item"
+                   aria-label="<?= $image->alt()->or($page->title())->esc() ?>">
+                    <img
+                        src="<?= $image->crop(800, 600)->url() ?>"
+                        srcset="<?= $image->crop(800, 600)->url() ?> 1x, <?= $image->crop(1600, 1200)->url() ?> 2x"
+                        alt="<?= $image->alt()->or($page->title())->esc() ?>"
+                        loading="<?= $idx === 0 ? 'eager' : 'lazy' ?>"
+                    >
+                </a>
+                <?php endforeach ?>
+            </div>
+        </div>
+        <?php endif ?>
+
+        <!-- ── PLANS PANE ─────────────────────────────────────────────── -->
+        <?php if ($hasPlansPane): ?>
+        <div class="viewer-pane viewer-pane--plans<?= $defaultMode === 'plans' ? ' is-active' : '' ?>"
+             id="viewer-pane-plans"
+             data-mode-pane="plans"
+             role="tabpanel">
+            <div class="viewer-plans">
+                <?php foreach ($plansList as $plan):
+                    $ext      = strtolower($plan->extension());
+                    $isRaster = in_array($ext, ['jpg','jpeg','png','webp','tif','tiff'], true);
+                    $isPdf    = $ext === 'pdf';
+                    $tilesUrl = ($isRaster || $isPdf) ? $page->planTiles($plan) : null;
+                    $caption  = $plan->caption()->or($plan->filename())->value();
+                    if ($isRaster) {
+                        $thumbUrl = $plan->thumb(['width' => 480, 'height' => 360, 'crop' => true])->url();
+                    } elseif ($isPdf && $tilesUrl) {
+                        $thumbUrl = $page->planThumbUrl($plan, 480);
+                    } else {
+                        $thumbUrl = null;
+                    }
+                ?>
+                <?php if (($isRaster || $isPdf) && $tilesUrl): ?>
+                    <button
+                        type="button"
+                        class="viewer-plans__item"
+                        data-plan-viewer
+                        data-plan-tiles="<?= esc($tilesUrl) ?>"
+                        data-plan-title="<?= esc($caption) ?>"
+                        aria-label="<?= esc($caption) ?>"
+                    >
+                        <?php if ($thumbUrl): ?>
+                            <img src="<?= esc($thumbUrl) ?>" alt="" loading="lazy">
+                        <?php else: ?>
+                            <div class="viewer-plans__item-fallback">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                            </div>
+                        <?php endif ?>
+                        <span class="viewer-plans__caption">
+                            <span class="viewer-plans__ext"><?= strtoupper($ext) ?></span>
+                            <?= esc($caption) ?>
+                        </span>
+                    </button>
+                <?php else: ?>
+                    <a href="<?= $plan->url() ?>"
+                       target="_blank" rel="noopener"
+                       class="viewer-plans__item viewer-plans__item--download"
+                       aria-label="Télécharger <?= esc($caption) ?>">
+                        <div class="viewer-plans__item-fallback">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        </div>
+                        <span class="viewer-plans__caption">
+                            <span class="viewer-plans__ext"><?= strtoupper($ext) ?></span>
+                            <?= esc($caption) ?>
+                        </span>
+                    </a>
+                <?php endif ?>
+                <?php endforeach ?>
+            </div>
+        </div>
+        <?php endif ?>
+
 
     </div>
     <!-- End project-panels-wrapper -->
     </div>
 
 </div>
+
+<?php if ($showModeChips): ?>
+<script>
+// Floating chip swapper — pure DOM, no framework. Active chip + pane share
+// the .is-active class. Switching panes also dispatches a custom event so
+// downstream JS (viewer.js, plan-viewer.js) can lazy-load resources on
+// first activation.
+(function () {
+    var container = document.getElementById('viewer-container');
+    if (!container) return;
+
+    var chips = container.querySelectorAll('.viewer-mode-chip');
+    var panes = container.querySelectorAll('[data-mode-pane]');
+
+    function setMode(target) {
+        chips.forEach(function (c) {
+            var match = c.getAttribute('data-mode-target') === target;
+            c.classList.toggle('is-active', match);
+            c.setAttribute('aria-selected', match ? 'true' : 'false');
+        });
+        panes.forEach(function (p) {
+            var match = p.getAttribute('data-mode-pane') === target;
+            p.classList.toggle('is-active', match);
+        });
+        container.dispatchEvent(new CustomEvent('viewer:mode-change', { detail: { mode: target } }));
+    }
+
+    chips.forEach(function (c) {
+        c.addEventListener('click', function () {
+            setMode(c.getAttribute('data-mode-target'));
+        });
+    });
+})();
+</script>
+<?php endif ?>
 
 <?php snippet('footer') ?>
