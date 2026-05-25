@@ -208,6 +208,37 @@ class GoheritageInviteStore
     }
 }
 
+/**
+ * Builds the plain-text email body sent to the invitee.
+ * Kept simple — most enterprise mail filters mangle HTML emails from
+ * unknown senders, and the link is the only thing that really needs to
+ * land cleanly in the recipient's inbox.
+ */
+function goheritage_invite_email_body(array $invite, $project, string $url): string {
+    $lines = [];
+    $lines[] = "Bonjour,";
+    $lines[] = "";
+    if ($project) {
+        $lines[] = "Vous avez été invité·e à rejoindre le projet « " . $project->title()->value() . " » sur GoHéritage.";
+    } else {
+        $lines[] = "Vous avez été invité·e à rejoindre GoHéritage.";
+    }
+    $lines[] = "";
+    if (!empty($invite['hint_message'])) {
+        $lines[] = "Message de l'administrateur :";
+        $lines[] = $invite['hint_message'];
+        $lines[] = "";
+    }
+    $lines[] = "Cliquez sur le lien suivant pour créer votre compte :";
+    $lines[] = $url;
+    $lines[] = "";
+    $lines[] = "Ce lien expire le " . date('d/m/Y \à H\hi', $invite['expires_at']) . ".";
+    $lines[] = "Il ne peut servir qu'une seule fois.";
+    $lines[] = "";
+    $lines[] = "— L'équipe GoHéritage";
+    return implode("\n", $lines);
+}
+
 Kirby::plugin('goheritage/invite-system', [
 
     // ── Panel area (registers the PHP-side route for the invites view) ─
@@ -290,6 +321,65 @@ Kirby::plugin('goheritage/invite-system', [
                         'role'         => $role,
                         'project_id'   => $projectId,
                         'hint_email'   => trim((string)($body['hint_email'] ?? '')) ?: null,
+                        'hint_message' => trim((string)($body['hint_message'] ?? '')) ?: null,
+                        'expires_at'   => time() + $days * 24 * 3600,
+                    ]);
+                    return [
+                        'invite' => array_merge($invite, [
+                            'status' => $store->status($invite),
+                            'url'    => url('invite/' . $invite['token']),
+                        ]),
+                    ];
+                },
+            ],
+
+            [
+                'pattern' => 'goheritage/invites/(:any)',
+                'method'  => 'DELETE',
+                'auth'    => true,
+                'action'  => function ($token) {
+                    if (!kirby()->user() || !kirby()->user()->isAdmin()) {
+                        throw new KirbyException(['key' => 'access.panel', 'httpCode' => 403]);
+                    }
+                    $store = new GoheritageInviteStore();
+                    return ['revoked' => $store->revoke($token)];
+                },
+            ],
+
+            // POST /api/goheritage/invites/(:any)/email — send the invite by email
+            // Returns 200 + ok=true on success, 503 if SMTP isn't configured,
+            // 400 if the invite has no email hint to send to.
+            [
+                'pattern' => 'goheritage/invites/(:any)/email',
+                'method'  => 'POST',
+                'auth'    => true,
+                'action'  => function ($token) {
+                    if (!kirby()->user() || !kirby()->user()->isAdmin()) {
+                        throw new KirbyException(['key' => 'access.panel', 'httpCode' => 403]);
+                    }
+                    $store  = new GoheritageInviteStore();
+                    $invite = $store->load($token);
+                    if (!$invite) {
+                        throw new KirbyException(['key' => 'invite.not-found', 'fallback' => 'Invitation introuvable', 'httpCode' => 404]);
+                    }
+
+                    $body  = $this->requestBody() ?: [];
+                    $to    = trim((string) ($body['to'] ?? $invite['hint_email'] ?? ''));
+                    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+                        throw new KirbyException(['key' => 'invite.bad-email', 'fallback' => 'Adresse email invalide', 'httpCode' => 400]);
+                    }
+
+                    // Check SMTP is configured — Kirby's email transport falls
+                    // back to PHP mail() which is unreliable on Bitnami without
+                    // sendmail. Fail loudly if neither is set.
+                    $smtp = kirby()->option('email.transport', null);
+                    if ($smtp === null) {
+                        throw new KirbyException([
+                            'key'      => 'invite.smtp-missing',
+                            'fallback' => 'SMTP non configuré — copiez le lien et envoyez-le manuellement (la livraison email s\'activera dès que vous aurez configuré email.transport dans config.php).',
+                            'httpCode' => 503,
+                        ]);
+                    }
         ]
     ]
 ]);
