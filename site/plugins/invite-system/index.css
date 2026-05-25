@@ -1,0 +1,167 @@
+/* ──────────────────────────────────────────────────────────────────────
+ * invite-system panel styles — applies inside /panel only.
+ * Public landing styles live in assets/css/invite-public.css.
+ *
+ * Design vocabulary matches the project-ux module: neutral ink, modest
+ * radii, Kirby CSS vars for theme adaptation, no bright color blocks.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/* ── Helper text under section header ──────────────────────────────── */
+.goheritage-invites-help {
+    font-size: 0.85rem;
+    color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55));
+    margin: 0 0 1rem;
+    line-height: 1.5;
+}
+
+/* ── Loading / empty states ────────────────────────────────────────── */
+.goheritage-invites-loading,
+.goheritage-invites-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--color-text-dimmed, rgba(0, 0, 0, 0.5));
+}
+
+.goheritage-invites-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.goheritage-invites-empty .k-icon {
+    font-size: 2.25rem;
+    color: var(--color-text-dimmed, rgba(0, 0, 0, 0.3));
+    margin-bottom: 0.75rem;
+}
+
+.goheritage-invites-empty p {
+    margin: 0 0 1rem;
+}
+
+/* ── Table ─────────────────────────────────────────────────────────── */
+.goheritage-invites-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.goheritage-invites-table th {
+    text-align: left;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55));
+    border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
+    background: transparent;
+}
+
+.goheritage-invites-table td {
+    padding: 0.75rem 0.85rem;
+    border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.06));
+    vertical-align: middle;
+    color: var(--color-text, #1a1a1a);
+}
+
+.goheritage-invites-table tbody tr:last-child td { border-bottom: none; }
+
+.goheritage-invites-table tbody tr:hover td {
+    background: var(--color-back, rgba(0, 0, 0, 0.025));
+}
+
+.goheritage-invites-table code {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.78rem;
+    padding: 0.12rem 0.4rem;
+    background: var(--color-back, rgba(0, 0, 0, 0.04));
+    border-radius: 3px;
+    color: var(--color-text, #1a1a1a);
+    border: 1px solid var(--color-border, rgba(0, 0, 0, 0.06));
+}
+
+.goheritage-invites-table__project {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.goheritage-invites-table__dim {
+    color: var(--color-text-dimmed, rgba(0, 0, 0, 0.4));
+}
+
+.goheritage-invites-table__expiring {
+    color: var(--color-notice, #b8501c);
+    font-weight: 500;
+}
+
+.goheritage-invites-table__actions {
+    display: flex;
+    gap: 0.25rem;
+    justify-content: flex-end;
+    white-space: nowrap;
+}
+
+/* ── Status pills — muted, neutral, just a colored dot + label ────── */
+.goheritage-invite-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0.55rem 0.2rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border: 1px solid var(--color-border, rgba(0, 0, 0, 0.12));
+    background: transparent;
+    color: var(--color-text, #1a1a1a);
+}
+
+.goheritage-invite-status::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+.goheritage-invite-status .k-icon { display: none; } /* dot replaces icon */
+
+.goheritage-invite-status--active  { color: var(--color-positive, #2e7d32); }
+.goheritage-invite-status--used    { color: var(--color-text-dimmed, rgba(0, 0, 0, 0.45)); }
+.goheritage-invite-status--expired { color: var(--color-negative, #b3261e); }
+
+/* ── Result dialog URL box ─────────────────────────────────────────── */
+.goheritage-invite-result {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    background: var(--color-back, rgba(0, 0, 0, 0.03));
+    border: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
+    border-radius: 4px;
+    padding: 0.5rem;
+    margin: 1rem 0 0.625rem;
+}
+
+.goheritage-invite-result input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.82rem;
+    color: var(--color-text, #1a1a1a);
+    outline: none;
+    padding: 0.25rem 0.4rem;
+    cursor: text;
+}
+
+.goheritage-invite-result__note {
+    font-size: 0.78rem;
+    color: var(--color-text-dimmed, rgba(0, 0, 0, 0.5));
+    font-style: italic;
+    margin: 0;
+}

@@ -23,11 +23,19 @@ $ghIsLocalDev = (
 
 return [
     'debug' => $ghIsLocalDev,
-    // Use root-relative URLs everywhere. Kirby's url() helper produces paths
-    // like "/assets/css/app.css" which work correctly on any hostname (local
-    // dev, staging, production) without ever hardcoding a domain. This also
-    // avoids the CORS trap of generating cross-origin asset URLs in HTML.
-    'url' => '/',
+    // `'url' => '*'` does double duty in Kirby 5:
+    //   1. It is the `allowed` hosts list for environment detection. With a
+    //      wildcard, Kirby auto-detects the current host from the request,
+    //      which is what lets `site/config/config.<host>.php` (per-host
+    //      override files) actually load. A literal `'/'` here parses as a
+    //      URI with no host — $environment->host() ends up null and the
+    //      host-specific config files (where API keys like maptiler.key
+    //      live) are silently skipped, leaving `option('maptiler.key')`
+    //      empty in production.
+    //   2. It tells url() to derive the base URL from the request — so
+    //      `url('assets/...')` is a same-origin absolute URL on every host,
+    //      with no CORS pitfalls.
+    'url' => '*',
     'yaml.handler' => 'symfony',
     'mime' => [
         'types' => [
@@ -41,6 +49,28 @@ return [
             'password' => ['min' => 8]
         ]
     ],
+
+    // ── SMTP / email delivery ──────────────────────────────────────────
+    // Uncomment + fill in once the production domain is live and SMTP
+    // credentials are issued (Lightsail blocks port 25 outbound, so SES /
+    // SendGrid / Mailgun is the realistic path). The invite-system's email
+    // button reads `email.transport` and refuses to send when null, so
+    // leaving this commented keeps the "copy link manually" workflow.
+    //
+    // 'email' => [
+    //     'from'      => 'noreply@goheritage.eu',
+    //     'fromName'  => 'GoHéritage',
+    //     'transport' => [
+    //         'type'     => 'smtp',
+    //         'host'     => 'email-smtp.eu-west-3.amazonaws.com', // AWS SES
+    //         'port'     => 587,
+    //         'security' => 'tls',
+    //         'auth'     => true,
+    //         'username' => 'AKIA…',
+    //         'password' => '…',
+    //     ],
+    // ],
+
     'blueprints' => [
         'site' => function ($kirby) {
             $user = $kirby->user();
@@ -79,6 +109,22 @@ return [
                 'current' => function () {
                     return str_contains(\kirby()->request()->path()->toString(), 'pages/map');
                 }
+            ],
+            // Custom panel view registered by site/plugins/invite-system/index.js
+            // The slash-separated key `goheritage/invite-system` matches the
+            // plugin name; Kirby builds the URL from that + the view key.
+            'invites' => [
+                'icon'  => 'email',
+                'label' => 'Invitations',
+                'link'  => 'plugins/goheritage-invite-system/invites',
+                'current' => function () {
+                    return str_contains(\kirby()->request()->path()->toString(), 'goheritage-invite-system');
+                },
+                // Admin-only so we don't tease the menu item to authors who
+                // can't actually create invites anyway.
+                'when' => function () {
+                    return \kirby()->user() && \kirby()->user()->isAdmin();
+                },
             ],
             '-',
             'users',
