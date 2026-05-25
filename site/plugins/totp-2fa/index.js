@@ -284,4 +284,45 @@ panel.plugin('goheritage/totp-2fa', {
     },
   },
 });
-
+
+// ΓöÇΓöÇ Login-flow interceptor ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// When the user submits the login form and 2FA is enabled, the
+// user.login:after hook stores a pending-TOTP marker (cookie+file) then
+// logs them out. The panel JS sees the login API return success and
+// tries to navigate to /panel, which bounces back to /panel/login.
+//
+// We intercept that flow: as soon as we see a successful login API call,
+// we check for the goheritage_totp_pending cookie. If present, the user
+// has 2FA enabled ΓÇö redirect straight to /totp/verify instead of letting
+// the panel do its dance. If absent (no 2FA), we don't interfere.
+(function () {
+  if (!window.fetch) return;
+
+  const cookieExists = function () {
+    return document.cookie.split(';').some(function (c) {
+      return c.trim().indexOf('goheritage_totp_pending=') === 0;
+    });
+  };
+
+  const origFetch = window.fetch;
+  window.fetch = function (input, init) {
+    return origFetch.call(this, input, init).then(function (resp) {
+      try {
+        const url = typeof input === 'string' ? input : (input.url || '');
+        // Match both /api/auth/login and panel-prefixed variants
+        if (!/\/api\/auth\/login/.test(url) || !resp.ok) return resp;
+
+        // Defer briefly so the Set-Cookie header from the login hook lands.
+        // Then check for the pending-TOTP cookie. If it's there, we know
+        // the user has 2FA ΓÇö go to verify. Otherwise let the panel do its
+        // normal thing.
+        setTimeout(function () {
+          if (cookieExists()) {
+            window.location.href = '/totp/verify';
+          }
+        }, 100);
+      } catch (_) {}
+      return resp;
+    });
+  };
+})();
