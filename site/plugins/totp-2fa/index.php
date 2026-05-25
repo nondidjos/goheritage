@@ -119,9 +119,93 @@ Kirby::plugin('goheritage/totp-2fa', [
                     ];
                 },
             ],
+
+            // POST /api/goheritage/totp/disable
+            //   { code }   ΓÇö TOTP code OR recovery code
+            // Wipes the secret + enabled flag. Requires a valid code so a
+            // hijacked session can't disable 2FA silently.
+            [
+                'pattern' => 'goheritage/totp/disable',
+                'method'  => 'POST',
+                'auth'    => true,
+                'action'  => function () {
+                    $user = kirby()->user();
+                    if (!$user) {
+                        throw new KirbyException(['key' => 'access.panel', 'httpCode' => 401]);
+                    }
+                    if (!$user->totp_enabled()->toBool()) {
+                        throw new KirbyException(['fallback' => '2FA d├⌐j├á d├⌐sactiv├⌐.', 'httpCode' => 400]);
+                    }
+                    $code   = trim((string) ($this->requestBody()['code'] ?? ''));
+                    $secret = $user->totp_secret()->value();
+                    if (!goheritage_totp_check_user_code($user, $code)) {
+                        throw new KirbyException(['fallback' => 'Code invalide.', 'httpCode' => 400]);
+                    }
+                    kirby()->impersonate('kirby');
+                    $user->update([
+                        'totp_secret'         => '',
+                        'totp_enabled'        => 'false',
+                        'totp_recovery_codes' => '',
+                    ]);
+                    kirby()->impersonate();
+                    return ['enabled' => false];
+                },
+            ],
+
+            // GET /api/goheritage/totp/status ΓÇö used by the panel section to
+            // show "Activ├⌐" / "Non activ├⌐" without exposing the secret.
+            [
+                'pattern' => 'goheritage/totp/status',
+                'method'  => 'GET',
+                'auth'    => true,
+                'action'  => function () {
+                    $user = kirby()->user();
+                    if (!$user) {
+                        throw new KirbyException(['key' => 'access.panel', 'httpCode' => 401]);
+                    }
+                    return [
+                        'enabled' => $user->totp_enabled()->toBool(),
+                        'codes_remaining' => count(Yaml::decode($user->totp_recovery_codes()->value() ?? '')),
                     ];
                 },
             ],
         ],
+        ],
     ],
 ]);
+
+/**
+ * Verify a user-supplied code against the user's TOTP secret OR their
+ * recovery code list. If a recovery code matches, it's consumed.
+ */
+function goheritage_totp_check_user_code(User $user, string $code): bool
+{
+    $code   = trim($code);
+    $secret = $user->totp_secret()->value();
+
+    // Try TOTP first ΓÇö fast, no disk writes on success
+    if ($secret && GoheritageTotp::verify($secret, preg_replace('/\s+/', '', $code))) {
+        return true;
+    }
+
+    // Try recovery codes (case-insensitive, with or without dash)
+    $stored = Yaml::decode($user->totp_recovery_codes()->value() ?? '');
+    if (!is_array($stored) || empty($stored)) {
+        return false;
+    }
+    $normalised = strtolower(preg_replace('/[^a-f0-9-]/', '', $code));
+    $hash = GoheritageTotp::hashRecoveryCode($normalised);
+
+    foreach ($stored as $i => $h) {
+        if (hash_equals($h, $hash)) {
+            // Consume it
+            array_splice($stored, $i, 1);
+            kirby()->impersonate('kirby');
+            $user->update(['totp_recovery_codes' => Yaml::encode($stored)]);
+            kirby()->impersonate();
+            return true;
+        }
+    }
+    return false;
+}
+
