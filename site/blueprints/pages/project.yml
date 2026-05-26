@@ -396,17 +396,84 @@ tabs:
               title:
                 type: text
                 label: Titre
-                placeholder: "ex. Tombe"
+                placeholder: "ex. Voûte principale"
               camera_mode:
                 type: select
                 label: Comportement au clic
                 default: fly
                 options:
-                  fly: Voler vers le point
-                  orbit: Orbiter autour du point
+                  fly:        Voler vers le point
+                  orbit:      Orbiter autour du point
                   auto-orbit: Orbite automatique (360°)
-                help: "Voler : anime la caméra vers la position. Orbiter : idem, puis permet d'orbiter autour. Auto : vol + rotation 360° automatique."
               description:
                 type: writer
                 label: Description
-                help: Texte affiché dans le panneau latéral quand ce point est sélectionné.
+
+
+  # ─────────────────────────────────────────────────────────────────────
+  #  Tab 3 — Documents
+  #
+  #  Single tab, three clearly-separated cards:
+  #    1) Plans & relevés  — visual thumbnails (cards layout, with the
+  #       plan viewer reachable from each tile)
+  #    2) Autres documents — list layout so date, size and type are
+  #       columnar and scannable
+  #    3) Tous les fichiers — flat list of every file attached to the
+  #       page, including model files uploaded from the 3D tab
+  # ─────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────
+  #  Tab 3 — Fichiers (raw file inventory — comes BEFORE Documents on
+  #  purpose; this is the "see everything" view, Documents is the
+  #  curated upload UI).
+  # ─────────────────────────────────────────────────────────────────────
+  files:
+    label: Fichiers
+    icon: document
+    sections:
+
+      all_files:
+        type: fields
+        headline: Inventaire des fichiers
+        fields:
+          page_files:
+            type: page-files-list
+            label: false
+            help: |
+              Liste plate de **tous les fichiers attachés à cette page** — modèles 3D,
+              textures, plans, images de galerie, JSON, etc. Pour téléverser des
+              fichiers, utilisez les onglets dédiés (Documents, Modèle 3D, etc.).
+
+
+  # ─────────────────────────────────────────────────────────────────────
+  #  Tab 4 — Documents (curated upload UI: Plans + Autres documents)
+  # ─────────────────────────────────────────────────────────────────────
+  documents:
+    label: Documents
+    icon: folder
+    sections:
+
+      # ── 1. Plans & relevés ───────────────────────────────────────
+      plans:
+        type: files
+        headline: Plans & relevés
+        info: "{{ file.niceSize }} · {{ file.modified('d.m.Y') }} · {{ file.extension }}"
+        layout: cards
+        size: small
+        empty: Aucun plan pour l'instant. Glissez-déposez des PDF, JPG, PNG, SVG ou DWG ici.
+        template: default
+        accept: ".pdf,.jpg,.jpeg,.png,.webp,.dwg,.dxf,.svg"
+        image:
+          back: pattern
+          cover: true
+
+      # ── 2. Autres documents ──────────────────────────────────────
+      docs:
+        type: files
+        headline: Autres documents
+        # In list layout the info string becomes the row's secondary line,
+        # right next to the filename, so dates and sizes are always visible.
+        info: "{{ file.extension | upper }} · {{ file.niceSize }} · modifié {{ file.modified('d.m.Y') }}"
+        layout: list
+        empty: Rien pour l'instant. Glissez-déposez ici vos PDF, .docx, .zip, etc.
+        template: default
+        accept: ".pdf,.doc,.docx,.odt,.txt,.md,.zip"

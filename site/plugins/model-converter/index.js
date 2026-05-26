@@ -609,18 +609,39 @@ panel.plugin('goheritage/model-converter', {
             :disabled="busyAll"
             @click="confirmDeleteAll"
           />
-          <ul v-if="localFiles.length" class="k-upload-overwrite-list">
-            <li v-for="f in localFiles" :key="f.filename" class="k-upload-overwrite-list__item">
-              <k-icon type="file" class="k-upload-overwrite-list__icon" />
-              <a :href="f.url" target="_blank" rel="noopener" class="k-upload-overwrite-list__name">{{ f.filename }}</a>
-              <span style="font-size:var(--text-sm); color:var(--color-text-dimmed); flex-shrink:0;">{{ f.size }}</span>
-              <button type="button" class="k-upload-overwrite-list__delete" @click="confirmDelete(f)">
-                <k-icon type="trash" />
-              </button>
-            </li>
-          </ul>
+          <table v-if="localFiles.length" class="k-page-files-list">
+            <thead>
+              <tr>
+                <th class="k-page-files-list__th--name">Nom</th>
+                <th class="k-page-files-list__th--ext">Type</th>
+                <th class="k-page-files-list__th--size">Taille</th>
+                <th class="k-page-files-list__th--date">Modifié</th>
+                <th class="k-page-files-list__th--actions"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="f in localFiles" :key="f.filename">
+                <td class="k-page-files-list__td--name">
+                  <span class="k-page-files-list__name-inner">
+                    <k-icon type="file" />
+                    <a :href="f.url" target="_blank" rel="noopener">{{ f.filename }}</a>
+                  </span>
+                </td>
+                <td class="k-page-files-list__td--ext">
+                  <span class="k-page-files-list__ext-badge">{{ f.extension }}</span>
+                </td>
+                <td class="k-page-files-list__td--size">{{ f.size }}</td>
+                <td class="k-page-files-list__td--date">{{ f.modified }}</td>
+                <td class="k-page-files-list__td--actions">
+                  <button type="button" class="k-page-files-list__delete" @click="confirmDelete(f)" :title="'Supprimer ' + f.filename">
+                    <k-icon type="trash" />
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
           <k-empty v-else icon="file">Aucun fichier sur cette page.</k-empty>
-        </div>
+        </k-field>
       `,
     },
 

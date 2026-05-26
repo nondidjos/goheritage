@@ -143,3 +143,145 @@
   from { background-position: 1rem 0; }
   to { background-position: 0 0; }
 }
+
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  page-files-list — tabular file inventory shown in the Fichiers tab.
+ *  Columns: Name · Type · Size · Modified · Delete. Theme-adaptive via
+ *  Kirby's CSS vars so it works in light and dark panel themes.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/*  Use table-layout: fixed + 100% width so columns stay aligned and the
+    full row borders span from one card edge to the other (negative
+    margin pulls the table out past Kirby's field padding). The first
+    and last cell get extra padding to compensate.                       */
+.k-page-files-list {
+  width: calc(100% + 1.5rem);
+  margin-left: -0.75rem;
+  margin-right: -0.75rem;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: 0.85rem;
+}
+
+.k-page-files-list thead th {
+  text-align: left;
+  padding: 0.6rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55));
+  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
+}
+.k-page-files-list thead th:first-child { padding-left: 0.75rem; }
+.k-page-files-list thead th:last-child  { padding-right: 0.75rem; }
+
+.k-page-files-list tbody td {
+  padding: 0.65rem 0.6rem;
+  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.06));
+  vertical-align: middle;
+  color: var(--color-text, #1a1a1a);
+  /*  Same line-height on every cell ensures rows are uniform height
+      regardless of which cell has an icon/badge/text — the earlier
+      display:flex on td made the name cell taller than the rest. */
+  line-height: 1.4;
+}
+.k-page-files-list tbody td:first-child { padding-left: 0.75rem; }
+.k-page-files-list tbody td:last-child  { padding-right: 0.75rem; }
+
+.k-page-files-list tbody tr:last-child td { border-bottom: none; }
+
+.k-page-files-list tbody tr:hover td {
+  background: var(--color-back, rgba(0, 0, 0, 0.025));
+}
+
+/* ── Name column: flex lives on the inner <span>, not the <td> ─────── */
+.k-page-files-list__td--name {
+  font-weight: 500;
+  min-width: 0;
+}
+.k-page-files-list__name-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.k-page-files-list__name-inner .k-icon {
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.5));
+}
+.k-page-files-list__name-inner a {
+  color: var(--color-text, #1a1a1a);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.k-page-files-list__name-inner a:hover { text-decoration: underline; }
+
+/* ── Type / size / date columns ───────────────────────────────────── */
+.k-page-files-list__th--ext,
+.k-page-files-list__td--ext { width: 4.5rem; }
+.k-page-files-list__ext-badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
+  border-radius: 3px;
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55));
+  background: var(--color-back, rgba(0, 0, 0, 0.025));
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.k-page-files-list__th--size,
+.k-page-files-list__td--size {
+  width: 5rem;
+  text-align: right;
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55));
+  font-variant-numeric: tabular-nums;
+}
+
+.k-page-files-list__th--date,
+.k-page-files-list__td--date {
+  width: 6rem;
+  text-align: right;
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55));
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Actions column ───────────────────────────────────────────────── */
+.k-page-files-list__th--actions,
+.k-page-files-list__td--actions {
+  width: 2.5rem;
+  text-align: right;
+  padding-right: 0.5rem !important;
+}
+
+.k-page-files-list__delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.5));
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+.k-page-files-list__delete:hover {
+  background: var(--color-negative, #c0392b);
+  color: #fff;
+}
+.k-page-files-list__delete .k-icon { width: 0.9em; height: 0.9em; }
+
+/* Narrow viewports: drop the date column to keep rows readable. */
+@media (max-width: 50rem) {
+  .k-page-files-list__th--date,
+  .k-page-files-list__td--date { display: none; }
+}
