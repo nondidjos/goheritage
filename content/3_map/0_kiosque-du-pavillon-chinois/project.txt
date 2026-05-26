@@ -10,11 +10,11 @@ Cover: []
 
 ----
 
-Description: 
+Description: Dernière folie architecturale de Léopold II, le Pavillon Chinois fut bâti entre 1901 et 1909 par Alexandre Marcel, l'architecte du Pavillon chinois de l'Exposition universelle de Paris. Fermé au public depuis 2013.
 
 ----
 
-Location: 
+Location: Laeken, Bruxelles
 
 ----
 
@@ -22,23 +22,23 @@ Date: 2026-04-17
 
 ----
 
-Construction-date: 
+Construction-date: 1901–1909
 
 ----
 
-Architect: 
+Architect: Alexandre Marcel
 
 ----
 
-Style: 
+Style: Chinoiserie · Orientalisme
 
 ----
 
-Dimensions: 
+Dimensions: 24 × 18 × 16 m
 
 ----
 
-Protection-status: 
+Protection-status: classé
 
 ----
 
@@ -50,7 +50,7 @@ Lng: 4.360098
 
 ----
 
-Text: [{"content":{"level":"h2","text":""},"id":"dfb087a6-4318-49a2-9954-7be284bd77c8","isHidden":false,"type":"heading"},{"content":{"location":"kirby","image":[],"src":"","alt":"","caption":"","link":"","ratio":"","crop":"false"},"id":"e0219ad1-c2b3-4556-a3dd-4d24a46c0735","isHidden":false,"type":"image"}]
+Text: [{"content":{"text":"<p>Construit en bordure du domaine royal de Laeken, le <strong>Pavillon Chinois</strong> est l'un des derniers grands caprices architecturaux de Léopold II. Frappé en 1900 par le pavillon chinois de l'Exposition universelle de Paris, le roi en confia la conception à l'architecte français <strong>Alexandre Marcel</strong>, déjà responsable de la Tour japonaise qui s'élève en face, de l'autre côté de l'avenue Van Praet. Les travaux durèrent près de neuf ans (1901–1909) et mobilisèrent des artisans chinois dépêchés à Shanghai pour sculpter les boiseries de la façade.</p><p>Le bâtiment ne fut jamais inauguré : Léopold II mourut quelques mois avant la fin du chantier. Confié à l'État belge à sa mort, le pavillon rejoignit les <em>Musées Royaux d'Art et d'Histoire</em>, qui y exposèrent dès les années 1910 une collection de porcelaines de la Compagnie des Indes. Fermé au public depuis 2013 pour des raisons de sécurité — la charpente menace de céder — il fait aujourd'hui l'objet d'un projet de restauration mené par la Régie des Bâtiments.</p>"},"id":"880b053f-19f6-c6d8-d3b1-69eb612392f7","isHidden":false,"type":"text"},{"content":{"section_title":"La toiture en pagode","hotspot_id":"hotspot_01","section_content":"[{\"content\":{\"text\":\"<p>Caractéristique des édifices du sud de la Chine, la toiture à <strong>trois auvents superposés</strong> est entièrement recouverte de tuiles vernissées vertes et jaunes, importées par bateau depuis Canton. Aux quatre coins de chaque toit, des dragons stylisés en céramique veillent symboliquement sur le bâtiment ; les angles sont relevés pour éloigner les mauvais esprits selon la tradition. La charpente, en bois de teck, reprend fidèlement la technique du <em>dougong</em> — un système d'assemblage sans clou par pièces emboîtées.</p>\"},\"id\":\"ac96cd75-99e9-83d4-f996-c4634fceb8b7\",\"isHidden\":false,\"type\":\"text\"}]"},"id":"f390cccb-7402-e2e6-9c18-a0df8a8094d3","isHidden":false,"type":"section"},{"content":{"section_title":"La façade sculptée","hotspot_id":"hotspot_02","section_content":"[{\"content\":{\"text\":\"<p>L'ensemble du décor extérieur — colonnes, balustrades, panneaux — fut taillé à Shanghai par les ateliers <strong>Quignolot Frères</strong>, qui sous-traitaient pour les expositions universelles. Les bois sculptés furent ensuite démontés, mis en caisses et expédiés à Anvers par bateau. Le motif récurrent du dragon à cinq griffes — réservé à l'empereur dans la Chine impériale — pose toujours question : Marcel l'a-t-il choisi par méconnaissance, ou comme clin d'œil au statut royal du commanditaire ?</p>\"},\"id\":\"015f43cc-b80c-da29-70af-2c77340ee2be\",\"isHidden\":false,\"type\":\"text\"}]"},"id":"a3554310-ff08-12c2-a17c-e6368a9b98b3","isHidden":false,"type":"section"},{"content":{"section_title":"La salle de banquet","hotspot_id":"hotspot_03","section_content":"[{\"content\":{\"text\":\"<p>Au rez-de-chaussée, la grande salle ovale était destinée à recevoir des dîners diplomatiques dans un décor 'à la chinoise' : lambris laqués noir et or, lustres en cuivre repoussé, sol en parquet marqueté reproduisant un médaillon impérial. Léopold II rêvait d'y inviter les délégations d'Extrême-Orient — projet qui ne se concrétisa jamais. La pièce abrite désormais une partie de la collection de <em>porcelaines bleu-et-blanc des XVIIe et XVIIIe siècles</em>, en réserve depuis la fermeture.</p>\"},\"id\":\"fa789e37-ffb9-7b11-d2b6-a80f1d5a6792\",\"isHidden\":false,\"type\":\"text\"}]"},"id":"69c4ab70-69ae-c9e9-0fa5-7c3a8996fdfb","isHidden":false,"type":"section"},{"content":{"section_title":"La Tour japonaise (en face)","hotspot_id":"hotspot_04","section_content":"[{\"content\":{\"text\":\"<p>Indissociable du Pavillon Chinois, la <strong>Tour japonaise</strong> qui lui fait face de l'autre côté de l'avenue Van Praet est l'autre commande passée par Léopold II à Alexandre Marcel. Inspirée d'une pagode bouddhiste du XIXe siècle, elle culmine à 40 m sur cinq étages décroissants. Les deux édifices forment un ensemble unique en Belgique, témoin du goût orientaliste de la fin du règne. La Tour est, comme le Pavillon, fermée au public depuis 2013.</p>\"},\"id\":\"b29c75f4-2516-7cd1-5acf-27254d613215\",\"isHidden\":false,\"type\":\"text\"}]"},"id":"b8c0f108-7432-0bc3-399d-1639343cbba4","isHidden":false,"type":"section"}]
 
 ----
 
@@ -58,11 +58,11 @@ Gallery: []
 
 ----
 
-Tags: asiatique, 20eme
+Tags: pavillon, orientalisme, leopold-ii, bruxelles, laeken
 
 ----
 
-Primary-tag: 
+Primary-tag: pavillon
 
 ----
 
@@ -86,10 +86,28 @@ Annotations:
 
 -
   location: exterior
-  hotspot_id: ''
-  title: ''
+  hotspot_id: hotspot_01
+  title: 'Toiture en pagode'
+  camera_mode: orbit
+  description: 'Trois auvents superposés couverts de tuiles vernissées importées de Canton.'
+-
+  location: exterior
+  hotspot_id: hotspot_02
+  title: 'Façade sculptée'
+  camera_mode: fly
+  description: 'Boiseries taillées à Shanghai par les ateliers Quignolot Frères, expédiées en caisses à Anvers.'
+-
+  location: interior
+  hotspot_id: hotspot_03
+  title: 'Salle de banquet'
   camera_mode: auto-orbit
-  description: ''
+  description: 'Décor laqué noir et or, parquet marqueté, lustres en cuivre. Abrite la collection de porcelaines bleu-et-blanc.'
+-
+  location: exterior
+  hotspot_id: hotspot_04
+  title: 'Vue sur la Tour japonaise'
+  camera_mode: fly
+  description: "Pendant oriental du pavillon, située en face de l'avenue Van Praet — autre commande de Léopold II à Alexandre Marcel."
 
 ----
 

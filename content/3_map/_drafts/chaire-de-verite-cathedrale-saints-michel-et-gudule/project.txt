@@ -14,11 +14,11 @@ Cover: []
 
 ----
 
-Description: 
+Description: L'une des plus importantes chaires baroques d'Europe. Œuvre d'Henri-François Verbruggen (1696–1699), elle figure le passage du péché originel — Adam et Ève chassés d'Éden — à la rédemption — la Vierge écrasant le serpent au sommet de l'abat-voix.
 
 ----
 
-Location: jbiuhiu
+Location: Bruxelles, Belgique
 
 ----
 
@@ -26,35 +26,35 @@ Date: 2026-04-11
 
 ----
 
-Construction-date: 
+Construction-date: 1696–1699
 
 ----
 
-Architect: 
+Architect: Henri-François Verbruggen
 
 ----
 
-Style: 
+Style: Baroque flamand
 
 ----
 
-Dimensions: 
+Dimensions: 6 × 3 × 3 m (env.)
 
 ----
 
-Protection-status: 
+Protection-status: classé
 
 ----
 
-Lat: 
+Lat: 50.847977
 
 ----
 
-Lng: 
+Lng: 4.359957
 
 ----
 
-Text: 
+Text: [{"content":{"text":"<p>Au cœur de la cathédrale <strong>Saints-Michel-et-Gudule</strong>, la chaire de vérité est l'une des plus importantes sculptures baroques d'Europe du Nord. Œuvre d'<strong>Henri-François Verbruggen</strong> (1654–1724), maître flamand de la sculpture sur bois, elle fut taillée entre 1696 et 1699 pour l'<em>église des Jésuites de Louvain</em>. Après la suppression de l'ordre des Jésuites en 1773, le mobilier fut dispersé : la chaire fut acquise par la ville de Bruxelles en 1776 et installée dans le bras nord du transept de la cathédrale, où elle se trouve toujours.</p><p>Le sujet figuré sur la chaire est un programme théologique d'un seul tenant : le bas de la cuve raconte le <strong>péché originel</strong> et l'expulsion d'Adam et Ève du jardin d'Éden, tandis qu'au sommet de l'abat-voix la <strong>Vierge à l'Enfant écrase le serpent</strong>, scellant la promesse du salut. Le passage de la chute à la rédemption s'opère donc verticalement, à mesure que le regard monte vers le prédicateur — l'image elle-même devient sermon.</p>"},"id":"b63070e6-e1f8-84be-36eb-c51cb44fe6be","isHidden":false,"type":"text"},{"content":{"section_title":"Adam et Ève chassés du paradis","hotspot_id":"","section_content":"[{\"content\":{\"text\":\"<p>Au pied de la chaire, Adam et Ève figurent en grandeur nature, taillés dans <strong>un seul bloc de chêne</strong>. Adam, le visage marqué, tente de se protéger d'un bras tandis qu'Ève se détourne, honteuse. À leurs pieds, un palmier dont le tronc forme le pied central de la chaire — symbole de l'arbre de la connaissance. Le détail des feuilles, des fruits, des écorces et des animaux du paradis (singes, perroquets, chamois) témoigne de la virtuosité de Verbruggen, considéré de son vivant comme le meilleur sculpteur sur bois des Pays-Bas méridionaux.</p>\"},\"id\":\"76eb05ed-b396-133d-f32d-9abfdaa78607\",\"isHidden\":false,\"type\":\"text\"}]"},"id":"f0e2c584-d19c-106b-a03f-9c4f5d6932c2","isHidden":false,"type":"section"},{"content":{"section_title":"L'ange et l'épée flamboyante","hotspot_id":"","section_content":"[{\"content\":{\"text\":\"<p>Derrière le couple déchu, un <strong>ange brandissant une épée enflammée</strong> les chasse d'Éden. Le geste, théâtral, est emprunté au langage du <em>baroque jésuite</em> : la composition doit frapper le fidèle avant même qu'il n'ait écouté un mot du sermon. La torsion du corps de l'ange, l'envol de sa draperie et le mouvement de l'épée tendent l'ensemble vers le haut, comme pour mieux guider le regard vers l'abat-voix.</p>\"},\"id\":\"63891db6-2d9e-503c-3992-afa5890c9873\",\"isHidden\":false,\"type\":\"text\"}]"},"id":"0cb7c0f4-f2ef-2d9a-538d-619ffe0db639","isHidden":false,"type":"section"},{"content":{"section_title":"La cuve : un palmier et ses animaux","hotspot_id":"","section_content":"[{\"content\":{\"text\":\"<p>La <strong>cuve</strong> elle-même — d'où le prêtre s'adresse aux fidèles — repose sur le tronc du palmier, autour duquel s'enroulent en spirale des <em>arums, vignes et figuiers</em>. Verbruggen a glissé dans le feuillage une <strong>quarantaine d'animaux exotiques</strong> sculptés : tortues, perroquets, lézards, chameaux. L'ensemble compose un microcosme de la Création — un Éden taillé dans un seul matériau.</p>\"},\"id\":\"da1df380-6122-5c1b-6dec-287182828182\",\"isHidden\":false,\"type\":\"text\"}]"},"id":"b104f1db-1f52-2c17-8c1b-aca8fbc3a5cd","isHidden":false,"type":"section"},{"content":{"section_title":"L'abat-voix : la Vierge sur le serpent","hotspot_id":"","section_content":"[{\"content\":{\"text\":\"<p>Couronnant l'ensemble, l'<strong>abat-voix</strong> représente la <strong>Vierge Marie portant l'Enfant Jésus</strong>, debout sur un globe terrestre. Sous ses pieds, le <strong>serpent du paradis</strong> est écrasé — référence directe à la <em>Genèse 3:15</em> : « Elle t'écrasera la tête. » L'Enfant Jésus lève une croix triomphale. Tout autour, des nuées d'angelots et de têtes ailées suggèrent l'apparition céleste, et amplifient acoustiquement la voix du prédicateur — fonction première de l'abat-voix dans une église baroque.</p>\"},\"id\":\"fb938603-b091-6e46-61a7-38b9379e35c7\",\"isHidden\":false,\"type\":\"text\"}]"},"id":"ef66ad51-ad3d-e2a6-9b4e-14bef292edb5","isHidden":false,"type":"section"},{"content":{"section_title":"Les escaliers latéraux","hotspot_id":"","section_content":"[{\"content\":{\"text\":\"<p>Les deux escaliers de chêne qui mènent à la cuve sont également sculptés en relief : on y reconnaît des scènes de l'<strong>Ancien Testament</strong> (le sacrifice d'Abraham, Moïse et le serpent d'airain) en partie gauche, et des <strong>épisodes mariaux</strong> (l'Annonciation, la Visitation) en partie droite. Cette mise en scène fonctionne comme une <em>typologie</em> classique : chaque scène de l'Ancien Testament préfigure son accomplissement dans le Nouveau, autour de la figure centrale de Marie.</p>\"},\"id\":\"70d21ba1-97c1-fafb-a2f8-9a5d4416adb4\",\"isHidden\":false,\"type\":\"text\"}]"},"id":"ab5c4f1e-7c99-a367-94f8-cbb9881ef895","isHidden":false,"type":"section"}]
 
 ----
 
@@ -62,7 +62,7 @@ Gallery: []
 
 ----
 
-Tags: 
+Tags: sculpture, baroque, religieux, bruxelles, mobilier
 
 ----
 
@@ -86,7 +86,38 @@ Model-texture: file://nbfpcyi0msujeuke
 
 ----
 
-Annotations: []
+Annotations:
+
+-
+  location: interior
+  hotspot_id: hotspot_01
+  title: 'Adam et Ève chassés'
+  camera_mode: auto-orbit
+  description: 'Grandeur nature, taillés dans un seul bloc de chêne. Détail virtuose des feuillages et animaux du paradis autour du palmier.'
+-
+  location: interior
+  hotspot_id: hotspot_02
+  title: "L'ange à l'épée flamboyante"
+  camera_mode: fly
+  description: 'Geste théâtral typique du baroque jésuite, conçu pour frapper le fidèle avant le sermon.'
+-
+  location: interior
+  hotspot_id: hotspot_03
+  title: 'Cuve : palmier & faune'
+  camera_mode: orbit
+  description: "Plus de 40 animaux exotiques sculptés dans le feuillage qui s'enroule autour du tronc."
+-
+  location: interior
+  hotspot_id: hotspot_04
+  title: 'Vierge sur le serpent'
+  camera_mode: orbit
+  description: "Abat-voix : la Vierge à l'Enfant écrase le serpent d'Éden. Référence directe à Genèse 3:15."
+-
+  location: interior
+  hotspot_id: hotspot_05
+  title: 'Escaliers sculptés'
+  camera_mode: fly
+  description: 'Scènes typologiques : Ancien Testament à gauche, épisodes mariaux à droite.'
 
 ----
 
