@@ -2,23 +2,27 @@ Title: Chaire de Vérité (Cathédrale Saints-Michel-et-Gudule)
 
 ----
 
+Visibility: link
+
+----
+
+Visible-sections: 
+
+----
+
+Cover: []
+
+----
+
 Description: 
 
 ----
 
-Text: 
+Location: jbiuhiu
 
 ----
 
-Gallery: []
-
-----
-
-Cover: - 'file://phi1gtfwbaif3pt2'
-
-----
-
-Location: 
+Date: 2026-04-11
 
 ----
 
@@ -50,11 +54,19 @@ Lng:
 
 ----
 
-Date: 2026-04-11
+Text: 
+
+----
+
+Gallery: []
 
 ----
 
 Tags: 
+
+----
+
+Primary-tag: 
 
 ----
 
@@ -66,7 +78,19 @@ Model-toggle: false
 
 ----
 
+Model-obj: file://kx4pby2grl1h98qb
+
+----
+
+Model-texture: file://nbfpcyi0msujeuke
+
+----
+
 Annotations: []
+
+----
+
+Annotations-interior: []
 
 ----
 

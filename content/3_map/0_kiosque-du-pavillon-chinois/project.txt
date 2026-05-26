@@ -1,0 +1,100 @@
+Title: Kiosque du Pavillon Chinois
+
+----
+
+Visible-sections: 
+
+----
+
+Cover: []
+
+----
+
+Description: 
+
+----
+
+Location: 
+
+----
+
+Date: 2026-04-17
+
+----
+
+Construction-date: 
+
+----
+
+Architect: 
+
+----
+
+Style: 
+
+----
+
+Dimensions: 
+
+----
+
+Protection-status: 
+
+----
+
+Lat: 50.893956
+
+----
+
+Lng: 4.360098
+
+----
+
+Text: [{"content":{"level":"h2","text":""},"id":"dfb087a6-4318-49a2-9954-7be284bd77c8","isHidden":false,"type":"heading"},{"content":{"location":"kirby","image":[],"src":"","alt":"","caption":"","link":"","ratio":"","crop":"false"},"id":"e0219ad1-c2b3-4556-a3dd-4d24a46c0735","isHidden":false,"type":"image"}]
+
+----
+
+Gallery: []
+
+----
+
+Tags: asiatique, 20eme
+
+----
+
+Primary-tag: 
+
+----
+
+Viewer-url: 
+
+----
+
+Model-toggle: false
+
+----
+
+Model-obj: file://iytankf8jhchldwv
+
+----
+
+Model-texture: file://2a8b5d8klpohfsty
+
+----
+
+Annotations:
+
+-
+  location: exterior
+  hotspot_id: ''
+  title: ''
+  camera_mode: auto-orbit
+  description: ''
+
+----
+
+Annotations-interior: 
+
+----
+
+Uuid: zih9f2fitpsn9ywc
