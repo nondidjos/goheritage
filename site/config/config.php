@@ -110,22 +110,10 @@ return [
                     return str_contains(\kirby()->request()->path()->toString(), 'pages/map');
                 }
             ],
-            // Custom panel view registered by site/plugins/invite-system/index.js
-            // The slash-separated key `goheritage/invite-system` matches the
-            // plugin name; Kirby builds the URL from that + the view key.
-            'invites' => [
-                'icon'  => 'email',
-                'label' => 'Invitations',
-                'link'  => 'plugins/goheritage-invite-system/invites',
-                'current' => function () {
-                    return str_contains(\kirby()->request()->path()->toString(), 'goheritage-invite-system');
-                },
-                // Admin-only so we don't tease the menu item to authors who
-                // can't actually create invites anyway.
-                'when' => function () {
-                    return \kirby()->user() && \kirby()->user()->isAdmin();
-                },
-            ],
+            // Invitations no longer ship as a separate sidebar item — they
+            // live under the Users area (registered by the invite-system
+            // plugin as an additional view + opened via a dialog from the
+            // users page header). Pending users = invitations conceptually.
             '-',
             'users',
             'system'

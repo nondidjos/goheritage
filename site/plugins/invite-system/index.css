@@ -15,27 +15,25 @@
 }
 
 /* ── Loading / empty states ────────────────────────────────────────── */
-.goheritage-invites-loading,
-.goheritage-invites-empty {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: var(--color-text-dimmed, rgba(0, 0, 0, 0.5));
-}
-
 .goheritage-invites-loading {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    padding: 3rem 1rem;
+    color: var(--color-text-dimmed, rgba(0, 0, 0, 0.5));
 }
 
-.goheritage-invites-empty .k-icon {
-    font-size: 2.25rem;
-    color: var(--color-text-dimmed, rgba(0, 0, 0, 0.3));
-    margin-bottom: 0.75rem;
+/* k-empty already centers icon + text — we just give it room. */
+.goheritage-invites-empty {
+    padding: 2.5rem 1rem 1rem !important;
 }
 
-.goheritage-invites-empty p {
-    margin: 0 0 1rem;
+/* CTA button row that sits below k-empty. Flex-centered so the button
+   (and its + icon) is properly aligned regardless of label length. */
+.goheritage-invites-empty-cta {
+    display: flex;
+    justify-content: center;
+    padding: 0 1rem 2.5rem;
 }
 
 /* ── Table ─────────────────────────────────────────────────────────── */

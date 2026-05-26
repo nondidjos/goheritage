@@ -248,18 +248,35 @@ Kirby::plugin('goheritage/invite-system', [
     // `components`, `fields`, `sections`, etc. are handled. To make the
     // panel router serve the HTML shell for our custom view, we must
     // register a PHP-level area with the matching pattern.
+    //  Invitations live UNDER the Users area now — they're conceptually
+    //  pending users. Registering an area with key `users` MERGES with
+    //  Kirby's built-in users area, so our extra view shows up on the
+    //  same URL space (/panel/users/invitations) without adding a new
+    //  top-level sidebar entry.
+    //
+    //  Reachable from the users page header via a custom view button
+    //  registered in index.js (k-invitations-view-button).
     'areas' => [
-        'goheritage-invites' => function () {
+        'users' => function () {
             return [
-                'label' => 'Invitations',
-                'icon'  => 'email',
                 'views' => [
                     [
-                        'pattern' => 'plugins/goheritage-invite-system/invites',
+                        'pattern' => 'users/invitations',
                         'action'  => function () {
+                            // Admin-gate the route — only admins can manage invites.
+                            if (!kirby()->user() || !kirby()->user()->isAdmin()) {
+                                throw new \Kirby\Exception\PermissionException(
+                                    'Réservé aux administrateurs.'
+                                );
+                            }
                             return [
                                 'component' => 'k-goheritage-invites-view',
-                                'props'     => [],
+                                'title'     => 'Invitations',
+                                'breadcrumb' => [
+                                    ['label' => 'Utilisateurs', 'link' => 'users'],
+                                    ['label' => 'Invitations'],
+                                ],
+                                'props' => [],
                             ];
                         },
                     ],

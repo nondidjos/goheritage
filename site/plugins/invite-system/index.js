@@ -66,11 +66,25 @@ panel.plugin('goheritage/invite-system', {
                 Chargement…
               </div>
 
-              <div v-else-if="invites.length === 0" class="goheritage-invites-empty">
-                <k-icon type="email" />
-                <p>Aucune invitation pour l'instant.</p>
-                <k-button icon="add" variant="filled" @click="openCreate">Créer la première</k-button>
-              </div>
+              <!-- Empty state: use Kirby's k-empty so the icon renders
+                   contained (was floating before), and put the CTA in
+                   its own row so the + actually sits centered inside
+                   the button's flexbox. -->
+              <template v-else-if="invites.length === 0">
+                <k-empty icon="email" class="goheritage-invites-empty">
+                  Aucune invitation pour l'instant.
+                </k-empty>
+                <div class="goheritage-invites-empty-cta">
+                  <k-button
+                    icon="add"
+                    text="Créer la première"
+                    variant="filled"
+                    theme="positive"
+                    size="sm"
+                    @click="openCreate"
+                  />
+                </div>
+              </template>
 
               <table v-else class="goheritage-invites-table">
                 <thead>
@@ -379,3 +393,87 @@ panel.plugin('goheritage/invite-system', {
 
   },
 });
+
+
+// ──────────────────────────────────────────────────────────────────────
+//  Users-page header enhancement
+//
+//  We dropped the standalone "Invitations" sidebar entry. To keep the
+//  feature discoverable, this DOM enhancement detects when the user is
+//  on /panel/users (the built-in users list) and injects a "Voir les
+//  invitations" link button into the page header so admins can reach
+//  the invites view in one click.
+//
+//  Plain DOM, runs outside Vue, idempotent — same pattern as the
+//  project-ux section-edit injector.
+// ──────────────────────────────────────────────────────────────────────
+(function () {
+  if (typeof window === 'undefined') return;
+
+  var BTN_ID = 'gh-invites-jump';
+
+  function onUsersList() {
+    // /panel/users (with optional trailing slash) but NOT /panel/users/<anything>
+    var p = window.location.pathname || '';
+    return /\/panel\/users\/?$/.test(p);
+  }
+
+  function isAdmin() {
+    try { return window.panel?.user?.role?.name === 'admin'; }
+    catch (_) { return false; }
+  }
+
+  function inject() {
+    if (!onUsersList() || !isAdmin()) {
+      var stale = document.getElementById(BTN_ID);
+      if (stale) stale.remove();
+      return;
+    }
+    if (document.getElementById(BTN_ID)) return;
+
+    // Find the page header's button group. Kirby renders header buttons
+    // inside .k-header-buttons; we append after the existing ones.
+    var header = document.querySelector('.k-page-view > .k-header')
+              || document.querySelector('.k-header');
+    if (!header) return;
+    var btnGroup = header.querySelector('.k-header-buttons')
+                || header.querySelector('.k-button-group');
+    if (!btnGroup) return;
+
+    var btn = document.createElement('a');
+    btn.id = BTN_ID;
+    btn.href = '/panel/users/invitations';
+    btn.className = 'k-button';
+    btn.setAttribute('data-variant', 'filled');
+    btn.setAttribute('data-theme', 'passive');
+    btn.setAttribute('data-size', 'sm');
+    btn.innerHTML =
+      '<span class="k-button-icon">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>' +
+          '<polyline points="22,6 12,13 2,6"/>' +
+        '</svg>' +
+      '</span>' +
+      '<span class="k-button-text">Invitations</span>';
+    // Let Kirby's SPA router handle the click instead of full-page navigation.
+    btn.addEventListener('click', function (e) {
+      if (window.panel?.view?.open) {
+        e.preventDefault();
+        window.panel.view.open('/users/invitations');
+      }
+    });
+    btnGroup.appendChild(btn);
+  }
+
+  // Observe DOM for view changes (Kirby is an SPA).
+  var mo = new MutationObserver(function () { inject(); });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      inject();
+      mo.observe(document.body, { childList: true, subtree: true });
+    });
+  } else {
+    inject();
+    mo.observe(document.body, { childList: true, subtree: true });
+  }
+})();
