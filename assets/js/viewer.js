@@ -1161,20 +1161,87 @@ function initViewer(container) {
   }
   animate();
 
-  // ── Handle resize ────────────────────────────────────────────────────────
-  var observer = new ResizeObserver(function () {
+  // ── Visible viewport compensation ────────────────────────────────────────
+  // On desktop (≥ 1024px) #project-content is absolutely positioned and
+  // overlays the LEFT 420 px of #viewer-container — the WebGL canvas
+  // extends behind the sidebar. Without compensation the camera renders
+  // the model centered on the FULL canvas (x = W/2), so it visually sits
+  // off-center (shifted ~210 px left of where the user expects). Worse,
+  // OrbitControls rotates around a screen-space point that lines up with
+  // the canvas center rather than the visible center, so dragging feels
+  // wrong.
+  //
+  // Fix: ask Three.js to render as if the canvas were `W + sidebarOverlay`
+  // wide, then take only the LEFT W slice. That shifts the world-origin
+  // projection right by exactly the sidebar width / 2, putting the model
+  // — and the orbit pivot — back at the centre of the visible area.
+  function applyVisibleViewport() {
     var w = container.clientWidth;
     var h = container.clientHeight;
-    if (w === 0 || h === 0) return; // Prevent corrupting the projection matrix if element is hidden
+    if (w === 0 || h === 0) return; // ignore hidden/zero-sized transitions
+
     renderer.setSize(w, h);
     labelRenderer.setSize(w, h);
-    camera.aspect = w / h;
+
+    // How much of the viewer is hidden behind the sidebar right now?
+    var sidebarOverlay = 0;
+    var sidebar = document.getElementById('project-content');
+    var contRect = container.getBoundingClientRect();
+    if (sidebar) {
+      var sbRect = sidebar.getBoundingClientRect();
+      var visibleRight = Math.min(sbRect.right, contRect.right);
+      var overlapLeft  = Math.max(sbRect.left, contRect.left);
+      var overlap      = Math.max(0, visibleRight - overlapLeft);
+      // Only count the sidebar as covering the viewer when it's actually
+      // on-screen (mobile drawer collapsed, desktop sidebar slid out via
+      // translateX both report an off-screen rect via getBoundingClientRect).
+      if (sbRect.right > contRect.left + 1 && sbRect.left < contRect.right - 1) {
+        sidebarOverlay = overlap;
+      }
+    }
+
+    if (sidebarOverlay > 1) {
+      var virtualW = w + sidebarOverlay;
+      camera.aspect = virtualW / h;
+      camera.setViewOffset(virtualW, h, 0, 0, w, h);
+    } else {
+      camera.aspect = w / h;
+      camera.clearViewOffset();
+    }
     camera.updateProjectionMatrix();
+
     // Render immediately to prevent canvas clearing flicker during transitions
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera);
-  });
+  }
+
+  // ── Handle resize ────────────────────────────────────────────────────────
+  var observer = new ResizeObserver(applyVisibleViewport);
   observer.observe(container);
+
+  // The sidebar toggles via body.is-info-collapsed, which animates a
+  // transform without resizing the viewer container — so the ResizeObserver
+  // never fires. Watch the body class for changes and re-apply the offset.
+  // After the slide-in/out transition (400 ms per custom.css) we re-apply
+  // once more to settle any sub-pixel rounding from getBoundingClientRect.
+  var _sidebarMo = new MutationObserver(function () {
+    applyVisibleViewport();
+    setTimeout(applyVisibleViewport, 450);
+  });
+  _sidebarMo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+  // Likewise watch the sidebar element itself in case its width changes
+  // for any reason (zoom, font-size override, etc).
+  var sidebarEl = document.getElementById('project-content');
+  if (sidebarEl) {
+    var _sbResize = new ResizeObserver(applyVisibleViewport);
+    _sbResize.observe(sidebarEl);
+  }
+
+  // Initial pass — frameModel() in load() also calls this indirectly via
+  // updateProjectionMatrix(), but doing it once up-front guarantees the
+  // very first frame has the right aspect even before any resize event.
+  applyVisibleViewport();
 
   // ── tap on empty canvas deactivates active hotspot ───────────────────────
   // use pointerdown/pointerup so we can distinguish a tap from an orbit drag

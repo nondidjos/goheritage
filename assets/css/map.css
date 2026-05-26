@@ -324,6 +324,15 @@ main#map-main {
     height: 100%;
 }
 
+/* Fold toggle: butt right up against the panel's right edge instead of
+   inheriting the default 0.75rem inset from .fold-toggle (which made it
+   look like it was floating mid-map). 2px gap = panel border + a hair
+   of breathing room. */
+#map-fold-toggle {
+    left: 2px;
+    top: 0.5rem;
+}
+
 /* ── Custom MapLibre marker ── */
 .map-marker {
     width: 24px;

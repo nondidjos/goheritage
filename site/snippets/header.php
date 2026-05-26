@@ -53,15 +53,16 @@ if ($isMapPage) {
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.16.0/dist/maplibre-gl.css">
   <?php endif ?>
   <?php
-  // Only load the Three.js viewer when there is no external viewer URL set.
-  // If viewer_url is filled in, the project page renders an iframe instead —
-  // loading Three.js would be wasteful and serves no purpose.
+  // Only load the Three.js *scripts* when there is no external viewer URL.
+  // The styles in viewer.css (chips, panes, spec card, poi sections…) apply
+  // to every project page including iframe-only ones, so we always load the
+  // stylesheet — just not the 30+ KB of three.js when it isn't needed.
   $needsThreeJs = $isProjectPage && $page->viewer_url()->isEmpty();
   if ($isProjectPage): ?>
   <?= css('assets/css/lightbox.css') ?>
+  <?= css('assets/css/viewer.css') ?>
   <?php endif ?>
   <?php if ($needsThreeJs): ?>
-  <?= css('assets/css/viewer.css') ?>
   <?php
     // Three.js is loaded from a CDN in production (so we don't have to ship
     // node_modules to the server) and from local node_modules in development

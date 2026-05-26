@@ -1,0 +1,437 @@
+/* ======================================================================
+ *  project-ux — custom panel styling for GoHéritage project pages
+ *
+ *  Scoped under `body.gh-project-edit` (set by the JS injector when on a
+ *  project page) so none of these rules leak into other panel views.
+ *
+ *  Three visual systems live in this file:
+ *
+ *    1. Header visibility pill + dropdown
+ *    2. Per-section card chrome (replaces Kirby's stock .k-section look)
+ *    3. Floating edit / save / cancel chip docked top-right of each card
+ *
+ *  Where Kirby uses inline styles or higher-specificity selectors we use
+ *  `!important` — there's no graceful way to win those battles otherwise.
+ * ====================================================================== */
+
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  1. Visibility pill + dropdown (page header)
+ * ────────────────────────────────────────────────────────────────────── */
+
+.gh-visibility {
+  position: relative;
+  display: inline-flex;
+}
+
+/*  The trigger IS a real Kirby <k-button> now. Don't restyle it —
+    Kirby's own button vocabulary makes it look identical to settings /
+    status / preview / open. Only thing we ever override here is to
+    reset any inherited styles a parent might leak. */
+.gh-visibility__trigger { font: inherit; }
+
+/*  Dropdown panel — light card, dark popover shadow. */
+.gh-visibility__panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 1000;
+  min-width: 19rem;
+  max-width: 24rem;
+  background: #fff;
+  color: #1a1a1a;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 12px 28px rgba(0, 0, 0, 0.18);
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.875rem;
+}
+
+.gh-visibility__opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.6rem 0.7rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #1a1a1a;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.1s ease;
+}
+.gh-visibility__opt:hover,
+.gh-visibility__opt:focus-visible {
+  background: rgba(0, 0, 0, 0.04);
+  outline: none;
+}
+
+/*  Selected state — INK-FILLED so text and icon are always white and the
+    selection is unambiguous. This is the fix for the prior wash-out: a
+    pale tinted bg with default-color text just disappeared against
+    Kirby's subtly-colored hover states.                                */
+.gh-visibility__opt.is-active {
+  background: #1a1a1a;
+  color: #fff;
+}
+.gh-visibility__opt.is-active .gh-visibility__opt-icon,
+.gh-visibility__opt.is-active .gh-visibility__opt-check {
+  color: #fff !important;
+}
+.gh-visibility__opt.is-active strong,
+.gh-visibility__opt.is-active .gh-visibility__opt-help {
+  color: #fff !important;
+}
+.gh-visibility__opt.is-active .gh-visibility__opt-help {
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+.gh-visibility__opt-icon {
+  flex-shrink: 0;
+  margin-top: 0.15em;
+  width: 1.15em;
+  height: 1.15em;
+  color: #1a1a1a;
+}
+
+.gh-visibility__opt-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.gh-visibility__opt-text strong {
+  font-weight: 600;
+  line-height: 1.25;
+  color: #1a1a1a;
+}
+.gh-visibility__opt-help {
+  font-size: 0.78rem;
+  color: rgba(0, 0, 0, 0.55);
+  line-height: 1.35;
+}
+.gh-visibility__opt-check {
+  flex-shrink: 0;
+  margin-top: 0.2em;
+  width: 1em;
+  height: 1em;
+  color: #1a1a1a;
+}
+
+/* Share-link panel inside the dropdown */
+.gh-visibility__share {
+  margin-top: 0.35rem;
+  padding: 0.6rem 0.7rem 0.7rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.gh-visibility__share-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(0, 0, 0, 0.55);
+}
+.gh-visibility__share-label .k-icon { opacity: 0.7; }
+.gh-visibility__share-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 5px;
+  padding: 0.25rem 0.35rem;
+}
+.gh-visibility__share-row input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.78rem;
+  color: #1a1a1a;
+  padding: 0.25rem 0;
+}
+.gh-visibility__share-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.5rem;
+  border: 0;
+  border-radius: 4px;
+  background: #1a1a1a;
+  color: #fff;
+  cursor: pointer;
+}
+.gh-visibility__share-copy:hover { background: #2a2a2a; }
+.gh-visibility__share-copy .k-icon { width: 0.95em; height: 0.95em; color: #fff !important; }
+.gh-visibility__share-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.55);
+  font-style: italic;
+}
+.gh-visibility__share-empty .k-icon { opacity: 0.7; }
+
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  2. Section cards — replace Kirby's stock chrome on project pages
+ *
+ *  Scoped under `body.gh-project-edit` and the `.gh-section` class the
+ *  JS injector adds. Cards inherit the panel's background colour so
+ *  they don't stand out as bright white boxes against light or dark
+ *  themes — only the 1px border + rounded corners delineate them.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/*  Card itself — transparent fill, border only. No hover effect
+    (the user explicitly didn't want it). */
+body.gh-project-edit .k-section.gh-section {
+  position: relative;
+  background: transparent !important;
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.10)) !important;
+  border-radius: var(--rounded, 4px) !important;
+  padding: 1.25rem 1.5rem 1.4rem !important;
+  margin: 0 0 1rem !important;
+  box-shadow: none !important;
+}
+
+/*  Active (editing) card — ink border + slight tint marks the live one. */
+body.gh-project-edit .gh-section.is-editing {
+  border-color: var(--color-text, #1a1a1a) !important;
+  background: var(--color-back, rgba(0, 0, 0, 0.02)) !important;
+}
+
+/*  Disabled state when another section is in edit mode. */
+body.gh-project-edit .gh-section.is-disabled { opacity: 0.5; }
+body.gh-project-edit .gh-section.is-disabled .gh-section__dock { pointer-events: none; }
+
+/*  Section header is a flex row: headline left, edit dock right. */
+body.gh-project-edit .gh-section .k-section-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 1rem !important;
+  padding: 0 0 0.75rem 0 !important;
+  margin: 0 0 1rem 0 !important;
+  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+}
+body.gh-project-edit .gh-section .k-section-header .k-headline,
+body.gh-project-edit .gh-section .k-section-header h2 {
+  font-family: inherit !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  color: var(--color-text, #1a1a1a) !important;
+  margin: 0 !important;
+  line-height: 1.3 !important;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+
+/*  Field-level spacing: let Kirby own internal field layout. We just
+    give the field labels a slightly more dashboard-y look without
+    breaking the input chrome. The earlier rule wiped k-field padding
+    globally which broke blocks, structure, files, and tags rendering. */
+body.gh-project-edit .gh-section .k-field > .k-field-header,
+body.gh-project-edit .gh-section .k-field > label.k-label {
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55)) !important;
+}
+
+/*  Read-only mode — disable interaction and mute affordances, but DON'T
+    strip Kirby's input chrome. That earlier rule (`border: 0`,
+    `background: transparent`) broke files/blocks/structure rendering
+    because those field types build their layout on top of those styles.
+    Now we leave Kirby's visuals intact and just block interaction. */
+body.gh-project-edit .gh-section:not(.is-editing) .k-field input,
+body.gh-project-edit .gh-section:not(.is-editing) .k-field textarea,
+body.gh-project-edit .gh-section:not(.is-editing) .k-field select,
+body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-input,
+body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-toggle,
+body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-toggles,
+body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-tags-input,
+body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-blocks,
+body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-structure,
+body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-files-input,
+body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-files-field-preview {
+  pointer-events: none !important;
+  user-select: text !important;
+}
+
+/*  Faded affordance buttons in lock mode (Add block, Upload, etc.) */
+body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-button {
+  pointer-events: none !important;
+  opacity: 0.4;
+}
+
+/*  Hide help text and counters in read-only mode — they're guidance for
+    editing, not for reading. */
+body.gh-project-edit .gh-section:not(.is-editing) .k-field > .k-help,
+body.gh-project-edit .gh-section:not(.is-editing) .k-field-counter {
+  display: none !important;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Sticky tabs bar — the tab strip stays pinned to the top of the
+ *  viewport while the user scrolls through the (potentially long)
+ *  list of section cards.
+ *
+ *  Scoped to project pages so it doesn't change behaviour elsewhere.
+ *  z-index sits above section cards but below dialogs.
+ * ────────────────────────────────────────────────────────────────────── */
+body.gh-project-edit .k-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--color-bg, #fff);
+  /* Subtle bottom shadow once content slides under it. */
+  box-shadow: 0 1px 0 var(--color-border, rgba(0, 0, 0, 0.06)),
+              0 2px 6px rgba(0, 0, 0, 0.04);
+  margin-left: calc(-1 * var(--spacing-6, 1.5rem));
+  margin-right: calc(-1 * var(--spacing-6, 1.5rem));
+  padding-left: var(--spacing-6, 1.5rem);
+  padding-right: var(--spacing-6, 1.5rem);
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  3. Floating edit / save / cancel chip
+ *
+ *  Docked top-right of every editable section card. The dock holds three
+ *  buttons; the JS toggles which are visible based on edit state.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/*  Dock — sits flush with the section card's top-right padding line,
+    aligned vertically with the headline so it reads as part of the
+    section's header, not floating mid-content. */
+.gh-section__dock {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.5rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/*  Edit buttons — mimic Kirby's k-button look:
+      - sharp 3px corners (not pill)
+      - flat fill, 1px border
+      - icon + text aligned, modest tracking
+      - filled variant uses Kirby's --color-text as the ink. */
+.gh-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.15));
+  border-radius: 3px;
+  background: var(--color-bg, #fff);
+  color: var(--color-text, #1a1a1a);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1;
+  transition: background 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+}
+
+.gh-edit-btn:hover:not(:disabled) {
+  background: var(--color-back, rgba(0, 0, 0, 0.04));
+  border-color: var(--color-text, #1a1a1a);
+}
+.gh-edit-btn:focus-visible {
+  outline: 2px solid var(--color-focus, #4271ae);
+  outline-offset: 1px;
+}
+.gh-edit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.gh-edit-btn__icon {
+  flex-shrink: 0;
+  width: 0.95em;
+  height: 0.95em;
+  color: currentColor;
+}
+
+/*  Save variant — filled ink, white text. Matches Kirby's `theme=positive`
+    primary-action button shape but with our own colour for stronger
+    contrast against the panel background. */
+.gh-edit-btn--save {
+  background: var(--color-text, #1a1a1a);
+  border-color: var(--color-text, #1a1a1a);
+  color: var(--color-bg, #fff);
+}
+.gh-edit-btn--save:hover:not(:disabled) {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+/*  Cancel variant — same as default outlined but tagged for completeness. */
+.gh-edit-btn--cancel { /* inherits default */ }
+
+.gh-edit-btn--save.is-loading .gh-edit-btn__icon {
+  animation: gh-edit-spin 0.9s linear infinite;
+}
+@keyframes gh-edit-spin { to { transform: rotate(360deg); } }
+
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  4. Legacy share-link field (used by old blueprints — kept theme-safe)
+ * ────────────────────────────────────────────────────────────────────── */
+
+.goheritage-share-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 5px;
+}
+.goheritage-share-link__icon { flex-shrink: 0; color: rgba(0, 0, 0, 0.55); }
+.goheritage-share-link input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  color: #1a1a1a;
+  cursor: text;
+  padding: 0.25rem 0;
+}
+.goheritage-share-link__empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.55);
+  font-style: italic;
+  margin: 0;
+}
+.goheritage-share-link__empty .k-icon { opacity: 0.7; }

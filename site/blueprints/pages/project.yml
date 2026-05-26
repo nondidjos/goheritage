@@ -6,150 +6,260 @@ num: 0
 status:
   draft:
     label: Brouillon
-    text: Pas encore visible sur la carte.
+    text: Page non finalisée — invisible publiquement.
   listed:
-    label: Publié
-    text: Visible sur la carte et le site.
+    label: Enregistré
+    text: La visibilité publique dépend du réglage « Qui peut voir cette page ? ».
+
+# Header buttons (Kirby renders these in the page header, top right).
+# Order: open · preview · visibility (our custom dropdown) · settings · status.
+buttons:
+  - open
+  - preview
+  - visibility
+  - settings
+  - status
 
 tabs:
-  # ── Tab 1 : Contenu ────────────────────────────────────────────────────────
-  content:
-    label: Contenu
+
+  # ─────────────────────────────────────────────────────────────────────
+  #  Tab 1 — Aperçu
+  #
+  #  Visibility, general info, description, content blocks, tags.
+  #  Sections render as separate cards so the page reads top-to-bottom
+  #  as a clean read-only doc until the user clicks "Modifier".
+  # ─────────────────────────────────────────────────────────────────────
+  overview:
+    label: Aperçu
     icon: text
-    fields:
-      description:
-        type: textarea
-        label: Description courte
-        help: Résumé affiché sous le titre et sur les cartes du site.
-        size: small
+    sections:
 
-      text:
-        type: blocks
-        label: Contenu détaillé
-        fieldsets:
-          - heading
-          - text
-          - image
-          - gallery
-          - video
-          - quote
-          - section
+      # ── Visibility is controlled from the page header ─────────────
+      # The dropdown next to the status button lets you switch between
+      # Privé / Avec un lien / Public and exposes the share URL inline.
+      # The fields below back that dropdown — kept as hidden inputs so
+      # the values still serialise to content.txt.
+      visibility_meta:
+        type: fields
+        fields:
+          visibility:
+            type: hidden
+          share_token:
+            type: hidden
 
-      gallery:
-        type: files
-        label: Galerie
-        layout: cards
-        size: medium
-        help: Images affichées dans la grille de droite de la page projet.
-        uploads: image
-        query: page.images.template('image')
+      # ── Sharing: what is exposed when the page is shared ──────────
+      # Only relevant when visibility ≠ private. Hidden otherwise so
+      # the form stays focused on the project's actual content.
+      sharing_section:
+        type: fields
+        headline: Partage
+        when:
+          visibility:
+            - public
+            - link
+        fields:
+          sharing_info:
+            label: false
+            type: info
+            theme: info
+            text: >
+              **Partage actif** — utilisez le menu **Visibilité** dans l'en-tête
+              pour basculer ou copier le lien. Choisissez ci-dessous les sections
+              qui apparaîtront aux visiteurs.
 
-  # ── Tab 2 : Fiche technique ────────────────────────────────────────────────
-  info:
-    label: Fiche technique
-    icon: table
-    columns:
-      - width: 1/2
+          visible_sections:
+            type: checkboxes
+            label: Sections visibles publiquement
+            columns: 2
+            options:
+              model:       Modèle 3D
+              info:        Fiche technique
+              gallery:     Galerie d'images
+              plans:       Plans & documents
+              annotations: Points d'intérêt
+            default:
+              - model
+              - info
+              - gallery
+              - annotations
+
+      # ── General info / fiche technique ───────────────────────────
+      info_section:
+        type: fields
+        headline: Présentation
         fields:
           cover: fields/cover
 
+          description:
+            type: textarea
+            label: Description courte
+            help: Résumé affiché sous le titre et sur les cartes du site.
+            size: small
+
+      spec_section:
+        type: fields
+        headline: Fiche technique
+        fields:
           location:
+            width: 1/2
             type: text
             label: Lieu
             placeholder: "ex. Bruxelles, Belgique"
+            icon: pin
+
+          date:
+            width: 1/2
+            type: date
+            label: Date du scan
+            default: now
 
           construction_date:
+            width: 1/2
             type: text
             label: Date de construction
             placeholder: "ex. XVe siècle, 1889"
 
           architect:
+            width: 1/2
             type: text
             label: Architecte / Créateur
             placeholder: "ex. Victor Horta"
 
           style:
+            width: 1/2
             type: text
             label: Style architectural
             placeholder: "ex. Art Nouveau, Gothique"
 
           dimensions:
+            width: 1/2
             type: text
             label: Dimensions (L × l × H)
             placeholder: "ex. 40 × 20 × 15 m"
 
-      - width: 1/2
-        fields:
           protection_status:
+            width: 1/2
             type: select
             label: Statut de protection
+            icon: protected
             options:
-              classé: Classé Monument Historique
-              unesco: Inscrit au patrimoine mondial de l'UNESCO
+              classé:   Classé Monument Historique
+              unesco:   Inscrit au patrimoine mondial de l'UNESCO
               regional: Inventaire Régional
-              none: Non protégé
+              none:     Non protégé
 
+      # ── Geolocation ───────────────────────────────────────────────
+      geo_section:
+        type: fields
+        headline: Géolocalisation
+        fields:
           location_search:
             type: location-search
             label: Recherche de coordonnées
             help: Tapez un nom de lieu pour remplir automatiquement la latitude et la longitude.
 
           lat:
+            width: 1/2
             type: number
             label: Latitude
             step: 0.000001
             placeholder: "ex. 50.8503"
 
           lng:
+            width: 1/2
             type: number
             label: Longitude
             step: 0.000001
             placeholder: "ex. 4.3517"
 
-          date:
-            type: date
-            label: Date du scan
-            default: now
+      # ── Content blocks ────────────────────────────────────────────
+      content_section:
+        type: fields
+        headline: Contenu détaillé
+        fields:
+          text:
+            type: blocks
+            label: false
+            fieldsets:
+              - heading
+              - text
+              - image
+              - gallery
+              - video
+              - quote
+              - section
 
+      # ── Gallery ───────────────────────────────────────────────────
+      gallery_section:
+        type: fields
+        headline: Galerie d'images
+        fields:
+          gallery:
+            type: files
+            label: false
+            layout: cards
+            size: medium
+            help: Images affichées dans la grille de droite de la page projet.
+            uploads: image
+            query: page.images.template('image')
+
+      # ── Tags ──────────────────────────────────────────────────────
+      tags_section:
+        type: fields
+        headline: Tags
+        fields:
           tags:
+            width: 1/2
             type: tags
             label: Tags
             options: query
             query: site.index.pluck("tags", ",", true)
-            help: "Commencez à taper pour réutiliser un tag existant ou appuyez sur Entrée pour en créer un nouveau."
+            help: Réutilisez un tag existant ou créez-en un nouveau.
 
           primary_tag:
+            width: 1/2
             type: select
             label: Tag mis en avant
             placeholder: "Premier tag par défaut"
             options: query
             query: site.index.sortedUniqueTags()
-            help: "Tag affiché en badge sur les cartes. Si vide, le premier tag est utilisé."
+            help: Affiché en badge sur les cartes.
 
-  # ── Tab 3 : Modèle 3D ─────────────────────────────────────────────────────
-  viewer:
+
+  # ─────────────────────────────────────────────────────────────────────
+  #  Tab 2 — Modèle 3D
+  #
+  #  Three.js viewer config + textured OBJ/GLB pairs for exterior and
+  #  interior + hotspot JSON + point-of-interest annotations.
+  # ─────────────────────────────────────────────────────────────────────
+  model:
     label: Modèle 3D
     icon: box
-    columns:
-      - width: 1/2
+    sections:
+
+      viewer_settings:
+        type: fields
+        headline: Réglages du viewer
         fields:
           viewer_url:
+            width: 1/2
             type: url
             label: Viewer externe
             placeholder: "https://…"
             help: Potree, Sketchfab, etc. Remplace le viewer Three.js si renseigné.
 
-      - width: 1/2
-        fields:
           model_toggle:
+            width: 1/2
             type: toggle
-            label: Quel modèle afficher par défaut ?
+            label: Modèle affiché par défaut
             text:
               - Extérieur
               - Intérieur
             default: false
 
-      - width: 1/1
+      pipeline_info:
+        type: fields
+        headline: Pipeline de production
         fields:
           obj_info:
             label: false
@@ -157,16 +267,17 @@ tabs:
             theme: info
             text: >
               **Pipeline OBJ** — Exportez le modèle en OBJ + texture depuis Blender,
-              puis les hotspots en JSON via l'addon GoHéritage (onglet Options de point d'intérêt).
+              puis les hotspots en JSON via l'addon GoHéritage.
               Les textures sont compressées automatiquement à l'upload.
 
-      # ── Fichiers : Extérieur & Intérieur ─────────────────────────────────────
-      - width: 1/1
+      # EXTERIOR
+      exterior_files:
+        type: fields
+        headline: Modèle extérieur
         fields:
-          # EXTERIOR
           exterior_accordion:
             type: accordion-trigger
-            label: Modèle Extérieur
+            label: Fichiers — Extérieur
             target: exterior
             defaultOpen: true
             linkedToggle: model_toggle
@@ -185,19 +296,23 @@ tabs:
             label: Texture diffuse
             accept: ".jpg,.jpeg,.png"
             template: image
-            help: Texture couleur. Déposez un PNG puis choisissez la qualité et cliquez sur → pour comprimer en WebP.
+            help: Texture couleur. Déposez un PNG puis comprimez en WebP.
 
           model_hotspots_json:
             type: upload-overwrite
             label: Hotspots JSON — Extérieur
             accept: ".json"
             template: default
-            help: "JSON exporté par l'addon Blender. Contient les positions 3D des points d'intérêt."
+            help: JSON exporté par l'addon Blender.
 
-          # INTERIOR
+      # INTERIOR
+      interior_files:
+        type: fields
+        headline: Modèle intérieur
+        fields:
           interior_accordion:
             type: accordion-trigger
-            label: Modèle Intérieur
+            label: Fichiers — Intérieur
             target: interior
             defaultOpen: false
             linkedToggle: model_toggle
@@ -217,98 +332,62 @@ tabs:
             label: Texture diffuse
             accept: ".jpg,.jpeg,.png"
             template: image
-            help: Texture couleur. Déposez un PNG puis choisissez la qualité et cliquez sur → pour comprimer en WebP.
+            help: Texture couleur. Déposez un PNG puis comprimez en WebP.
 
           model_hotspots_json_interior:
             type: upload-overwrite
             label: Hotspots JSON — Intérieur
             accept: ".json"
             template: default
-            help: "JSON exporté par l'addon Blender pour le modèle intérieur."
+            help: JSON exporté par l'addon Blender pour le modèle intérieur.
 
-
-  # ── Tab 4 : Fichiers ──────────────────────────────────────────────────────
-  files:
-    label: Fichiers
-    icon: file
-    columns:
-      - width: 1/1
-        fields:
-          page_files:
-            type: page-files-list
-
-  # ── Tab 5 : Points d'intérêt ──────────────────────────────────────────────
-  annotations:
-    label: Points d'intérêt
-    icon: pin
-    columns:
-      - width: 1/1
+      # ── Points d'intérêt (folded into the 3D tab) ──────────────────
+      annotations_section:
+        type: fields
+        headline: Points d'intérêt
         fields:
           annotations_info:
             label: false
             type: info
             text: >
-              Renseignez ici les **titres et descriptions** de chaque point d'intérêt.
+              Renseignez les **titres et descriptions** de chaque point d'intérêt.
               L'identifiant doit correspondre à celui du JSON Blender (ex. `hotspot_01`).
-              Les positions 3D sont lues depuis le JSON uploadé dans l'onglet **Modèle 3D**.
 
+          # Single annotations structure for both exterior and interior
+          # hotspots. Each row carries a `location` column so the viewer
+          # knows which model to attach the marker to. Two previously
+          # separate fields (`annotations` + `annotations_interior`) were
+          # merged in May 2026 — existing pages were migrated by
+          # `scripts/migrate-annotations.php`.
           annotations:
             type: structure
-            label: Hotspots — Extérieur
+            label: Points d'intérêt
+            sortBy: location asc
             columns:
+              location:
+                width: 1/12
+                label: Modèle
               hotspot_id:
-                width: 1/6
+                width: 2/12
                 label: ID
               title:
-                width: 1/4
+                width: 3/12
                 label: Titre
               camera_mode:
-                width: 1/6
+                width: 2/12
                 label: Mode
               description:
-                width: 5/12
+                width: 4/12
                 label: Description
             fields:
-              hotspot_id:
-                type: text
-                label: Identifiant
-                placeholder: "hotspot_01"
-                help: Doit correspondre au nom de l'Empty dans Blender.
-              title:
-                type: text
-                label: Titre
-                placeholder: "ex. Voûte principale"
-              camera_mode:
+              location:
                 type: select
-                label: Comportement au clic
-                default: fly
+                label: Modèle
+                default: exterior
+                required: true
                 options:
-                  fly: Voler vers le point
-                  orbit: Orbiter autour du point
-                  auto-orbit: Orbite automatique (360°)
-                help: "Voler : anime la caméra vers la position. Orbiter : idem, puis permet d'orbiter autour. Auto : vol + rotation 360° automatique."
-              description:
-                type: writer
-                label: Description
-                help: Texte affiché dans le panneau latéral quand ce point est sélectionné.
-
-          annotations_interior:
-            type: structure
-            label: Hotspots — Intérieur
-            columns:
-              hotspot_id:
-                width: 1/6
-                label: ID
-              title:
-                width: 1/4
-                label: Titre
-              camera_mode:
-                width: 1/6
-                label: Mode
-              description:
-                width: 5/12
-                label: Description
-            fields:
+                  exterior: Extérieur
+                  interior: Intérieur
               hotspot_id:
                 type: text
                 label: Identifiant
