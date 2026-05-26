@@ -297,106 +297,48 @@ body.gh-project-edit .gh-section:not(.is-editing) .k-field-counter {
  *  Scoped to project pages so it doesn't change behaviour elsewhere.
  *  z-index sits above section cards but below dialogs.
  * ────────────────────────────────────────────────────────────────────── */
+/*  Sticky tabs — pinned BELOW the page title. Kirby's .k-header is
+    already sticky at top:0 via its own CSS; we measure the header
+    height in JS and publish it as --gh-header-height so the tabs lock
+    exactly underneath. Background uses --panel-color-back (the panel's
+    own page bg) so the sticky tabs blend with the surrounding view
+    instead of looking like a floating white strip. */
 body.gh-project-edit .k-tabs {
   position: sticky;
-  top: 0;
-  z-index: 30;
-  background: var(--color-bg, #fff);
-  /* Subtle bottom shadow once content slides under it. */
-  box-shadow: 0 1px 0 var(--color-border, rgba(0, 0, 0, 0.06)),
-              0 2px 6px rgba(0, 0, 0, 0.04);
-  margin-left: calc(-1 * var(--spacing-6, 1.5rem));
-  margin-right: calc(-1 * var(--spacing-6, 1.5rem));
-  padding-left: var(--spacing-6, 1.5rem);
-  padding-right: var(--spacing-6, 1.5rem);
+  top: var(--gh-header-height, 4.25rem);
+  z-index: var(--z-toolbar, 30);
+  background: var(--panel-color-back, var(--color-bg, #f7f6f4));
+  box-shadow: 0 1px 0 var(--color-border, rgba(0, 0, 0, 0.06));
 }
 
 
 /* ──────────────────────────────────────────────────────────────────────
- *  3. Floating edit / save / cancel chip
+ *  3. Edit-button dock
  *
- *  Docked top-right of every editable section card. The dock holds three
- *  buttons; the JS toggles which are visible based on edit state.
+ *  Lives inline inside each section card's .k-section-header (flex row),
+ *  aligned right. Buttons are real .k-button elements — Kirby's stylesheet
+ *  handles all visuals (hover, focus, dark theme, size tokens). We add
+ *  zero custom button chrome here, only the spacing between them.
  * ────────────────────────────────────────────────────────────────────── */
 
-/*  Dock — sits flush with the section card's top-right padding line,
-    aligned vertically with the headline so it reads as part of the
-    section's header, not floating mid-content. */
 .gh-section__dock {
-  position: absolute;
-  top: 1.2rem;
-  right: 1.5rem;
-  z-index: 10;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-}
-
-/*  Edit buttons — mimic Kirby's k-button look:
-      - sharp 3px corners (not pill)
-      - flat fill, 1px border
-      - icon + text aligned, modest tracking
-      - filled variant uses Kirby's --color-text as the ink. */
-.gh-edit-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.7rem;
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.15));
-  border-radius: 3px;
-  background: var(--color-bg, #fff);
-  color: var(--color-text, #1a1a1a);
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  cursor: pointer;
-  white-space: nowrap;
-  line-height: 1;
-  transition: background 0.1s ease, border-color 0.1s ease, color 0.1s ease;
-}
-
-.gh-edit-btn:hover:not(:disabled) {
-  background: var(--color-back, rgba(0, 0, 0, 0.04));
-  border-color: var(--color-text, #1a1a1a);
-}
-.gh-edit-btn:focus-visible {
-  outline: 2px solid var(--color-focus, #4271ae);
-  outline-offset: 1px;
-}
-.gh-edit-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.gh-edit-btn__icon {
   flex-shrink: 0;
-  width: 0.95em;
-  height: 0.95em;
-  color: currentColor;
 }
 
-/*  Save variant — filled ink, white text. Matches Kirby's `theme=positive`
-    primary-action button shape but with our own colour for stronger
-    contrast against the panel background. */
-.gh-edit-btn--save {
-  background: var(--color-text, #1a1a1a);
-  border-color: var(--color-text, #1a1a1a);
-  color: var(--color-bg, #fff);
+/*  In read-only sections, dim the dock slightly so it doesn't compete
+    with the headline. Comes back to full opacity on hover or when the
+    section is being edited. */
+body.gh-project-edit .gh-section:not(.is-editing) .gh-section__dock {
+  opacity: 0.7;
+  transition: opacity 0.12s ease;
 }
-.gh-edit-btn--save:hover:not(:disabled) {
-  background: #000;
-  border-color: #000;
-  color: #fff;
+body.gh-project-edit .gh-section:not(.is-editing):hover .gh-section__dock,
+body.gh-project-edit .gh-section.is-editing .gh-section__dock {
+  opacity: 1;
 }
-
-/*  Cancel variant — same as default outlined but tagged for completeness. */
-.gh-edit-btn--cancel { /* inherits default */ }
-
-.gh-edit-btn--save.is-loading .gh-edit-btn__icon {
-  animation: gh-edit-spin 0.9s linear infinite;
-}
-@keyframes gh-edit-spin { to { transform: rotate(360deg); } }
 
 
 /* ──────────────────────────────────────────────────────────────────────
