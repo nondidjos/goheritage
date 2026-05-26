@@ -46,8 +46,10 @@ panel.plugin('goheritage/project-ux', {
 
           <div
             v-if="open"
+            ref="panel"
             class="gh-visibility__panel"
             role="menu"
+            :style="panelStyle"
             @click.stop
           >
             <button
@@ -104,10 +106,19 @@ panel.plugin('goheritage/project-ux', {
       data() {
         return {
           open: false,
+          // Computed each time we open — viewport-anchored top/right so
+          // position:fixed lifts the panel out of every parent stacking
+          // context (was rendering under the sticky .k-tabs strip).
+          panelPos: { top: 0, right: 0 },
+          // Three states — each maps to a (status, visibility) pair.
+          // status=draft/listed is Kirby's native publish flag; visibility
+          // is our own private/link/public layer. Brouillon means literally
+          // unpublished. Avec un lien = published-but-unlisted, accessible
+          // via the shared URL. Public = published + listed on the map.
           options: [
-            { value: 'private', label: 'Privé',         icon: 'lock',  help: 'Vous et les administrateurs uniquement.' },
-            { value: 'link',    label: 'Avec un lien',  icon: 'url',   help: 'Accessible via un lien partagé.'         },
-            { value: 'public',  label: 'Public',        icon: 'globe', help: 'Listé sur la carte du site.'             },
+            { value: 'brouillon', label: 'Brouillon',     icon: 'edit',  help: 'Page non publiée — vous et les administrateurs uniquement.', status: 'draft',  visibility: 'private' },
+            { value: 'link',      label: 'Avec un lien',  icon: 'url',   help: 'Page publiée mais non listée. Accessible via un lien partagé.', status: 'listed', visibility: 'link'    },
+            { value: 'public',    label: 'Public',        icon: 'globe', help: 'Page publiée et listée sur la carte GoHéritage.',              status: 'listed', visibility: 'public'  },
           ],
         };
       },
@@ -115,10 +126,15 @@ panel.plugin('goheritage/project-ux', {
       computed: {
         model()   { return this.$panel?.view?.props?.model ?? null; },
         content() { return this.model?.content ?? {};               },
+        // Resolve the current option by inspecting both status + visibility.
         current() {
+          if (this.model?.status === 'draft') return 'brouillon';
           const v = this.content.visibility;
-          if (v === 'private' || v === 'link' || v === 'public') return v;
-          return this.model?.status === 'listed' ? 'public' : 'private';
+          if (v === 'link')   return 'link';
+          if (v === 'public') return 'public';
+          // Listed page without explicit visibility — treat as public (the
+          // legacy default before the visibility field existed).
+          return 'public';
         },
         currentOption() {
           return this.options.find(o => o.value === this.current) || this.options[0];
@@ -129,39 +145,92 @@ panel.plugin('goheritage/project-ux', {
           if (!token || !base) return null;
           return base.split('?')[0].split('#')[0] + '?key=' + token;
         },
+        // Inline style for the panel — viewport-anchored coords computed
+        // at the moment the dropdown opens.
+        panelStyle() {
+          return {
+            position: 'fixed',
+            top:   this.panelPos.top   + 'px',
+            right: this.panelPos.right + 'px',
+            zIndex: 99999,
+          };
+        },
       },
 
       mounted() {
         this._docHandler = (e) => {
           if (!this.open) return;
-          if (this.$el && !this.$el.contains(e.target)) this.open = false;
+          // Panel uses position:fixed so it's no longer a DOM child of
+          // .gh-visibility — check both the trigger AND the panel ref.
+          const inTrigger = this.$el && this.$el.contains(e.target);
+          const inPanel   = this.$refs.panel && this.$refs.panel.contains(e.target);
+          if (!inTrigger && !inPanel) this.open = false;
         };
         document.addEventListener('click', this._docHandler);
         this._escHandler = (e) => { if (e.key === 'Escape') this.open = false; };
         document.addEventListener('keydown', this._escHandler);
+
+        // Keep the floating panel pinned to the trigger as the user
+        // scrolls or resizes (passive listeners — no jank).
+        this._repositionHandler = () => { if (this.open) this.recomputePosition(); };
+        window.addEventListener('scroll', this._repositionHandler, true);
+        window.addEventListener('resize', this._repositionHandler);
       },
 
       beforeDestroy() {
         if (this._docHandler) document.removeEventListener('click', this._docHandler);
         if (this._escHandler) document.removeEventListener('keydown', this._escHandler);
+        if (this._repositionHandler) {
+          window.removeEventListener('scroll', this._repositionHandler, true);
+          window.removeEventListener('resize', this._repositionHandler);
+        }
       },
 
       methods: {
-        toggleOpen(e) { e?.stopPropagation?.(); this.open = !this.open; },
+        toggleOpen(e) {
+          e?.stopPropagation?.();
+          this.open = !this.open;
+          if (this.open) this.recomputePosition();
+        },
+
+        // Anchor the dropdown to the trigger's CURRENT viewport position so
+        // it floats correctly even when the page is scrolled. Re-call on
+        // window resize/scroll while open. Right-aligned to the trigger
+        // (panel grows leftwards) so it never overflows past the header.
+        recomputePosition() {
+          this.$nextTick(() => {
+            // The trigger is rendered as a k-button; its root element is
+            // .gh-visibility__trigger. Falling back to the wrapper if the
+            // trigger isn't yet in the DOM tree.
+            const trigger = this.$el?.querySelector?.('.gh-visibility__trigger')
+                         || this.$el;
+            if (!trigger) return;
+            const r = trigger.getBoundingClientRect();
+            this.panelPos = {
+              top:   r.bottom + 6, // 6 px gap below the button
+              right: Math.max(8, window.innerWidth - r.right),
+            };
+          });
+        },
 
         async select(value) {
           if (value === this.current) { this.open = false; return; }
 
+          // Confirm any transition that EXPOSES content — going from
+          // draft/unlisted to publicly listed, or unlocking link sharing
+          // for the first time. Going BACK down (public→link, anything→
+          // brouillon) is silent since it only restricts access.
           const needsConfirm =
-            this.current === 'private' && (value === 'link' || value === 'public');
+            (this.current === 'brouillon' && (value === 'link' || value === 'public')) ||
+            (this.current === 'link' && value === 'public');
           if (needsConfirm) {
-            const isPublic = value === 'public';
+            const opt = this.options.find(o => o.value === value);
             const proceed = await new Promise((resolve) => {
               this.$panel.dialog.open({
                 component: 'k-text-dialog',
                 props: {
-                  icon: isPublic ? 'globe' : 'url',
-                  text: isPublic
+                  icon: opt.icon,
+                  text: value === 'public'
                     ? '<strong>Rendre cette page publique ?</strong><br><br>Elle apparaîtra sur la carte GoHéritage et pourra être indexée.'
                     : '<strong>Activer le partage par lien ?</strong><br><br>Toute personne avec le lien pourra accéder à la page sans compte.',
                   submitButton: { text: 'Confirmer', icon: 'check', theme: 'positive' },
@@ -182,22 +251,37 @@ panel.plugin('goheritage/project-ux', {
 
         async commit(value) {
           if (!this.model) return;
+          const opt = this.options.find(o => o.value === value);
+          if (!opt) return;
           try {
+            // 1. Update the visibility field (our own content). Done via
+            //    the panel content store so versioning stays in sync.
             if (this.$panel.content?.update) {
-              await this.$panel.content.update({ visibility: value });
+              await this.$panel.content.update({ visibility: opt.visibility });
               await this.$panel.content.publish();
             } else {
               await this.$api.patch(
                 'pages/' + this.model.id.replace(/\//g, '+'),
-                { visibility: value }
+                { visibility: opt.visibility }
               );
             }
+
+            // 2. Update the page status (Kirby's native draft/listed).
+            //    Separate endpoint — PATCH /api/pages/{id}/status — so we
+            //    can flip both atomically from the user's perspective.
+            if (opt.status !== this.model.status) {
+              await this.$api.patch(
+                'pages/' + this.model.id.replace(/\//g, '+') + '/status',
+                { status: opt.status, position: null }
+              );
+            }
+
             await this.$panel.view.reload();
-            this.$panel.notification.success('Visibilité mise à jour');
+            this.$panel.notification.success('Statut mis à jour : ' + opt.label);
             this.open = false;
           } catch (e) {
             this.$panel.notification.error(
-              'Impossible de changer la visibilité : ' + (e.message || 'erreur inconnue')
+              'Impossible de mettre à jour : ' + (e.message || 'erreur inconnue')
             );
           }
         },
@@ -302,18 +386,20 @@ panel.plugin('goheritage/project-ux', {
   }
 
   // True if the section contains at least one user-editable field — i.e.
-  // we should attach an edit button. Info-only sections, fully-hidden
-  // sections, and the page-files-list inventory are skipped.
+  // we should attach an edit button. Skipped:
+  //   • info / hidden fields (k-info-field, k-hidden-field)
+  //   • page-files-list: has its own delete UI, edit dock would overlap
+  //   • upload-overwrite: same — own dropzone + delete, doesn't need locking
   function sectionIsEditable(section) {
     if (!section) return false;
-    // Skip sections that are purely info display.
     var fields = section.querySelectorAll('.k-field');
     if (!fields.length) return false;
     for (var i = 0; i < fields.length; i++) {
       var f = fields[i];
-      // Skip info / hidden / our own button wrapper.
-      if (f.classList.contains('k-info-field'))   continue;
-      if (f.classList.contains('k-hidden-field')) continue;
+      if (f.classList.contains('k-info-field'))                       continue;
+      if (f.classList.contains('k-hidden-field'))                     continue;
+      if (f.classList.contains('k-page-files-list-field'))            continue;
+      if (f.classList.contains('k-upload-overwrite-field'))           continue;
       // Anything else counts as editable content.
       return true;
     }
@@ -330,10 +416,11 @@ panel.plugin('goheritage/project-ux', {
     btn.className = 'k-button gh-edit-btn';
     btn.setAttribute('data-variant', 'filled');
     btn.setAttribute('data-theme', theme);
-    btn.setAttribute('data-size', 'sm');
+    // md (default) — sm was too cramped to read comfortably.
+    btn.setAttribute('data-size', 'md');
     btn.innerHTML =
       '<span class="k-button-icon">' +
-        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
           iconSvg(iconType) +
         '</svg>' +
       '</span>' +

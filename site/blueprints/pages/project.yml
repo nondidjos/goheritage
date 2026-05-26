@@ -11,14 +11,18 @@ status:
     label: Enregistré
     text: La visibilité publique dépend du réglage « Qui peut voir cette page ? ».
 
-# Header buttons (Kirby renders these in the page header, top right).
-# Order: open · preview · visibility (our custom dropdown) · settings · status.
+# Header buttons. The "visibility" button (our custom dropdown) is the
+# SINGLE control for publish state — it merges Kirby's native status
+# (draft/listed) with our 3-tier visibility model (privé/lien/public).
+# Picking "Brouillon" sets status=draft + visibility=private; "Avec un
+# lien" sets status=listed + visibility=link; "Public" sets status=listed
+# + visibility=public. The native `status` button is intentionally NOT
+# listed here — it would duplicate the same control.
 buttons:
   - open
   - preview
-  - visibility
   - settings
-  - status
+  - visibility
 
 tabs:
 
@@ -237,6 +241,12 @@ tabs:
     icon: box
     sections:
 
+      # ── Réglages du viewer ───────────────────────────────────────
+      # Combined: viewer URL + default-side toggle + pipeline reminder.
+      # The pipeline note used to live in its own section (pipeline_info)
+      # but that was just a banner — folded in here as an info field at
+      # the bottom of the settings card so it stays close to the upload
+      # workflow without claiming a section of its own.
       viewer_settings:
         type: fields
         headline: Réglages du viewer
@@ -257,32 +267,23 @@ tabs:
               - Intérieur
             default: false
 
-      pipeline_info:
-        type: fields
-        headline: Pipeline de production
-        fields:
-          obj_info:
+          pipeline_note:
             label: false
             type: info
             theme: info
-            text: >
+            text: |
               **Pipeline OBJ** — Exportez le modèle en OBJ + texture depuis Blender,
-              puis les hotspots en JSON via l'addon GoHéritage.
-              Les textures sont compressées automatiquement à l'upload.
+              puis les hotspots en JSON via l'addon GoHéritage. Les textures sont
+              compressées automatiquement à l'upload.
 
-      # EXTERIOR
+      # ── Modèle extérieur ─────────────────────────────────────────
+      # All exterior 3D assets in one section: model, texture, hotspots.
+      # Accordion trigger removed — sections are already collapsible at
+      # the panel level via the edit/lock pattern.
       exterior_files:
         type: fields
         headline: Modèle extérieur
         fields:
-          exterior_accordion:
-            type: accordion-trigger
-            label: Fichiers — Extérieur
-            target: exterior
-            defaultOpen: true
-            linkedToggle: model_toggle
-            openOnTrue: false
-
           model_obj:
             width: 1/2
             type: upload-overwrite
@@ -300,24 +301,16 @@ tabs:
 
           model_hotspots_json:
             type: upload-overwrite
-            label: Hotspots JSON — Extérieur
+            label: Hotspots (JSON)
             accept: ".json"
             template: default
-            help: JSON exporté par l'addon Blender.
+            help: JSON exporté par l'addon Blender pour le modèle extérieur.
 
-      # INTERIOR
+      # ── Modèle intérieur ─────────────────────────────────────────
       interior_files:
         type: fields
         headline: Modèle intérieur
         fields:
-          interior_accordion:
-            type: accordion-trigger
-            label: Fichiers — Intérieur
-            target: interior
-            defaultOpen: false
-            linkedToggle: model_toggle
-            openOnTrue: true
-
           model_obj_interior:
             width: 1/2
             type: upload-overwrite
@@ -336,22 +329,16 @@ tabs:
 
           model_hotspots_json_interior:
             type: upload-overwrite
-            label: Hotspots JSON — Intérieur
+            label: Hotspots (JSON)
             accept: ".json"
             template: default
             help: JSON exporté par l'addon Blender pour le modèle intérieur.
 
-      # ── Points d'intérêt (folded into the 3D tab) ──────────────────
+      # ── Points d'intérêt (titres + descriptions des hotspots) ────
       annotations_section:
         type: fields
         headline: Points d'intérêt
         fields:
-          annotations_info:
-            label: false
-            type: info
-            text: >
-              Renseignez les **titres et descriptions** de chaque point d'intérêt.
-              L'identifiant doit correspondre à celui du JSON Blender (ex. `hotspot_01`).
 
           # Single annotations structure for both exterior and interior
           # hotspots. Each row carries a `location` column so the viewer
@@ -428,7 +415,7 @@ tabs:
   # ─────────────────────────────────────────────────────────────────────
   files:
     label: Fichiers
-    icon: document
+    icon: archive
     sections:
 
       all_files:
@@ -449,7 +436,7 @@ tabs:
   # ─────────────────────────────────────────────────────────────────────
   documents:
     label: Documents
-    icon: folder
+    icon: file-document
     sections:
 
       # ── 1. Plans & relevés ───────────────────────────────────────

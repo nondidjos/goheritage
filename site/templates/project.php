@@ -27,7 +27,16 @@ $canSee = function (string $section) use ($page, $isAdmin) {
 // Define before snippet('header') so the title-bar markup below can use it.
 $isEmbedded = !empty(get('embed'));
 
-snippet('header');
+// ── Visitor-mode chrome ──────────────────────────────────────────────
+// Anyone WITHOUT a panel session (shared-link recipients, casual
+// browsers landing on a public project) gets a stripped-down header:
+// small wordmark + single "Carte des projets" link, no full site nav.
+// Admin and other logged-in users keep the full nav because they
+// actually navigate the site. Embedded mode still strips chrome
+// entirely (iframe consumers don't want anything but the viewer).
+$isVisitor = !$panelUser && !$isEmbedded;
+
+snippet('header', ['isVisitor' => $isVisitor]);
 
 // DRACO decoder ships with three.js. We use the local copy in
 // node_modules so we don't rely on external CDNs which can fail
@@ -161,8 +170,9 @@ $defaultMode = $availableModes[0] ?? 'model';
 
 <div class="items-start pt-0 pb-10">
 
-    <?php if (!$isEmbedded): ?>
-    <!-- Back button (top left) -->
+    <?php if (!$isEmbedded && !$isVisitor): ?>
+    <!-- Back button (admins / logged-in users only — visitors already
+         have the "Carte des projets" CTA in the simplified header). -->
     <div class="col-7 flex items-center mb-6 px-4 pt-4 md:pt-6">
         <a href="<?= $page->parent()->url() ?>" class="inline-flex items-center gap-3 font-mono text-sm md:text-base uppercase tracking-wider text-faint hover:text-ink transition-colors duration-150 no-underline p-2 md:p-3 -m-2 md:-m-3">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="md:w-6 md:h-6">

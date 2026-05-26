@@ -30,12 +30,12 @@
     reset any inherited styles a parent might leak. */
 .gh-visibility__trigger { font: inherit; }
 
-/*  Dropdown panel — light card, dark popover shadow. */
+/*  Dropdown panel — position + z-index are set inline by Vue (it
+    computes viewport-anchored coords from the trigger's rect via
+    position:fixed so the panel can never be trapped under a sticky
+    .k-tabs or any other higher-stack ancestor). The static CSS here
+    handles the visual styling only. */
 .gh-visibility__panel {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
-  z-index: 1000;
   min-width: 19rem;
   max-width: 24rem;
   background: #fff;
@@ -220,25 +220,34 @@ body.gh-project-edit .gh-section.is-editing {
 body.gh-project-edit .gh-section.is-disabled { opacity: 0.5; }
 body.gh-project-edit .gh-section.is-disabled .gh-section__dock { pointer-events: none; }
 
-/*  Section header is a flex row: headline left, edit dock right. */
+/*  Section header is a flex row: headline left, edit dock right.
+    min-height keeps the header at a consistent visual height even when
+    no headline element renders (rare — only for fully-headerless
+    blueprints), so the dock has a stable place to land. */
 body.gh-project-edit .gh-section .k-section-header {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
   gap: 1rem !important;
-  padding: 0 0 0.75rem 0 !important;
-  margin: 0 0 1rem 0 !important;
+  padding: 0 0 0.9rem 0 !important;
+  margin: 0 0 1.1rem 0 !important;
+  min-height: 2.25rem !important;
   border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
 }
+
+/*  Headline — bumped to text-h3 for unambiguous card-title prominence. */
 body.gh-project-edit .gh-section .k-section-header .k-headline,
-body.gh-project-edit .gh-section .k-section-header h2 {
+body.gh-project-edit .gh-section .k-section-header h2,
+body.gh-project-edit .gh-section .k-section-header .k-headline span {
   font-family: inherit !important;
-  font-size: 0.95rem !important;
-  font-weight: 600 !important;
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
   letter-spacing: 0 !important;
   color: var(--color-text, #1a1a1a) !important;
   margin: 0 !important;
   line-height: 1.3 !important;
+}
+body.gh-project-edit .gh-section .k-section-header .k-headline {
   flex: 1 1 auto;
   min-width: 0;
 }

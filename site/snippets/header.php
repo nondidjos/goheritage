@@ -127,7 +127,40 @@ if ($isMapPage) {
 </script>
 <?php endif ?>
 
-<?php if (!$isEmbedded): ?>
+<?php
+// $isVisitor is set by templates that opt in (currently project.php).
+// When true, render a stripped, Matterport-style header: small wordmark
+// on the left, single "Carte des projets" CTA on the right, nothing else.
+// Admins/logged-in users get the full nav; embedded mode renders no
+// header at all.
+$isVisitor = $isVisitor ?? false;
+?>
+
+<?php if (!$isEmbedded && $isVisitor): ?>
+<!-- ── Visitor header: minimal chrome, content-first ──────────────── -->
+<header class="visitor-header sticky top-0 z-50 bg-white">
+  <div class="visitor-header__inner">
+    <a class="visitor-header__brand no-underline hover:no-underline"
+       href="<?= $site->url() ?>"
+       aria-label="<?= $site->title()->html() ?>">
+      <img src="<?= url('assets/logos/goheritage.svg') ?>" alt="GoHéritage" class="visitor-header__logo">
+    </a>
+
+    <a class="visitor-header__cta no-underline"
+       href="<?= url('map') ?>">
+      <span>Carte des projets</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </a>
+  </div>
+</header>
+
+<?php elseif (!$isEmbedded): ?>
+<!-- ── Full site header: navigation for admins / logged-in users ──── -->
 <header class="sticky top-0 z-50 bg-white">
   <div class="grid-7 items-center py-4">
 
