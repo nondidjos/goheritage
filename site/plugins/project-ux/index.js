@@ -28,24 +28,290 @@
 
 panel.plugin('goheritage/project-ux', {
 
+  // ── Custom section component ────────────────────────────────────────
+  //
+  //  project-overview is the single source of truth for the Aperçu tab.
+  //  Renders a Matterport-style card with cover image, meta chips,
+  //  description, tags, and asset-tile rows. Editing happens via
+  //  k-form-dialog opened on click — no inline form chrome.
+  sections: {
+    'project-overview': {
+      props: [
+        'pageId', 'pageTitle',
+        'coverUrl',
+        'description', 'location', 'constructionDate', 'scanDate',
+        'architect', 'style', 'dimensions', 'protectionStatus',
+        'lat', 'lng',
+        'tags', 'primaryTag',
+        'has3dModel', 'modelSidesSummary',
+        'galleryCount', 'plansCount', 'docsCount',
+        'hotspotsCount', 'contentBlocksCount',
+      ],
+      template: /* html */`
+        <section class="gh-pov">
+          <!-- Cover image (or empty state with CTA) -->
+          <button
+            type="button"
+            class="gh-pov__cover"
+            :class="{ 'gh-pov__cover--empty': !coverUrl }"
+            @click="editFields('cover', { cover: 'cover' })"
+          >
+            <img v-if="coverUrl" :src="coverUrl" :alt="pageTitle">
+            <div v-else class="gh-pov__cover-empty">
+              <k-icon type="image" />
+              <span>Ajouter une image de couverture</span>
+            </div>
+            <span class="gh-pov__cover-edit">
+              <k-icon type="edit" />
+              Modifier
+            </span>
+          </button>
+
+          <!-- Title bar + edit -->
+          <header class="gh-pov__head">
+            <h1 class="gh-pov__title">{{ pageTitle }}</h1>
+            <button
+              type="button"
+              class="gh-pov__head-edit"
+              @click="editFields('description', { description: 'description' })"
+              title="Modifier la description"
+            >
+              <k-icon type="edit" />
+            </button>
+          </header>
+
+          <!-- Description -->
+          <p v-if="description" class="gh-pov__desc">{{ description }}</p>
+          <p v-else class="gh-pov__desc gh-pov__desc--empty">
+            Aucune description. Cliquez sur le crayon pour en ajouter une.
+          </p>
+
+          <!-- Meta chips: clicking any opens the Caractéristiques editor -->
+          <div class="gh-pov__chips">
+            <button class="gh-pov__chip" @click="editMeta">
+              <k-icon type="pin" />
+              <span>{{ location || 'Lieu inconnu' }}</span>
+            </button>
+            <button class="gh-pov__chip" @click="editMeta">
+              <k-icon type="calendar" />
+              <span>{{ constructionDate || 'Date inconnue' }}</span>
+            </button>
+            <button v-if="architect" class="gh-pov__chip" @click="editMeta">
+              <k-icon type="user" />
+              <span>{{ architect }}</span>
+            </button>
+            <button v-if="style" class="gh-pov__chip" @click="editMeta">
+              <k-icon type="brush" />
+              <span>{{ style }}</span>
+            </button>
+            <button v-if="dimensions" class="gh-pov__chip" @click="editMeta">
+              <k-icon type="dimensions" />
+              <span>{{ dimensions }}</span>
+            </button>
+            <button v-if="protectionStatus && protectionStatus !== 'Non protégé'" class="gh-pov__chip gh-pov__chip--accent" @click="editMeta">
+              <k-icon type="protected" />
+              <span>{{ protectionStatus }}</span>
+            </button>
+          </div>
+
+          <!-- Tags -->
+          <div class="gh-pov__tags-row">
+            <span class="gh-pov__section-label">Tags</span>
+            <div class="gh-pov__tags">
+              <span v-for="t in tags" :key="t" class="gh-pov__tag" :class="{ 'is-primary': t === primaryTag }">{{ t }}</span>
+              <span v-if="!tags.length" class="gh-pov__tag gh-pov__tag--empty">Aucun</span>
+            </div>
+            <button class="gh-pov__inline-edit" @click="editTags"><k-icon type="edit" />Modifier</button>
+          </div>
+
+          <!-- Assets grid: each tile shows what's there + opens to the right place -->
+          <div class="gh-pov__assets">
+            <button class="gh-pov__asset" @click="openTab('model')">
+              <k-icon type="box" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Modèle 3D</strong>
+                <span>{{ modelSidesSummary }}{{ hotspotsCount ? ' · ' + hotspotsCount + ' point' + (hotspotsCount > 1 ? 's' : '') + ' d’intérêt' : '' }}</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+
+            <button class="gh-pov__asset" @click="openTab('documents')">
+              <k-icon type="image" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Plans &amp; relevés</strong>
+                <span>{{ plansCount ? plansCount + ' fichier' + (plansCount > 1 ? 's' : '') : 'Aucun plan' }}</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+
+            <button class="gh-pov__asset" @click="openTab('documents')">
+              <k-icon type="file-document" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Autres documents</strong>
+                <span>{{ docsCount ? docsCount + ' fichier' + (docsCount > 1 ? 's' : '') : 'Aucun document' }}</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+
+            <button class="gh-pov__asset" @click="editGallery">
+              <k-icon type="images" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Galerie</strong>
+                <span>{{ galleryCount ? galleryCount + ' image' + (galleryCount > 1 ? 's' : '') : 'Aucune image' }}</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+
+            <button class="gh-pov__asset" @click="editContent">
+              <k-icon type="text" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Contenu détaillé</strong>
+                <span>{{ contentBlocksCount ? contentBlocksCount + ' bloc' + (contentBlocksCount > 1 ? 's' : '') + ' éditorial' + (contentBlocksCount > 1 ? 'aux' : '') : 'Vide' }}</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+
+            <button class="gh-pov__asset" @click="editFields('geo', { location_search: 'location-search', lat: 'number', lng: 'number' })">
+              <k-icon type="map" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Géolocalisation</strong>
+                <span>{{ lat && lng ? lat + ', ' + lng : 'Coordonnées non définies' }}</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+          </div>
+        </section>
+      `,
+
+      methods: {
+        // Switch to a different tab of the same page view.
+        openTab(name) {
+          if (window.panel?.view?.open) {
+            window.panel.view.open(window.location.pathname + '?tab=' + name);
+          } else {
+            window.location.search = '?tab=' + name;
+          }
+        },
+
+        // Opens a k-form-dialog with the requested fields, scoped to the
+        // current page. submitButton publishes the changes via the panel
+        // content API.
+        editFields(slug, fieldsSpec) {
+          const fields = {};
+          const initialValue = {};
+          // Expand the compact field spec into k-form-dialog field defs.
+          const defs = {
+            cover:       { type: 'files', label: 'Image de couverture', layout: 'cards', max: 1, multiple: false, query: 'page.images' },
+            description: { type: 'textarea', label: 'Description courte', size: 'small' },
+            location:    { type: 'text', label: 'Lieu', icon: 'pin' },
+            construction_date: { type: 'text', label: 'Date de construction' },
+            date:        { type: 'date', label: 'Date du scan' },
+            architect:   { type: 'text', label: 'Architecte' },
+            style:       { type: 'text', label: 'Style' },
+            dimensions:  { type: 'text', label: 'Dimensions' },
+            protection_status: {
+              type: 'select', label: 'Statut de protection',
+              options: {
+                'classé':   'Classé Monument Historique',
+                'unesco':   'Patrimoine mondial UNESCO',
+                'regional': 'Inventaire Régional',
+                'none':     'Non protégé',
+              },
+            },
+            lat:         { type: 'number', label: 'Latitude', step: 0.000001 },
+            lng:         { type: 'number', label: 'Longitude', step: 0.000001 },
+            'location-search': { type: 'location-search', label: 'Recherche', pageId: this.pageId },
+            tags:        { type: 'tags', label: 'Tags' },
+            primary_tag: { type: 'text', label: 'Tag mis en avant' },
+          };
+          Object.keys(fieldsSpec).forEach(k => {
+            const fieldDef = defs[k] || { type: 'text', label: k };
+            fields[k] = fieldDef;
+            initialValue[k] = this.$panel.view.props.model.content[k] || '';
+          });
+
+          this.$panel.dialog.open({
+            component: 'k-form-dialog',
+            props: {
+              fields: fields,
+              value: initialValue,
+              submitButton: { text: 'Enregistrer', icon: 'check', theme: 'positive' },
+              cancelButton: { text: 'Annuler' },
+            },
+            on: {
+              submit: async (newValues) => {
+                try {
+                  await this.$panel.api.patch('pages/' + this.pageId.replace(/\//g, '+'), newValues);
+                  this.$panel.dialog.close();
+                  this.$panel.notification.success('Mis à jour');
+                  await this.$panel.view.reload();
+                } catch (e) {
+                  this.$panel.notification.error('Erreur : ' + (e.message || 'inconnue'));
+                }
+              },
+            },
+          });
+        },
+
+        editMeta() {
+          this.editFields('meta', {
+            location:          'text',
+            construction_date: 'text',
+            date:              'date',
+            architect:         'text',
+            style:             'text',
+            dimensions:        'text',
+            protection_status: 'select',
+          });
+        },
+
+        editTags() {
+          this.editFields('tags', { tags: 'tags', primary_tag: 'text' });
+        },
+
+        editGallery() {
+          // Gallery editing goes through the Galerie field on the page.
+          // For now, navigate to the dedicated Galerie sub-tab if you add
+          // one — otherwise open a files dialog.
+          this.openTab('overview');
+          this.$panel.notification.info('Pour gérer la galerie, ouvrez le menu fichiers en bas.');
+        },
+
+        editContent() {
+          // Long-form content blocks live in their own editor screen.
+          // Open a drawer-style editor via fiber if available.
+          if (window.panel?.view?.open) {
+            window.panel.view.open('/pages/' + this.pageId.replace(/\//g, '+') + '?tab=overview&edit=content');
+          }
+        },
+      },
+    },
+  },
+
   // ── Header view button ──────────────────────────────────────────────
   viewButtons: {
     visibility: {
       template: /* html */`
         <div class="gh-visibility" :data-state="current">
-          <k-button
+          <button
+            type="button"
             class="gh-visibility__trigger"
-            :icon="currentOption.icon"
-            :text="currentOption.label"
             :title="'Visibilité : ' + currentOption.label"
-            variant="filled"
-            theme="passive"
-            size="sm"
+            :aria-expanded="open ? 'true' : 'false'"
+            aria-haspopup="menu"
             @click="toggleOpen"
-          />
+          >
+            <k-icon :type="currentOption.icon" class="gh-visibility__icon" />
+            <span class="gh-visibility__label">{{ currentOption.label }}</span>
+            <k-icon
+              type="angle-down"
+              class="gh-visibility__chevron"
+              :class="{ 'is-open': open }"
+            />
+          </button>
 
           <div
-            v-if="open"
+            v-show="open"
             ref="panel"
             class="gh-visibility__panel"
             role="menu"
@@ -158,10 +424,21 @@ panel.plugin('goheritage/project-ux', {
       },
 
       mounted() {
+        // Teleport the panel to document.body so it escapes all parent
+        // stacking contexts. position:fixed alone wasn't enough because
+        // .k-header creates its own --z-toolbar context that trapped
+        // the popup beneath the sticky .k-tabs strip. Moving it to body
+        // gets us out of every ancestor's stack.
+        this.$nextTick(() => {
+          const panel = this.$refs.panel;
+          if (panel && panel.parentNode !== document.body) {
+            this._originalParent = panel.parentNode;
+            document.body.appendChild(panel);
+          }
+        });
+
         this._docHandler = (e) => {
           if (!this.open) return;
-          // Panel uses position:fixed so it's no longer a DOM child of
-          // .gh-visibility — check both the trigger AND the panel ref.
           const inTrigger = this.$el && this.$el.contains(e.target);
           const inPanel   = this.$refs.panel && this.$refs.panel.contains(e.target);
           if (!inTrigger && !inPanel) this.open = false;
@@ -170,14 +447,20 @@ panel.plugin('goheritage/project-ux', {
         this._escHandler = (e) => { if (e.key === 'Escape') this.open = false; };
         document.addEventListener('keydown', this._escHandler);
 
-        // Keep the floating panel pinned to the trigger as the user
-        // scrolls or resizes (passive listeners — no jank).
         this._repositionHandler = () => { if (this.open) this.recomputePosition(); };
         window.addEventListener('scroll', this._repositionHandler, true);
         window.addEventListener('resize', this._repositionHandler);
       },
 
       beforeDestroy() {
+        // Pull the teleported panel out of body so Vue can finish its
+        // own teardown without trying to remove a node from the wrong
+        // parent. If we don't, Vue throws on hot-reload / view switch.
+        const panel = this.$refs.panel;
+        if (panel && panel.parentNode === document.body) {
+          document.body.removeChild(panel);
+        }
+
         if (this._docHandler) document.removeEventListener('click', this._docHandler);
         if (this._escHandler) document.removeEventListener('keydown', this._escHandler);
         if (this._repositionHandler) {
@@ -253,29 +536,32 @@ panel.plugin('goheritage/project-ux', {
           if (!this.model) return;
           const opt = this.options.find(o => o.value === value);
           if (!opt) return;
+
+          // Build the page ID Kirby expects in URLs (slashes → plus).
+          const pageId = this.model.id.replace(/\//g, '+');
+
           try {
-            // 1. Update the visibility field (our own content). Done via
-            //    the panel content store so versioning stays in sync.
-            if (this.$panel.content?.update) {
-              await this.$panel.content.update({ visibility: opt.visibility });
-              await this.$panel.content.publish();
-            } else {
-              await this.$api.patch(
-                'pages/' + this.model.id.replace(/\//g, '+'),
-                { visibility: opt.visibility }
-              );
-            }
+            // 1. Update the visibility field via the direct page-content
+            //    PATCH endpoint. Earlier we routed through $panel.content
+            //    but in Kirby 5.4 that path didn't reliably persist field
+            //    updates from outside a fully-managed form view — selecting
+            //    "Avec un lien" looked like it worked, then reverted on
+            //    reload because nothing was actually written.
+            await this.$api.patch('pages/' + pageId, {
+              visibility: opt.visibility,
+            });
 
-            // 2. Update the page status (Kirby's native draft/listed).
-            //    Separate endpoint — PATCH /api/pages/{id}/status — so we
-            //    can flip both atomically from the user's perspective.
+            // 2. Update the page status (draft / listed) if it differs.
+            //    Done as a separate PATCH because Kirby keeps status in
+            //    its own endpoint.
             if (opt.status !== this.model.status) {
-              await this.$api.patch(
-                'pages/' + this.model.id.replace(/\//g, '+') + '/status',
-                { status: opt.status, position: null }
-              );
+              await this.$api.patch('pages/' + pageId + '/status', {
+                status: opt.status,
+                position: null,
+              });
             }
 
+            // 3. Reload the panel view so the new state shows up.
             await this.$panel.view.reload();
             this.$panel.notification.success('Statut mis à jour : ' + opt.label);
             this.open = false;
@@ -378,11 +664,22 @@ panel.plugin('goheritage/project-ux', {
   var allButtons   = [];  // { el, refresh() } — for cross-section disable
 
   function isProjectPage() {
+    // Primary: read the blueprint name from panel state.
     try {
       var props = window.panel?.view?.props;
-      var bp = props?.model?.blueprint || props?.blueprint;
-      return bp === 'project' || (typeof bp === 'string' && bp.endsWith('/project'));
-    } catch (_) { return false; }
+      var bp = props?.blueprint || props?.model?.blueprint;
+      if (bp === 'project' || (typeof bp === 'string' && bp.endsWith('/project'))) {
+        return true;
+      }
+    } catch (_) {}
+    // Fallback: URL pattern. Map pages all live under /panel/pages/map+...
+    // and their blueprint is 'project'. This catches the case where the
+    // panel state hasn't populated yet but the URL gives the answer.
+    try {
+      var path = window.location?.pathname || '';
+      if (/\/panel\/pages\/(map\+|[a-z+]+map\+)/i.test(path)) return true;
+    } catch (_) {}
+    return false;
   }
 
   // True if the section contains at least one user-editable field — i.e.
@@ -410,21 +707,19 @@ panel.plugin('goheritage/project-ux', {
    *  Kirby's stylesheet handles hover / focus / disabled / dark theme /
    *  size tokens for us. We pass theme via data-theme; passive = neutral,
    *  positive = primary action (Save), negative = destructive.        */
-  function makeButton(label, iconType, theme) {
+  /*  Custom button — does NOT extend .k-button because that class only
+   *  has minimal default styling when Kirby's Vue component isn't
+   *  rendering it. Sets explicit dimensions inline so size is
+   *  guaranteed regardless of which Kirby CSS scope wins. */
+  function makeButton(label, iconType, variant) {
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'k-button gh-edit-btn';
-    btn.setAttribute('data-variant', 'filled');
-    btn.setAttribute('data-theme', theme);
-    // md (default) — sm was too cramped to read comfortably.
-    btn.setAttribute('data-size', 'md');
+    btn.className = 'gh-btn gh-btn--' + variant;
     btn.innerHTML =
-      '<span class="k-button-icon">' +
-        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-          iconSvg(iconType) +
-        '</svg>' +
-      '</span>' +
-      '<span class="k-button-text">' + label + '</span>';
+      '<svg class="gh-btn__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        iconSvg(iconType) +
+      '</svg>' +
+      '<span class="gh-btn__label">' + label + '</span>';
     return btn;
   }
 
@@ -457,19 +752,223 @@ panel.plugin('goheritage/project-ux', {
     }
   }
 
+  /*  Hardcoded headline map — keyed by Kirby's k-section-name-* class
+   *  (Kirby tags every section with .k-section-name-<blueprint_name>).
+   *  This is the most reliable source: doesn't depend on Vue having
+   *  populated the panel state, on a specific DOM nesting, or on the
+   *  existing header element rendering. Source of truth = blueprint. */
+  var HEADLINE_MAP = {
+    sharing_section:     'Partage',
+    cover_section:       'Aperçu',
+    info_section:        'Présentation',
+    meta_section:        'Caractéristiques',
+    spec_section:        'Fiche technique',
+    geo_section:         'Géolocalisation',
+    content_section:     'Contenu détaillé',
+    gallery_section:     'Galerie d’images',
+    tags_section:        'Tags',
+    viewer_settings:     'Réglages du viewer',
+    pipeline_info:       'Pipeline de production',
+    exterior_files:      'Modèle extérieur',
+    interior_files:      'Modèle intérieur',
+    annotations_section: 'Points d’intérêt',
+    all_files:           'Inventaire des fichiers',
+    plans:               'Plans & relevés',
+    docs:                'Autres documents',
+  };
+
+  /*  ALWAYS inject our own headline at the top of every section card.
+   *  Reads the section name from Kirby's k-section-name-* class (the
+   *  most reliable identifier Kirby gives us), looks it up in the
+   *  hardcoded blueprint map, falls back to humanising the name. */
+  function ensureHeadline(section) {
+    if (section.querySelector(':scope > .gh-section__title')) return;
+
+    // Find section name from its class list.
+    var name = '';
+    var classes = section.className.split(/\s+/);
+    for (var i = 0; i < classes.length; i++) {
+      if (classes[i].indexOf('k-section-name-') === 0) {
+        name = classes[i].slice('k-section-name-'.length);
+        break;
+      }
+    }
+    // Skip hidden / no-headline sections by name.
+    if (name === 'visibility_meta') return;
+
+    // 1. Hardcoded map (most reliable)
+    var headlineText = HEADLINE_MAP[name];
+
+    // 2. Fallback — pull from Kirby's existing header if present
+    if (!headlineText) {
+      var existing = section.querySelector('.k-section-header .k-headline, header .k-headline, header h2, header h3');
+      if (existing) headlineText = (existing.textContent || '').trim();
+    }
+
+    // 3. Final fallback — humanize the section name
+    if (!headlineText && name) {
+      headlineText = name.replace(/_/g, ' ').replace(/\b\w/g, function (m) {
+        return m.toUpperCase();
+      });
+    }
+    if (!headlineText) return;
+
+    var h = document.createElement('h2');
+    h.className = 'gh-section__title';
+    h.textContent = headlineText;
+    section.prepend(h);
+  }
+
+  /*  Render a STATIC display of the section's current field values so
+   *  the page reads as a polished document, not a form. Inputs are
+   *  hidden via CSS in read mode; this element shows in their place.
+   *  Re-built whenever the section enters / leaves edit mode (values
+   *  may have changed). */
+  function buildDisplay(section) {
+    var existing = section.querySelector(':scope > .gh-section__display');
+    if (existing) existing.remove();
+
+    var dl = document.createElement('dl');
+    dl.className = 'gh-section__display';
+
+    // Only build the dl for SIMPLE form-y field types. Visual fields
+    // (blocks / files / gallery / image / structure) keep Kirby's
+    // native rendering since their on-screen presence already looks
+    // like content rather than a form.
+    var FORM_FIELD_CLASSES = [
+      'k-text-field', 'k-textarea-field', 'k-number-field',
+      'k-url-field', 'k-email-field', 'k-date-field',
+      'k-select-field', 'k-tags-field',
+      'k-toggle-field', 'k-toggles-field', 'k-checkboxes-field',
+      'k-writer-field',
+    ];
+
+    var fields = section.querySelectorAll(':scope .k-field');
+    var empty = true;
+    fields.forEach(function (field) {
+      // Skip if field isn't a form-y type we render.
+      var isFormy = false;
+      for (var k = 0; k < FORM_FIELD_CLASSES.length; k++) {
+        if (field.classList.contains(FORM_FIELD_CLASSES[k])) { isFormy = true; break; }
+      }
+      if (!isFormy) return;
+
+      var labelEl = field.querySelector('.k-field-header label, label.k-label, .k-label');
+      var label   = labelEl ? labelEl.textContent.trim() : '';
+      var value   = readFieldValue(field);
+
+      // Skip rows that have NEITHER a label NOR a value — they'd just
+      // render as "— · —" which is pure noise.
+      if (!label && !value) return;
+
+      var dt = document.createElement('dt');
+      dt.className = 'gh-section__display-key';
+      dt.textContent = label || '—';
+
+      var dd = document.createElement('dd');
+      dd.className = 'gh-section__display-val' + (value ? '' : ' is-empty');
+      if (value instanceof Node) {
+        dd.appendChild(value);
+      } else {
+        dd.textContent = value || '—';
+      }
+
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+      empty = false;
+    });
+
+    // If literally nothing to display (rare — only happens for sections
+    // composed of only blocks/files which already render visually),
+    // skip the empty <dl> so we don't show a hollow card.
+    if (empty) return;
+    section.appendChild(dl);
+  }
+
+  /*  Extract a renderable value from a .k-field. Returns either a string
+   *  or a DOM Node (for chips, multi-values, etc). Best-effort — we read
+   *  from the actual rendered DOM since Kirby's content store isn't
+   *  reliably reachable from plain JS at this layer. */
+  function readFieldValue(field) {
+    // Tags field → chip list
+    if (field.classList.contains('k-tags-field')) {
+      var pills = field.querySelectorAll('.k-tags .k-tag, .k-tags-input li');
+      if (!pills.length) return '';
+      var wrap = document.createElement('span');
+      wrap.className = 'gh-chips';
+      pills.forEach(function (p) {
+        var label = p.textContent.replace(/×|✕|x/g, '').trim();
+        if (!label) return;
+        var chip = document.createElement('span');
+        chip.className = 'gh-chip';
+        chip.textContent = label;
+        wrap.appendChild(chip);
+      });
+      return wrap.children.length ? wrap : '';
+    }
+    // Toggle → Oui / Non
+    if (field.classList.contains('k-toggle-field')) {
+      var input = field.querySelector('input[type=checkbox]');
+      return input && input.checked ? 'Oui' : 'Non';
+    }
+    // Select / Toggles → show the selected option's TEXT
+    if (field.classList.contains('k-select-field')) {
+      var sel = field.querySelector('select');
+      if (sel && sel.selectedIndex >= 0) {
+        var opt = sel.options[sel.selectedIndex];
+        return (opt && opt.textContent.trim()) || sel.value || '';
+      }
+      return '';
+    }
+    if (field.classList.contains('k-toggles-field')) {
+      var checked = field.querySelector('input[type=radio]:checked, .k-toggles-option.is-active');
+      if (checked) {
+        var lbl = checked.closest('label')?.textContent || checked.textContent;
+        return (lbl || '').trim();
+      }
+      return '';
+    }
+    // Date → format
+    if (field.classList.contains('k-date-field')) {
+      var d = field.querySelector('input');
+      var v = d ? d.value : '';
+      if (v) {
+        try {
+          var dt = new Date(v);
+          if (!isNaN(dt.getTime())) {
+            return dt.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+          }
+        } catch (_) {}
+      }
+      return v;
+    }
+    // Textarea / writer / blocks → multi-line text
+    if (field.classList.contains('k-textarea-field') || field.classList.contains('k-writer-field')) {
+      var ta = field.querySelector('textarea, .k-writer-input');
+      return ta ? (ta.value || ta.textContent || '').trim() : '';
+    }
+    // Generic input
+    var generic = field.querySelector('input[type=text], input[type=email], input[type=url], input[type=number], input[type=date], input:not([type=checkbox]):not([type=radio]):not([type=hidden]), textarea');
+    if (generic) return (generic.value || '').trim();
+    // Fallback — read displayed text
+    return (field.textContent || '').trim();
+  }
+
   function attach(section) {
     tag(section);
+    ensureHeadline(section);
     if (section.dataset.ghAttached === '1') return;
     section.dataset.ghAttached = '1';
 
     var dock = document.createElement('div');
     dock.className = 'gh-section__dock';
 
-    // Three Kirby-themed buttons — themes map onto Kirby's button colour
-    // scale: passive (neutral), positive (primary save), passive (cancel).
-    var editBtn   = makeButton('Modifier',    'edit',   'passive');
-    var saveBtn   = makeButton('Enregistrer', 'check',  'positive');
-    var cancelBtn = makeButton('Annuler',     'cancel', 'passive');
+    // Three buttons — "Terminé" reads more naturally for "I'm done
+    // editing this section" than "Enregistrer" (which feels like
+    // committing to a database record).
+    var editBtn   = makeButton('Modifier', 'edit',   'edit');
+    var saveBtn   = makeButton('Terminé',  'check',  'save');
+    var cancelBtn = makeButton('Annuler',  'cancel', 'cancel');
 
     saveBtn.style.display   = 'none';
     cancelBtn.style.display = 'none';
@@ -478,17 +977,12 @@ panel.plugin('goheritage/project-ux', {
     dock.appendChild(cancelBtn);
     dock.appendChild(saveBtn);
 
-    /*  Place the dock INSIDE the section's .k-section-header so it lives
-     *  inline with the headline (no more absolute overlap). Fall back to
-     *  prepending to the section body if a section has no header at all
-     *  (rare — only sections without a `headline:` in the blueprint).   */
-    var header = section.querySelector(':scope > .k-section-header')
-              || section.querySelector('.k-section-header');
-    if (header) {
-      header.appendChild(dock);
-    } else {
-      section.prepend(dock);
-    }
+    /*  Place the dock as a direct child of the section card. CSS will
+     *  position it absolutely at top-right of the section. */
+    section.appendChild(dock);
+
+    // Build the initial read-only display of field values.
+    buildDisplay(section);
 
     var myToken = 0;
 
@@ -532,10 +1026,12 @@ panel.plugin('goheritage/project-ux', {
         if (window.panel?.content?.publish) {
           await window.panel.content.publish();
         }
-        window.panel?.notification?.success?.('Section enregistrée');
+        window.panel?.notification?.success?.('Modifications enregistrées');
         myToken = 0;
         editingToken = 0;
         setEditing(false);
+        // Rebuild the static display so it shows the saved values.
+        buildDisplay(section);
         allButtons.forEach(function (b) { b.refresh(); });
       } catch (err) {
         window.panel?.notification?.error?.(err?.message || 'Impossible d\'enregistrer.');
@@ -620,18 +1116,57 @@ panel.plugin('goheritage/project-ux', {
 
   // The panel mutates document.body and the view root on navigation. A
   // MutationObserver on body is the cheapest reliable way to detect
-  // Kirby's view re-renders without coupling to its internals.
+  // Kirby's view re-renders without coupling to its internals. ANY mutation
+  // triggers a re-scan — we used to filter for unattached sections only,
+  // but that missed navigations where Vue destroyed and re-created the
+  // same section ID (data-gh-attached was on a node already removed).
+  var _scanScheduled = false;
   var mo = new MutationObserver(function () {
-    // Don't thrash — re-scan only when a candidate section appears
-    // that we haven't tagged yet.
-    var pending = document.querySelector('.k-fields-section:not([data-gh-attached])');
-    if (pending) rescan();
-    // Header height can shift as buttons/title load. Re-measure cheaply.
-    measureHeader();
+    if (_scanScheduled) return;
+    _scanScheduled = true;
+    requestAnimationFrame(function () {
+      _scanScheduled = false;
+      rescan();
+      measureHeader();
+    });
   });
   mo.observe(document.body, { childList: true, subtree: true });
 
   // Window resize → h1 may wrap to a different line count, header height
   // changes. Re-measure so the sticky tab top: offset stays correct.
   window.addEventListener('resize', measureHeader, { passive: true });
+
+  // ── Belt-and-suspenders activation ────────────────────────────────
+  //
+  // The MutationObserver above is the primary path, but panel boots
+  // can race ahead of it (Vue mounts before the observer attaches in
+  // some cold-load scenarios). Listen to panel.events.view.change for
+  // explicit view-mount signals, and poll every 1s as a final fallback.
+  // Idempotent — rescan() guards against duplicate attaches.
+  function hookPanelEvents() {
+    var ev = window.panel?.events;
+    if (!ev || !ev.on || hookPanelEvents._done) return;
+    hookPanelEvents._done = true;
+    try {
+      ev.on('view.change', function () { setTimeout(rescan, 50); });
+      ev.on('view.update', function () { setTimeout(rescan, 50); });
+    } catch (_) {}
+  }
+  setInterval(function () { hookPanelEvents(); rescan(); }, 1000);
+
+  // Expose a tiny diagnostic so the user can verify the plugin is
+  // actually running by checking `window.GH_PROJECT_UX` in DevTools.
+  window.GH_PROJECT_UX = {
+    version: 'v4-2026-05-27',
+    rescan: rescan,
+    isProjectPage: isProjectPage,
+    bodyFlag: BODY_FLAG,
+  };
+
+  // Debug pill and top-right user menu were removed — they overlapped
+  // Kirby's existing chrome and added clutter. Sidebar Account / Logout
+  // stay in their default position.
+  // Defensive cleanup: remove any stale instances from prior versions.
+  var stalePill = document.getElementById('gh-debug');       if (stalePill) stalePill.remove();
+  var staleMenu = document.getElementById('gh-user-menu');   if (staleMenu) staleMenu.remove();
 })();

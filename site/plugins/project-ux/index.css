@@ -24,11 +24,61 @@
   display: inline-flex;
 }
 
-/*  The trigger IS a real Kirby <k-button> now. Don't restyle it —
-    Kirby's own button vocabulary makes it look identical to settings /
-    status / preview / open. Only thing we ever override here is to
-    reset any inherited styles a parent might leak. */
-.gh-visibility__trigger { font: inherit; }
+/*  Custom trigger button styled to match Kirby's header buttons
+    (settings / preview / etc.) but with an explicit chevron so the user
+    can SEE there are multiple options to choose from. */
+.gh-visibility__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: var(--height-md, 2.25rem);
+  padding: 0 0.65rem;
+  border: 0;
+  border-radius: var(--rounded, 4px);
+  background: var(--color-back, rgba(0, 0, 0, 0.06));
+  color: var(--color-text, #1a1a1a);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s ease;
+}
+.gh-visibility__trigger:hover {
+  background: var(--color-hover, rgba(0, 0, 0, 0.1));
+}
+.gh-visibility__trigger:focus-visible {
+  outline: 2px solid var(--color-focus, #4271ae);
+  outline-offset: 2px;
+}
+
+.gh-visibility__icon {
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  color: var(--color-text, #1a1a1a);
+}
+
+.gh-visibility__label {
+  font-weight: 500;
+  color: var(--color-text, #1a1a1a);
+}
+
+/*  Chevron — rotates 180° when the dropdown is open as a clear visual
+    affordance that the button has open/closed states. */
+.gh-visibility__chevron {
+  flex-shrink: 0;
+  width: 0.85em;
+  height: 0.85em;
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55));
+  margin-left: 0.1em;
+  transition: transform 0.15s ease;
+}
+.gh-visibility__chevron.is-open {
+  transform: rotate(180deg);
+}
 
 /*  Dropdown panel — position + z-index are set inline by Vue (it
     computes viewport-anchored coords from the trigger's rect via
@@ -198,16 +248,25 @@
  *  themes — only the 1px border + rounded corners delineate them.
  * ────────────────────────────────────────────────────────────────────── */
 
-/*  Card itself — transparent fill, border only. No hover effect
-    (the user explicitly didn't want it). */
+/*  Card itself — transparent fill, border only. No hover effect.
+    Extra top padding reserves space for the absolute-positioned edit
+    dock at top-right so it never overlaps content. */
 body.gh-project-edit .k-section.gh-section {
   position: relative;
   background: transparent !important;
   border: 1px solid var(--color-border, rgba(0, 0, 0, 0.10)) !important;
   border-radius: var(--rounded, 4px) !important;
-  padding: 1.25rem 1.5rem 1.4rem !important;
+  padding: 1.4rem 1.5rem !important;
+  /* extra room at the top for the absolute-positioned dock */
+  padding-top: 1.5rem !important;
   margin: 0 0 1rem !important;
   box-shadow: none !important;
+}
+
+/* When a section is being edited, give it a little more right padding
+   so the wider [Annuler] [Enregistrer] pair doesn't crowd the header. */
+body.gh-project-edit .gh-section.is-editing {
+  padding-right: 1.5rem !important;
 }
 
 /*  Active (editing) card — ink border + slight tint marks the live one. */
@@ -220,80 +279,145 @@ body.gh-project-edit .gh-section.is-editing {
 body.gh-project-edit .gh-section.is-disabled { opacity: 0.5; }
 body.gh-project-edit .gh-section.is-disabled .gh-section__dock { pointer-events: none; }
 
-/*  Section header is a flex row: headline left, edit dock right.
-    min-height keeps the header at a consistent visual height even when
-    no headline element renders (rare — only for fully-headerless
-    blueprints), so the dock has a stable place to land. */
-body.gh-project-edit .gh-section .k-section-header {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 1rem !important;
-  padding: 0 0 0.9rem 0 !important;
-  margin: 0 0 1.1rem 0 !important;
-  min-height: 2.25rem !important;
-  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+/*  NUCLEAR APPROACH: hide every direct child of an editable section by
+    default, then explicitly whitelist what should be visible. This
+    sidesteps every quirk of Kirby 5.4's variable section DOM —
+    .k-section-header, .k-fields, .k-section-buttons, whatever else —
+    by NOT relying on any of them.
+    .gh-section__title (injected by JS), .gh-section__display (injected
+    by JS), .gh-section__dock (injected by JS), and Kirby's .k-fields
+    container in edit mode are the only things ever shown. */
+/* Hide Kirby's stock section header — we inject our own h2 instead so
+   there's just ONE title per section instead of two. */
+body.gh-project-edit .gh-section > .k-section-header,
+body.gh-project-edit .gh-section > header.k-section-header {
+  display: none !important;
 }
 
-/*  Headline — bumped to text-h3 for unambiguous card-title prominence. */
-body.gh-project-edit .gh-section .k-section-header .k-headline,
-body.gh-project-edit .gh-section .k-section-header h2,
-body.gh-project-edit .gh-section .k-section-header .k-headline span {
+/* Read-mode hides ONLY form-y field types. Visual fields (blocks,
+   files, gallery, image previews) keep Kirby's native rendering since
+   they already look like content. */
+body.gh-project-edit .gh-section:not(.is-editing) .k-text-field,
+body.gh-project-edit .gh-project-edit .gh-section:not(.is-editing) .k-textarea-field,
+body.gh-project-edit .gh-section:not(.is-editing) .k-number-field,
+body.gh-project-edit .gh-section:not(.is-editing) .k-url-field,
+body.gh-project-edit .gh-section:not(.is-editing) .k-email-field,
+body.gh-project-edit .gh-section:not(.is-editing) .k-date-field,
+body.gh-project-edit .gh-section:not(.is-editing) .k-select-field,
+body.gh-project-edit .gh-section:not(.is-editing) .k-tags-field,
+body.gh-project-edit .gh-section:not(.is-editing) .k-toggle-field,
+body.gh-project-edit .gh-section:not(.is-editing) .k-toggles-field,
+body.gh-project-edit .gh-section:not(.is-editing) .k-checkboxes-field,
+body.gh-project-edit .gh-section:not(.is-editing) .k-writer-field,
+body.gh-project-edit .gh-section:not(.is-editing) .k-location-search-field {
+  display: none !important;
+}
+
+/* In edit mode, hide the static dl so the form takes over. */
+body.gh-project-edit .gh-section.is-editing > .gh-section__display {
+  display: none !important;
+}
+
+/*  Section TITLE — our injected h2.gh-section__title. Big, bold, no
+    chance of being missed. */
+body.gh-project-edit .gh-section > .gh-section__title {
   font-family: inherit !important;
-  font-size: 1.05rem !important;
+  font-size: 1.25rem !important;
   font-weight: 700 !important;
-  letter-spacing: 0 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--color-text, #1a1a1a) !important;
+  margin: 0 0 1rem 0 !important;
+  padding: 0 11rem 0.85rem 0 !important;
+  line-height: 1.3 !important;
+  text-align: left !important;
+  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.08)) !important;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Read-only mode: HIDE the input chrome entirely, show the static
+ *  display injected by JS. The page reads as a document until you click
+ *  Modifier.
+ *
+ *  Edit-only field types (location-search and friends) stay hidden even
+ *  when editing because they're just UI affordances, not values.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/* Read/edit visibility is now driven by the whitelist above — these
+   selectors stay only for safety in case Kirby renders something we
+   didn't anticipate. */
+body.gh-project-edit .gh-section.is-editing > .gh-section__display {
+  display: none !important;
+}
+
+/* Static display itself — definition-list, two columns: label / value. */
+.gh-section__display {
+  display: none;
+  grid-template-columns: minmax(8rem, max-content) 1fr;
+  column-gap: 1.25rem;
+  row-gap: 0.6rem;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.gh-section__display-key {
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55)) !important;
+  margin: 0 !important;
+  padding-top: 0.15rem !important;
+  align-self: start;
+}
+
+.gh-section__display-val {
+  font-size: 0.95rem !important;
+  font-weight: 400 !important;
   color: var(--color-text, #1a1a1a) !important;
   margin: 0 !important;
-  line-height: 1.3 !important;
-}
-body.gh-project-edit .gh-section .k-section-header .k-headline {
-  flex: 1 1 auto;
-  min-width: 0;
+  line-height: 1.45 !important;
+  word-break: break-word;
 }
 
+.gh-section__display-val.is-empty {
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.4)) !important;
+  font-style: italic;
+}
 
-/*  Field-level spacing: let Kirby own internal field layout. We just
-    give the field labels a slightly more dashboard-y look without
-    breaking the input chrome. The earlier rule wiped k-field padding
-    globally which broke blocks, structure, files, and tags rendering. */
-body.gh-project-edit .gh-section .k-field > .k-field-header,
-body.gh-project-edit .gh-section .k-field > label.k-label {
-  font-size: 0.78rem !important;
+/* Multi-value chip lists used for tags etc. */
+.gh-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.gh-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.55rem;
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.15));
+  border-radius: 999px;
+  background: var(--color-back, rgba(0, 0, 0, 0.025));
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-text, #1a1a1a);
+}
+
+/*  When editing: clean up Kirby's defaults so the form actually breathes.
+    Field labels get our dashboard-style treatment. */
+body.gh-project-edit .gh-section.is-editing .k-field > .k-field-header,
+body.gh-project-edit .gh-section.is-editing .k-field > label.k-label {
+  font-size: 0.72rem !important;
   font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
   color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55)) !important;
+  margin-bottom: 0.4rem !important;
 }
 
-/*  Read-only mode — disable interaction and mute affordances, but DON'T
-    strip Kirby's input chrome. That earlier rule (`border: 0`,
-    `background: transparent`) broke files/blocks/structure rendering
-    because those field types build their layout on top of those styles.
-    Now we leave Kirby's visuals intact and just block interaction. */
-body.gh-project-edit .gh-section:not(.is-editing) .k-field input,
-body.gh-project-edit .gh-section:not(.is-editing) .k-field textarea,
-body.gh-project-edit .gh-section:not(.is-editing) .k-field select,
-body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-input,
-body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-toggle,
-body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-toggles,
-body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-tags-input,
-body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-blocks,
-body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-structure,
-body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-files-input,
-body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-files-field-preview {
-  pointer-events: none !important;
-  user-select: text !important;
-}
-
-/*  Faded affordance buttons in lock mode (Add block, Upload, etc.) */
-body.gh-project-edit .gh-section:not(.is-editing) .k-field .k-button {
-  pointer-events: none !important;
-  opacity: 0.4;
-}
-
-/*  Hide help text and counters in read-only mode — they're guidance for
-    editing, not for reading. */
-body.gh-project-edit .gh-section:not(.is-editing) .k-field > .k-help,
-body.gh-project-edit .gh-section:not(.is-editing) .k-field-counter {
+/*  Location-search (map picker) is an EDIT-only affordance — no static
+    representation makes sense. Hide it in read mode regardless. */
+body.gh-project-edit .gh-section:not(.is-editing) .k-location-search-field {
   display: none !important;
 }
 
@@ -324,24 +448,89 @@ body.gh-project-edit .k-tabs {
 /* ──────────────────────────────────────────────────────────────────────
  *  3. Edit-button dock
  *
- *  Lives inline inside each section card's .k-section-header (flex row),
- *  aligned right. Buttons are real .k-button elements — Kirby's stylesheet
- *  handles all visuals (hover, focus, dark theme, size tokens). We add
- *  zero custom button chrome here, only the spacing between them.
+ *  Absolute-positioned at the top-right of the section card itself
+ *  (NOT inside Kirby's .k-section-header). The card has padding-top
+ *  reserved so the dock never overlaps real content. This approach
+ *  sidesteps every fight we kept losing inside the header flex row.
  * ────────────────────────────────────────────────────────────────────── */
 
-.gh-section__dock {
-  display: inline-flex;
+body.gh-project-edit .gh-section .gh-section__dock {
+  position: absolute !important;
+  top: 0.75rem !important;
+  right: 0.85rem !important;
+  z-index: 10;
+  display: inline-flex !important;
   align-items: center;
-  gap: 0.35rem;
-  flex-shrink: 0;
+  gap: 0.4rem !important;
+  margin: 0 !important;
 }
 
-/*  In read-only sections, dim the dock slightly so it doesn't compete
-    with the headline. Comes back to full opacity on hover or when the
-    section is being edited. */
+/*  Edit buttons — fully custom, using ONLY Kirby's CSS vars so the
+    button adapts cleanly to both light and dark panel themes. No
+    hardcoded white/black anywhere. */
+.gh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: var(--height-md, 2.25rem);
+  padding: 0 0.95rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--rounded, 4px);
+  background: var(--panel-color-back);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+}
+.gh-btn:hover:not(:disabled) {
+  background: var(--color-hover, var(--color-back));
+  border-color: var(--color-text);
+}
+.gh-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+.gh-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.gh-btn__icon {
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  color: currentColor;
+}
+.gh-btn__label {
+  display: inline;
+  white-space: nowrap;
+}
+
+/*  Save variant — primary action. Uses Kirby's positive theme tokens. */
+.gh-btn--save {
+  background: var(--color-positive, var(--color-text));
+  border-color: var(--color-positive, var(--color-text));
+  color: var(--color-positive-light, var(--color-bg));
+}
+.gh-btn--save:hover:not(:disabled) {
+  filter: brightness(1.1);
+  border-color: var(--color-positive, var(--color-text));
+}
+.gh-btn--save.is-loading .gh-btn__icon {
+  animation: gh-btn-spin 0.9s linear infinite;
+}
+@keyframes gh-btn-spin { to { transform: rotate(360deg); } }
+
+/*  Dim dock slightly on read-only sections, full opacity on hover /
+    while editing. */
 body.gh-project-edit .gh-section:not(.is-editing) .gh-section__dock {
-  opacity: 0.7;
+  opacity: 0.8;
   transition: opacity 0.12s ease;
 }
 body.gh-project-edit .gh-section:not(.is-editing):hover .gh-section__dock,
@@ -386,3 +575,306 @@ body.gh-project-edit .gh-section.is-editing .gh-section__dock {
   margin: 0;
 }
 .goheritage-share-link__empty .k-icon { opacity: 0.7; }
+
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  project-overview section — the entire Aperçu tab.
+ *
+ *  Renders as ONE custom Vue card: cover image, meta chips, description,
+ *  tags, and asset-tile rows that link to other tabs. ALL colours come
+ *  from Kirby's CSS vars so it adapts to both light and dark themes.
+ * ────────────────────────────────────────────────────────────────────── */
+
+.gh-pov {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Cover image ──────────────────────────────────────────────────── */
+.gh-pov__cover {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 6;
+  overflow: hidden;
+  border: 0;
+  padding: 0;
+  border-radius: var(--rounded);
+  background: var(--color-back);
+  cursor: pointer;
+}
+.gh-pov__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.gh-pov__cover-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 100%;
+  color: var(--color-text-dimmed);
+  font-size: 0.9rem;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--color-back),
+    var(--color-back) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+}
+.gh-pov__cover-empty .k-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  opacity: 0.5;
+}
+.gh-pov__cover-edit {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.65rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.gh-pov__cover-edit .k-icon {
+  width: 0.85em;
+  height: 0.85em;
+  color: #fff;
+}
+.gh-pov__cover:hover .gh-pov__cover-edit {
+  opacity: 1;
+}
+
+/* ── Title + description ──────────────────────────────────────────── */
+.gh-pov__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.gh-pov__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+.gh-pov__head-edit {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: var(--rounded);
+  background: transparent;
+  color: var(--color-text-dimmed);
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+.gh-pov__head-edit:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.gh-pov__desc {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--color-text);
+}
+.gh-pov__desc--empty {
+  color: var(--color-text-dimmed);
+  font-style: italic;
+}
+
+/* ── Meta chips ───────────────────────────────────────────────────── */
+.gh-pov__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.gh-pov__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--panel-color-back);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+.gh-pov__chip:hover {
+  background: var(--color-hover);
+  border-color: var(--color-text);
+}
+.gh-pov__chip .k-icon {
+  width: 0.95em;
+  height: 0.95em;
+  color: var(--color-text-dimmed);
+}
+.gh-pov__chip--accent {
+  border-color: var(--color-positive, var(--color-text));
+}
+.gh-pov__chip--accent .k-icon {
+  color: var(--color-positive, var(--color-text));
+}
+
+/* ── Tags row ─────────────────────────────────────────────────────── */
+.gh-pov__tags-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.gh-pov__section-label {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-dimmed);
+}
+.gh-pov__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  flex: 1 1 auto;
+}
+.gh-pov__tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: var(--panel-color-back);
+  font-size: 0.78rem;
+  color: var(--color-text);
+}
+.gh-pov__tag.is-primary {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-bg);
+}
+.gh-pov__tag--empty {
+  color: var(--color-text-dimmed);
+  font-style: italic;
+  border-style: dashed;
+}
+.gh-pov__inline-edit {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.55rem;
+  border: 0;
+  border-radius: var(--rounded);
+  background: transparent;
+  color: var(--color-text-dimmed);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.gh-pov__inline-edit:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+.gh-pov__inline-edit .k-icon {
+  width: 0.85em;
+  height: 0.85em;
+}
+
+/* ── Asset tile grid ──────────────────────────────────────────────── */
+.gh-pov__assets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+.gh-pov__asset {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--rounded);
+  background: var(--panel-color-back);
+  color: var(--color-text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.1s ease, border-color 0.1s ease, transform 0.1s ease;
+}
+.gh-pov__asset:hover {
+  background: var(--color-hover);
+  border-color: var(--color-text);
+}
+.gh-pov__asset:active {
+  transform: scale(0.99);
+}
+.gh-pov__asset-ico {
+  flex-shrink: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  color: var(--color-text-dimmed);
+}
+.gh-pov__asset-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.gh-pov__asset-body strong {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.gh-pov__asset-body span {
+  font-size: 0.78rem;
+  color: var(--color-text-dimmed);
+}
+.gh-pov__asset-arrow {
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  color: var(--color-text-dimmed);
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Panel chrome — hide built-in Changes / Account / Logout entries in
+ *  the sidebar bottom. We inject our own user menu in the top-right
+ *  via JS instead. Changes is hidden outright (visitors don't need it
+ *  — the per-section edit UX makes change-tracking redundant).
+ * ────────────────────────────────────────────────────────────────────── */
+
+/*  Hide just the "Changes" entry in the sidebar bottom — the user
+    doesn't need a global changes view; per-section editing makes
+    change-tracking redundant. Account + Logout stay where Kirby puts
+    them (sidebar bottom). */
+.k-panel-menu-button[data-dialog="changes"] {
+  display: none !important;
+}

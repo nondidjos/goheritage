@@ -37,6 +37,113 @@ use Kirby\Cms\App as Kirby;
 
 Kirby::plugin('goheritage/project-ux', [
 
+    // ── Custom panel sections ─────────────────────────────────────────────
+    //
+    //  project-overview replaces the entire Aperçu tab with a single custom
+    //  Vue-rendered card: cover image, meta chips, description, tags, and a
+    //  list of asset tiles (3D, plans, gallery, hotspots, documents) that
+    //  link to the relevant tabs. Each editable group opens a k-form-dialog
+    //  on click — no more inline form chrome on the Aperçu tab.
+    'sections' => [
+        'project-overview' => [
+            'computed' => [
+                'pageId'           => function () { return $this->model()->id(); },
+                'pageTitle'        => function () { return (string) $this->model()->title(); },
+
+                // ── Cover image ─────────────────────────────────────────
+                'coverUrl' => function () {
+                    $cover = $this->model()->cover()->toFile();
+                    if (!$cover) return null;
+                    try {
+                        return $cover->crop(1600, 600)->url();
+                    } catch (\Throwable $e) {
+                        return $cover->url();
+                    }
+                },
+
+                // ── Description / meta fields ───────────────────────────
+                'description'      => function () { return (string) $this->model()->description(); },
+                'location'         => function () { return (string) $this->model()->location(); },
+                'constructionDate' => function () { return (string) $this->model()->construction_date(); },
+                'scanDate'         => function () {
+                    $d = (string) $this->model()->date();
+                    if (!$d) return '';
+                    try {
+                        $dt = new \DateTime($d);
+                        return $dt->format('d/m/Y');
+                    } catch (\Throwable $e) {
+                        return $d;
+                    }
+                },
+                'architect'        => function () { return (string) $this->model()->architect(); },
+                'style'            => function () { return (string) $this->model()->style(); },
+                'dimensions'       => function () { return (string) $this->model()->dimensions(); },
+                'protectionStatus' => function () {
+                    $val = (string) $this->model()->protection_status();
+                    $labels = [
+                        'classé'   => 'Classé Monument Historique',
+                        'unesco'   => 'Patrimoine mondial UNESCO',
+                        'regional' => 'Inventaire Régional',
+                        'none'     => 'Non protégé',
+                    ];
+                    return $labels[$val] ?? $val;
+                },
+
+                'lat' => function () { return (string) $this->model()->lat(); },
+                'lng' => function () { return (string) $this->model()->lng(); },
+
+                'tags' => function () {
+                    return array_values(array_filter(array_map('trim',
+                        $this->model()->tags()->split(',')
+                    )));
+                },
+                'primaryTag' => function () { return (string) $this->model()->primary_tag(); },
+
+                // ── Asset counts (for the asset tiles) ──────────────────
+                'has3dModel' => function () {
+                    $p = $this->model();
+                    return $p->file('exterior.obj') || $p->file('interior.obj')
+                        || $p->file('exterior.glb') || $p->file('interior.glb');
+                },
+                'modelSidesSummary' => function () {
+                    $p = $this->model();
+                    $ext = $p->file('exterior.obj') || $p->file('exterior.glb');
+                    $int = $p->file('interior.obj') || $p->file('interior.glb');
+                    if ($ext && $int) return 'Extérieur + intérieur';
+                    if ($ext) return 'Extérieur';
+                    if ($int) return 'Intérieur';
+                    return 'Aucun modèle';
+                },
+
+                'galleryCount' => function () {
+                    return $this->model()->gallery()->toFiles()->count();
+                },
+                'plansCount' => function () {
+                    if (method_exists($this->model(), 'plans')) {
+                        return $this->model()->plans()->count();
+                    }
+                    return 0;
+                },
+                'docsCount' => function () {
+                    return $this->model()->files()->filterBy('template', 'default')->count();
+                },
+                'hotspotsCount' => function () {
+                    if (method_exists($this->model(), 'allAnnotations')) {
+                        return $this->model()->allAnnotations()->count();
+                    }
+                    return 0;
+                },
+                'contentBlocksCount' => function () {
+                    try {
+                        return $this->model()->text()->toBlocks()->count();
+                    } catch (\Throwable $e) {
+                        return 0;
+                    }
+                },
+            ],
+        ],
+    ],
+
     // ── Custom panel fields ────────────────────────────────────────────────
     'fields' => [
 

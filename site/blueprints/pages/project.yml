@@ -29,205 +29,236 @@ tabs:
   # ─────────────────────────────────────────────────────────────────────
   #  Tab 1 — Aperçu
   #
-  #  Visibility, general info, description, content blocks, tags.
-  #  Sections render as separate cards so the page reads top-to-bottom
-  #  as a clean read-only doc until the user clicks "Modifier".
+  #  Two-column layout instead of a single scrolling stack:
+  #
+  #    LEFT  (1/3) — At-a-glance METADATA: cover, description, key
+  #                  characteristics (location, dates, architect, style,
+  #                  protection), tags, geolocation, sharing settings.
+  #                  Everything someone might want to LOOK UP about the
+  #                  project without scrolling through editorial content.
+  #
+  #    RIGHT (2/3) — EDITORIAL content: the rich text blocks that tell
+  #                  the project's story, plus the gallery. This is where
+  #                  the actual writing + visual storytelling lives, so
+  #                  it gets the wider column to breathe.
+  #
+  #  Why this matters: previously location was buried inside spec_section
+  #  somewhere in the middle of a 7-section scroll, and tags were dead
+  #  last. The new layout puts both above-the-fold in the sidebar where
+  #  they belong as page metadata.
   # ─────────────────────────────────────────────────────────────────────
   overview:
     label: Aperçu
     icon: text
     sections:
+      # Single custom-rendered overview card — cover image, meta chips,
+      # tags, asset tiles linking to other tabs. All editing goes
+      # through k-form-dialog modals. Implementation: site/plugins/project-ux.
+      project_overview:
+        type: project-overview
 
-      # ── Visibility is controlled from the page header ─────────────
-      # The dropdown next to the status button lets you switch between
-      # Privé / Avec un lien / Public and exposes the share URL inline.
-      # The fields below back that dropdown — kept as hidden inputs so
-      # the values still serialise to content.txt.
-      visibility_meta:
-        type: fields
-        fields:
-          visibility:
-            type: hidden
-          share_token:
-            type: hidden
+  # ── Detailed editing of Aperçu fields (admin-only fallback for
+  #    things the overview dialogs don't cover). ───────────────────
+  details:
+    label: Détails
+    icon: settings
+    columns:
 
-      # ── Sharing: what is exposed when the page is shared ──────────
-      # Only relevant when visibility ≠ private. Hidden otherwise so
-      # the form stays focused on the project's actual content.
-      sharing_section:
-        type: fields
-        headline: Partage
-        when:
-          visibility:
-            - public
-            - link
-        fields:
-          sharing_info:
-            label: false
-            type: info
-            theme: info
-            text: >
-              **Partage actif** — utilisez le menu **Visibilité** dans l'en-tête
-              pour basculer ou copier le lien. Choisissez ci-dessous les sections
-              qui apparaîtront aux visiteurs.
+      # ═══════════════════════════════════════════════════════════════
+      #   SIDEBAR — metadata at a glance
+      # ═══════════════════════════════════════════════════════════════
+      - width: 1/3
+        sections:
 
-          visible_sections:
-            type: checkboxes
-            label: Sections visibles publiquement
-            columns: 2
-            options:
-              model:       Modèle 3D
-              info:        Fiche technique
-              gallery:     Galerie d'images
-              plans:       Plans & documents
-              annotations: Points d'intérêt
-            default:
-              - model
-              - info
-              - gallery
-              - annotations
+          # Hidden fields backing the visibility header dropdown.
+          visibility_meta:
+            type: fields
+            fields:
+              visibility:    { type: hidden }
+              share_token:   { type: hidden }
 
-      # ── General info / fiche technique ───────────────────────────
-      info_section:
-        type: fields
-        headline: Présentation
-        fields:
-          cover: fields/cover
+          # Cover image + short description — the "card preview" of the
+          # project, what shows up on the map and in lists.
+          cover_section:
+            type: fields
+            headline: Aperçu
+            fields:
+              cover: fields/cover
+              description:
+                type: textarea
+                label: Description courte
+                help: Résumé affiché sous le titre et sur les cartes du site.
+                size: small
 
-          description:
-            type: textarea
-            label: Description courte
-            help: Résumé affiché sous le titre et sur les cartes du site.
-            size: small
+          # Key characteristics — everything someone might look up about
+          # the project at a glance. Location surfaced FIRST since it's
+          # the single most queried fact.
+          meta_section:
+            type: fields
+            headline: Caractéristiques
+            fields:
+              location:
+                type: text
+                label: Lieu
+                placeholder: "ex. Bruxelles, Belgique"
+                icon: pin
 
-      spec_section:
-        type: fields
-        headline: Fiche technique
-        fields:
-          location:
-            width: 1/2
-            type: text
-            label: Lieu
-            placeholder: "ex. Bruxelles, Belgique"
-            icon: pin
+              # All sidebar fields stack 1-up. The 1/2-column treatment
+              # used to leave dead space whenever the partner field was
+              # empty or wider than its slot.
+              construction_date:
+                type: text
+                label: Date de construction
+                placeholder: "ex. XVe siècle, 1889"
 
-          date:
-            width: 1/2
-            type: date
-            label: Date du scan
-            default: now
+              date:
+                type: date
+                label: Date du scan
+                default: now
 
-          construction_date:
-            width: 1/2
-            type: text
-            label: Date de construction
-            placeholder: "ex. XVe siècle, 1889"
+              architect:
+                type: text
+                label: Architecte / Créateur
+                placeholder: "ex. Victor Horta"
 
-          architect:
-            width: 1/2
-            type: text
-            label: Architecte / Créateur
-            placeholder: "ex. Victor Horta"
+              style:
+                type: text
+                label: Style architectural
+                placeholder: "ex. Art Nouveau"
 
-          style:
-            width: 1/2
-            type: text
-            label: Style architectural
-            placeholder: "ex. Art Nouveau, Gothique"
+              dimensions:
+                type: text
+                label: Dimensions
+                placeholder: "40 × 20 × 15 m"
 
-          dimensions:
-            width: 1/2
-            type: text
-            label: Dimensions (L × l × H)
-            placeholder: "ex. 40 × 20 × 15 m"
+              protection_status:
+                type: select
+                label: Statut de protection
+                icon: protected
+                options:
+                  classé:   Classé Monument Historique
+                  unesco:   Patrimoine mondial UNESCO
+                  regional: Inventaire Régional
+                  none:     Non protégé
 
-          protection_status:
-            width: 1/2
-            type: select
-            label: Statut de protection
-            icon: protected
-            options:
-              classé:   Classé Monument Historique
-              unesco:   Inscrit au patrimoine mondial de l'UNESCO
-              regional: Inventaire Régional
-              none:     Non protégé
+          # Tags — surfaced in the sidebar instead of buried last.
+          # Both fields stacked vertically; chips display more naturally
+          # in a 1-up column than split in halves.
+          tags_section:
+            type: fields
+            headline: Tags
+            fields:
+              tags:
+                type: tags
+                label: Tags
+                options: query
+                query: site.index.pluck("tags", ",", true)
+                help: Réutilisez un tag existant ou créez-en un nouveau.
 
-      # ── Geolocation ───────────────────────────────────────────────
-      geo_section:
-        type: fields
-        headline: Géolocalisation
-        fields:
-          location_search:
-            type: location-search
-            label: Recherche de coordonnées
-            help: Tapez un nom de lieu pour remplir automatiquement la latitude et la longitude.
+              primary_tag:
+                type: select
+                label: Tag mis en avant
+                placeholder: "Premier tag par défaut"
+                options: query
+                query: site.index.sortedUniqueTags()
+                help: Affiché en badge sur les cartes du site.
 
-          lat:
-            width: 1/2
-            type: number
-            label: Latitude
-            step: 0.000001
-            placeholder: "ex. 50.8503"
+          # Geolocation — lat/lng + search. Kept in the sidebar because
+          # it's referential metadata. The map picker stays first since
+          # it autofills the lat/lng below.
+          geo_section:
+            type: fields
+            headline: Géolocalisation
+            fields:
+              location_search:
+                type: location-search
+                label: Recherche
+                help: Tapez un nom de lieu pour remplir lat/lng automatiquement.
 
-          lng:
-            width: 1/2
-            type: number
-            label: Longitude
-            step: 0.000001
-            placeholder: "ex. 4.3517"
+              lat:
+                width: 1/2
+                type: number
+                label: Latitude
+                step: 0.000001
 
-      # ── Content blocks ────────────────────────────────────────────
-      content_section:
-        type: fields
-        headline: Contenu détaillé
-        fields:
-          text:
-            type: blocks
-            label: false
-            fieldsets:
-              - heading
-              - text
-              - image
-              - gallery
-              - video
-              - quote
-              - section
+              lng:
+                width: 1/2
+                type: number
+                label: Longitude
+                step: 0.000001
 
-      # ── Gallery ───────────────────────────────────────────────────
-      gallery_section:
-        type: fields
-        headline: Galerie d'images
-        fields:
-          gallery:
-            type: files
-            label: false
-            layout: cards
-            size: medium
-            help: Images affichées dans la grille de droite de la page projet.
-            uploads: image
-            query: page.images.template('image')
+          # Sharing — only renders when visibility ≠ private.
+          sharing_section:
+            type: fields
+            headline: Partage
+            when:
+              visibility:
+                - public
+                - link
+            fields:
+              sharing_info:
+                label: false
+                type: info
+                theme: info
+                text: >
+                  **Partage actif** — utilisez le menu **Visibilité** dans l'en-tête
+                  pour basculer ou copier le lien. Cochez ci-dessous ce qui apparaît
+                  aux visiteurs.
 
-      # ── Tags ──────────────────────────────────────────────────────
-      tags_section:
-        type: fields
-        headline: Tags
-        fields:
-          tags:
-            width: 1/2
-            type: tags
-            label: Tags
-            options: query
-            query: site.index.pluck("tags", ",", true)
-            help: Réutilisez un tag existant ou créez-en un nouveau.
+              visible_sections:
+                type: checkboxes
+                label: Sections visibles publiquement
+                columns: 1
+                options:
+                  model:       Modèle 3D
+                  info:        Fiche technique
+                  gallery:     Galerie d'images
+                  plans:       Plans & documents
+                  annotations: Points d'intérêt
+                default:
+                  - model
+                  - info
+                  - gallery
+                  - annotations
 
-          primary_tag:
-            width: 1/2
-            type: select
-            label: Tag mis en avant
-            placeholder: "Premier tag par défaut"
-            options: query
-            query: site.index.sortedUniqueTags()
-            help: Affiché en badge sur les cartes.
+      # ═══════════════════════════════════════════════════════════════
+      #   MAIN — editorial content
+      # ═══════════════════════════════════════════════════════════════
+      - width: 2/3
+        sections:
+
+          # Long-form rich content — the actual project storytelling.
+          # Wide column means blocks (text, image, gallery, video, quote)
+          # have proper room to breathe instead of being squashed.
+          content_section:
+            type: fields
+            headline: Contenu détaillé
+            fields:
+              text:
+                type: blocks
+                label: false
+                fieldsets:
+                  - heading
+                  - text
+                  - image
+                  - gallery
+                  - video
+                  - quote
+                  - section
+
+          # Gallery — same wide column so card thumbnails display large.
+          gallery_section:
+            type: fields
+            headline: Galerie d'images
+            fields:
+              gallery:
+                type: files
+                label: false
+                layout: cards
+                size: medium
+                help: Images affichées dans la grille de droite de la page projet.
+                uploads: image
+                query: page.images.template('image')
 
 
   # ─────────────────────────────────────────────────────────────────────
@@ -415,7 +446,7 @@ tabs:
   # ─────────────────────────────────────────────────────────────────────
   files:
     label: Fichiers
-    icon: archive
+    icon: folder-structure
     sections:
 
       all_files:
