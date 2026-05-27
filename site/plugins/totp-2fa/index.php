@@ -49,10 +49,24 @@ use Kirby\Cms\App as Kirby;
 use Kirby\Cms\User;
 use Kirby\Data\Yaml;
 use Kirby\Exception\Exception as KirbyException;
+use Kirby\Session\Session;
 
 require_once __DIR__ . '/totp.php';
 
 Kirby::plugin('goheritage/totp-2fa', [
+
+    // ── Custom panel sections ─────────────────────────────────────────
+    //
+    //  The `totp-section` is registered as a Vue component in index.js,
+    //  but Kirby's blueprint parser ALSO needs a PHP-side declaration to
+    //  recognise the type — otherwise it logs "invalid section type" and
+    //  the section UI shows an error banner on every user/account view.
+    //
+    //  Just a stub: no computed props, no PHP-side data. All the actual
+    //  rendering and API calls happen in the Vue component.
+    'sections' => [
+        'totp-section' => [],
+    ],
 
     // ── Panel API (admin user manages their own 2FA) ──────────────────
     'api' => [
@@ -248,8 +262,13 @@ Kirby::plugin('goheritage/totp-2fa', [
         // Pending marker lives in a file + cookie (not Kirby's session),
         // because $user->logout() may destroy the session and lose it.
         // The cookie just carries a random pointer; the actual email +
-        // expiry live in the file at site/accounts/.totp-pending/.
-        'user.login:after' => function (string $token, User $user) {
+        // expiry live in the file at site/.private/totp-pending/.
+        //
+        // Kirby 5.4 changed the hook signature: it now fires with named
+        // args `['user' => ..., 'session' => ...]` instead of the older
+        // `(string $token, User $user)`. Match the new shape so PHP's
+        // strict-type binding doesn't blow up with "null given".
+        'user.login:after' => function (User $user, ?Session $session = null) {
             if (!$user->totp_enabled()->toBool()) {
                 return;
             }
@@ -301,7 +320,12 @@ function goheritage_totp_pending_dir(): string
     // Mode 02770 (setgid + group rwx) so the directory is writable by both
     // the web user (daemon) and any CLI tools running under the daemon
     // group. Setgid ensures new files inherit the daemon group.
-    $dir = kirby()->root('accounts') . '/.totp-pending';
+    // Moved out of site/accounts/ — Kirby 5.4's user loader treats any
+    // subdir of accounts/ as a user account candidate, and yields null
+    // for ones it can't parse. The null leaked into UUID resolution and
+    // broke every UUID-based file lookup sitewide. site/.private/ keeps
+    // the files persistent without exposing them to the user iterator.
+    $dir = kirby()->root('site') . '/.private/totp-pending';
     if (!is_dir($dir)) {
         @mkdir($dir, 02770, true);
         @chmod($dir, 02770);

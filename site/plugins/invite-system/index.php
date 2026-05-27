@@ -57,7 +57,13 @@ class GoheritageInviteStore
         // (daemon) AND CLI tools (e.g. cron) under the daemon group both
         // have write access. The setgid bit ensures new files inherit the
         // daemon group regardless of which umask is active.
-        $this->dir = kirby()->root('accounts') . '/.invites';
+        // Moved out of site/accounts/ — Kirby 5.4's user loader iterates
+        // EVERY directory inside accounts/ (including dotfile-prefixed
+        // ones) and yields a null user for those it can't parse, which
+        // breaks UUID resolution sitewide. Living under site/.private/
+        // keeps the files persistent + permission-shared with accounts
+        // but invisible to the user iterator.
+        $this->dir = kirby()->root('site') . '/.private/invites';
         if (!is_dir($this->dir)) {
             @mkdir($this->dir, 02770, true);
             @chmod($this->dir, 02770);
@@ -536,7 +542,7 @@ Kirby::plugin('goheritage/invite-system', [
                     $invite['used_at'] = null;
                     $invite['used_by'] = null;
                     file_put_contents(
-                        kirby()->root('accounts') . '/.invites/' . $token . '.json',
+                        kirby()->root('site') . '/.private/invites/' . $token . '.json',
                         json_encode($invite, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
                     );
                     return snippet('invite-landing', [
