@@ -94,17 +94,22 @@ return [
     ],
     'panel' => [
         'menu' => [
+            // Site / Users / System are admin-only. Authors see only
+            // "Projets" since that's all they need.
             'site' => [
-                'icon' => 'cog',
+                'icon'  => 'cog',
                 'label' => 'Site',
-                'link' => 'site',
+                'link'  => 'site',
+                'menu'  => function () {
+                    return \kirby()->user() && \kirby()->user()->isAdmin();
+                },
                 'current' => function () {
                     return str_contains(\kirby()->request()->path()->toString(), 'site');
                 }
             ],
             'projects' => [
                 'icon'  => 'box',
-                'label' => 'Carte',
+                'label' => 'Projets',
                 'link'  => 'pages/map',
                 'current' => function () {
                     return str_contains(\kirby()->request()->path()->toString(), 'pages/map');
@@ -115,8 +120,16 @@ return [
             // plugin as an additional view + opened via a dialog from the
             // users page header). Pending users = invitations conceptually.
             '-',
-            'users',
-            'system'
+            'users' => [
+                'menu' => function () {
+                    return \kirby()->user() && \kirby()->user()->isAdmin();
+                },
+            ],
+            'system' => [
+                'menu' => function () {
+                    return \kirby()->user() && \kirby()->user()->isAdmin();
+                },
+            ],
         ]
     ],
     'maptiler.key' => '', // set in host-specific config (config.goheritage.test.php / config.localhost.php / config.<host>.php)

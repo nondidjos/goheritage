@@ -1712,4 +1712,77 @@ body.is-panel-collapsed #map-fold-toggle svg {
     }
 }
 
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Visitor header — minimal Matterport / Google-Drive-style chrome for
+ *  non-admin visitors on a project page. Just a wordmark and a single
+ *  "Carte des projets" CTA. The full nav stays for admins/logged-in
+ *  users (see header.php conditional).
+ * ────────────────────────────────────────────────────────────────────── */
+
+.visitor-header {
+    /* Sticky already inherited from existing utility classes above */
+    border-bottom: 1px solid var(--color-border, rgba(26, 25, 22, 0.08));
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.visitor-header__inner {
+    max-width: 100%;
+    padding: 0.85rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.visitor-header__brand {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.visitor-header__logo {
+    height: 1.5rem;
+    width: auto;
+}
+
+.visitor-header__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.85rem 0.45rem 1rem;
+    border: 1px solid var(--color-border, rgba(26, 25, 22, 0.15));
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-ink, #1a1a1a);
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.visitor-header__cta:hover {
+    background: var(--color-ink, #1a1a1a);
+    border-color: var(--color-ink, #1a1a1a);
+    color: #fff;
+    text-decoration: none;
+}
+
+.visitor-header__cta svg {
+    flex-shrink: 0;
+}
+
+@media (max-width: 32rem) {
+    .visitor-header__inner { padding: 0.65rem 1rem; }
+    .visitor-header__logo  { height: 1.25rem; }
+    .visitor-header__cta {
+        padding: 0.4rem 0.7rem 0.4rem 0.85rem;
+        font-size: 0.68rem;
+    }
+}
 
