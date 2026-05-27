@@ -1,0 +1,158 @@
+Title: Chapelle Jérusalem
+
+----
+
+Visibility: private
+
+----
+
+Cover: []
+
+----
+
+Description: Cachée derrière une façade en brique flamande, la Chapelle de Jérusalem est l'une des curiosités les plus singulières de toute la Belgique. Édifice privé, fait rarissime dans le pays, elle appartient depuis sa fondation à la famille Adornes, marchands génois installés en Flandre dès le XIIIe siècle.
+
+----
+
+Location: Villandraut, Gironde
+
+----
+
+Construction-date: XIVe siècle
+
+----
+
+Date: 2024-01-15
+
+----
+
+Architect: Inconnu
+
+----
+
+Style: Gothique
+
+----
+
+Dimensions: 15 × 8 × 10 m
+
+----
+
+Protection-status: classé
+
+----
+
+Tags: chapelle, médiéval, religieux, gironde
+
+----
+
+Primary-tag: chapelle
+
+----
+
+Lat: 51.208552
+
+----
+
+Lng: 3.226772
+
+----
+
+Visible-sections: 
+
+----
+
+Text: [{"content":{"text":"<p>Cachée derrière une façade en brique flamande, la <strong>Chapelle de Jérusalem</strong> est l'une des curiosités les plus singulières de toute la Belgique. Édifice privé, fait rarissime dans le pays, elle appartient depuis sa fondation à <strong>la famille Adornes</strong>, marchands génois installés en Flandre dès le XIIIe siècle.<br><br>Dans la première moitié du XVe siècle, les descendants de ce commerçant génois construisent à Bruges une église sur le modèle de l'église du Saint-Sépulcre de Jérusalem. Pierre et Jacques Adornes seraient partis sur place pour prendre des notes afin de reconstruire de façon approchante le bâtiment original. Le résultat est un édifice gothique aux accents byzantins prononcés, qui ne ressemble à aucun autre lieu de culte des Pays-Bas méridionaux. La 17e génération qui suit les fondateurs du domaine veille encore aujourd'hui sur ce patrimoine.</p>"},"id":"facdd8c8-58ce-4cac-81fd-bc27ceb3cbdb","isHidden":false,"type":"text"},{"content":{"section_title":"La Tour octogonale & la croix au sommet","hotspot_id":"","section_content":"[{\"content\":{\"text\":\"<p>Le chœur surélevé est logé dans la tour octogonale. Tout au sommet, une croix de Jérusalem avec roue et palme de Sainte-Catherine surplombe une tourelle à huit faces recouverte de cuivre. Les deux tours annexes sont coiffées d'un soleil et d'une lune, symboles permanents du pèlerinage accompli. Chaque élément renvoie à une étape précise du voyage d'Anselme Adornes en Terre Sainte, notamment son séjour au monastère Sainte-Catherine du Sinaï.</p>\"},\"id\":\"f99a7104-c296-4d2c-a4cb-19180105d7bd\",\"isHidden\":false,\"type\":\"text\"},{\"content\":{\"location\":\"kirby\",\"image\":[\"file://qqtpv7b4nzrupekm\"],\"src\":\"\",\"alt\":\"\",\"caption\":\"\",\"link\":\"\",\"ratio\":\"\",\"crop\":\"false\"},\"id\":\"46b83c14-c20d-4fe4-bf0c-0943dfa79d39\",\"isHidden\":false,\"type\":\"image\"}]"},"id":"ee29b1f6-129d-4b9e-9ce0-f390660e1e3c","isHidden":false,"type":"section"},{"content":{"section_title":"Le tombeau d'Anselme Adornes et Marguerite van der Banck","hotspot_id":"hotspot_01","section_content":"[{\"content\":{\"text\":\"<p>C'est la pièce maîtresse de la nef. Ce monument funéraire en pierre noire de Tournai porte de fines sculptures représentant Anselme Adornes et sa femme Marguerite Van der Banck. Sous le gisant du bâtisseur en armure et de son épouse repose le cœur d'Anselme, ramené d'Écosse où il fut assassiné. Le tombeau a été restauré en 2022. Anselme mourut en 1483 à Édimbourg, au service du roi d'Écosse Jacques III. Son corps fut inhumé là-bas, mais son cœur fut rapatrié à Bruges selon ses dernières volontés.</p>\"},\"id\":\"f313d305-c027-4127-9260-591605552b80\",\"isHidden\":false,\"type\":\"text\"}]"},"id":"fea3fbc6-6961-4d82-9d77-f7cac6c844d4","isHidden":false,"type":"section"},{"content":{"section_title":"Les six vitraux","hotspot_id":"","section_content":"[{\"content\":{\"text\":\"<p>Les vitraux de la chapelle furent réalisés vers 1560 et sont les plus anciens de Bruges. Ils furent probablement commandés par Jacques (1523–1572) et Jérôme Adornes (1522–1558). Les deux frères sont reconnaissables sur l'un des panneaux, ainsi que leurs saints patrons. On peut également y lire la devise d'Anselme Adornes : <em>« Para Tutum »</em>, soit « Prépare-nous un chemin sûr », en référence directe à son pèlerinage. Anselme lui-même est représenté sur le vitrail nord-est, avec ses armoiries et le titre de chevalier écossais de l'Ordre de la Licorne.</p>\"},\"id\":\"23d11369-3766-42db-8794-ddabf11c5e81\",\"isHidden\":false,\"type\":\"text\"}]"},"id":"030e92cc-530f-4777-ac01-aa6b92a703fb","isHidden":false,"type":"section"},{"content":{"section_title":"Le maître-autel","hotspot_id":"","section_content":"[{\"content\":{\"text\":\"<p>L'autel en pierre de 1435 présente un mont du Calvaire très travaillé, entouré de crânes sculptés et des outils de crucifixion. On y retrouve les <em>arma Christi</em>, les instruments de la Passion, disposés autour de la scène du Golgotha. Ce type d'iconographie visait à encourager une méditation sur la mort du Christ, particulièrement chez les pèlerins de retour de Terre Sainte.</p>\"},\"id\":\"9e553a3b-cbd8-4cad-9e9b-08b91f39acd2\",\"isHidden\":false,\"type\":\"text\"}]"},"id":"0036ef2c-edb5-41a8-b3c0-f02121458501","isHidden":false,"type":"section"}]
+
+----
+
+Gallery: []
+
+----
+
+Viewer-url: 
+
+----
+
+Model-toggle: true
+
+----
+
+Model-obj: file://ualxnjoc9clocjzf
+
+----
+
+Model-texture: file://5vczkjd86kv6r9zp
+
+----
+
+Model-hotspots-json: file://jnoyah5urbhv8gwq
+
+----
+
+Model-obj-interior: file://vsp3awinr50ecns8
+
+----
+
+Model-texture-interior: file://gqgdvs8p3bx0r7ms
+
+----
+
+Model-hotspots-json-interior: file://yfcuxj3ycnkhiji5
+
+----
+
+Annotations:
+
+-
+  location: interior
+  hotspot_id: hotspot_01
+  title: Tombe
+  camera_mode: auto-orbit
+  description: ''
+-
+  location: interior
+  hotspot_id: hotspot_02
+  title: Table
+  camera_mode: fly
+  description: ''
+-
+  location: interior
+  hotspot_id: hotspot_03
+  title: Chaire
+  camera_mode: orbit
+  description: ''
+-
+  location: interior
+  hotspot_id: hotspot_04
+  title: Voutes
+  camera_mode: orbit
+  description: ''
+
+----
+
+Annotations-interior: 
+
+----
+
+Compress-textures: true
+
+----
+
+Compress-textures-interior: true
+
+----
+
+Model-mtl: []
+
+----
+
+Additional-images: - 'file://v3nwobsdnh1w6esr'
+
+----
+
+Uuid: chapel-saint-jerusalem-001
+
+----
+
+Model-type-upload: true
