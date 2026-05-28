@@ -9,6 +9,7 @@ num: 0
 # grayed-out (position, because num:0 auto-sorts by date) or irrelevant
 # (a project never changes template / moves out of the map).
 options:
+  changeStatus: false
   changeTemplate: false
   move: false
 
@@ -81,6 +82,7 @@ tabs:
         fields:
           visibility:    { type: hidden }
           share_token:   { type: hidden }
+          share_links:   { type: hidden }
 
       # Présentation — cover + short description (the "card preview").
       cover_section:

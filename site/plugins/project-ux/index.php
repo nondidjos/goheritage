@@ -60,6 +60,41 @@ Kirby::plugin('goheritage/project-ux', [
                         return $cover->url();
                     }
                 },
+                'pageImages' => function () {
+                    $images = [];
+                    foreach ($this->model()->images() as $file) {
+                        $images[] = [
+                            'name'  => $file->filename(),
+                            'url'   => $file->url(),
+                            'thumb' => $file->crop(200, 150)->url(),
+                            'uuid'  => $file->uuid()->toString()
+                        ];
+                    }
+                    return $images;
+                },
+                'coverUuid' => function () {
+                    $cover = $this->model()->cover()->toFile();
+                    return $cover ? $cover->uuid()->toString() : null;
+                },
+                'dateRaw' => function () {
+                    return (string)$this->model()->date();
+                },
+                'protectionStatusRaw' => function () {
+                    return (string)$this->model()->protection_status();
+                },
+                'shareLinks' => function () {
+                    $links = [];
+                    $structure = $this->model()->share_links()->toStructure();
+                    foreach ($structure as $link) {
+                        $links[] = [
+                            'id'               => $link->id()->value(),
+                            'token'            => $link->token()->value(),
+                            'label'            => $link->label()->value(),
+                            'visible_sections' => $link->visible_sections()->split(','),
+                        ];
+                    }
+                    return $links;
+                },
 
                 // ── Description / meta fields ───────────────────────────
                 'description'      => function () { return (string) $this->model()->description(); },
@@ -236,21 +271,60 @@ Kirby::plugin('goheritage/project-ux', [
             if ($v === 'public') {
                 return true;
             }
-            if ($v === 'link' && $token && $this->share_token()->isNotEmpty()) {
-                return hash_equals($this->share_token()->value(), (string) $token);
+            if ($v === 'link' && $token) {
+                if ($this->share_token()->isNotEmpty() && hash_equals($this->share_token()->value(), (string) $token)) {
+                    return true;
+                }
+                $links = $this->share_links()->toStructure();
+                foreach ($links as $link) {
+                    $linkToken = $link->token()->value();
+                    if (!empty($linkToken) && hash_equals($linkToken, (string) $token)) {
+                        return true;
+                    }
+                }
             }
             return false;
         },
 
-        // Per-section visibility — defaults to "all visible" when the field
-        // has never been touched (backward-compat for pre-plugin projects).
+        // Per-section visibility — checks the specific token if in link-only mode
         'sectionVisible' => function (string $section) {
-            $field = $this->visible_sections();
-            if ($field->isEmpty()) {
-                return true;
+            $v = $this->visibilityResolved();
+            if ($v === 'public') {
+                $field = $this->visible_sections();
+                if ($field->isEmpty()) {
+                    return true;
+                }
+                $list = $field->split(',');
+                return in_array($section, $list, true);
             }
-            $list = $field->split(',');
-            return in_array($section, $list, true);
+
+            if ($v === 'link') {
+                $token = get('key');
+                if (!$token) {
+                    return false;
+                }
+                if ($this->share_token()->isNotEmpty() && hash_equals($this->share_token()->value(), (string) $token)) {
+                    $field = $this->visible_sections();
+                    if ($field->isEmpty()) {
+                        return true;
+                    }
+                    $list = $field->split(',');
+                    return in_array($section, $list, true);
+                }
+                $links = $this->share_links()->toStructure();
+                foreach ($links as $link) {
+                    $linkToken = $link->token()->value();
+                    if (!empty($linkToken) && hash_equals($linkToken, (string) $token)) {
+                        $field = $link->visible_sections();
+                        if ($field->isEmpty()) {
+                            return false;
+                        }
+                        $list = $field->split(',');
+                        return in_array($section, $list, true);
+                    }
+                }
+            }
+            return false;
         },
     ],
 ]);
