@@ -693,7 +693,9 @@ panel.plugin('goheritage/project-ux', {
             @click="toggleOpen"
           >
             <k-icon :type="currentOption.icon" class="gh-visibility__icon" />
-            <span class="gh-visibility__label">{{ currentOption.label }}</span>
+            <span class="gh-visibility__label">
+              Visibilité : <strong>{{ currentOption.label }}</strong>
+            </span>
             <k-icon
               type="angle-down"
               class="gh-visibility__chevron"
@@ -754,20 +756,21 @@ panel.plugin('goheritage/project-ux', {
             <div class="gh-share-dialog">
               <div class="gh-share-dialog__section">
                 <h3 class="gh-share-dialog__subtitle"><k-icon type="users" /> Accès général</h3>
-                <div class="gh-share-dialog__access-row">
-                  <k-select-input
-                    :value="dialogVisibility"
-                    :options="[
-                      { value: 'private', text: '🔒 Privé (Brouillon)' },
-                      { value: 'link', text: '🔗 Limité (Avec un lien)' },
-                      { value: 'public', text: '🌐 Public' }
-                    ]"
-                    @input="updateVisibilityFromDialog"
-                    style="max-width: 250px;"
-                  />
-                  <p class="gh-share-dialog__access-help">
-                    {{ visibilityHelpText }}
-                  </p>
+                <div class="gh-share-dialog__access-options">
+                  <button
+                    v-for="opt in options"
+                    :key="opt.value"
+                    type="button"
+                    class="gh-share-dialog__access-opt"
+                    :class="{ 'is-active': dialogVisibility === opt.visibility }"
+                    @click="updateVisibilityFromDialog(opt.visibility)"
+                  >
+                    <k-icon :type="opt.icon" class="gh-share-dialog__access-opt-icon" />
+                    <div class="gh-share-dialog__access-opt-text">
+                      <strong>{{ opt.label }}</strong>
+                      <span>{{ opt.help }}</span>
+                    </div>
+                  </button>
                 </div>
               </div>
 
@@ -965,9 +968,13 @@ panel.plugin('goheritage/project-ux', {
           var opt = this.options.find(function (o) { return o.value === value; });
           if (!opt) return;
           var pageId = this.model.id.replace(/\//g, '+');
+          const currentStatus = this.model.status;
           try {
+            // Always update the visibility field first
             await this.$panel.api.patch('pages/' + pageId, { visibility: opt.visibility });
-            if (opt.status !== this.model.status) {
+            // Only call the status endpoint when the Kirby status actually changes
+            // (link and public both use 'listed', so switching between them skips this)
+            if (opt.status !== currentStatus) {
               const res = await this.$panel.api.patch('pages/' + pageId + '/status', {
                 status: opt.status,
                 position: null,
@@ -979,7 +986,7 @@ panel.plugin('goheritage/project-ux', {
               }
             }
             this.open = false;
-            this.$panel.notification.success('Statut : ' + opt.label);
+            this.$panel.notification.success('Visibilité : ' + opt.label);
             await this.$panel.view.reload();
           } catch (e) {
             this.$panel.notification.error(
@@ -1063,10 +1070,14 @@ panel.plugin('goheritage/project-ux', {
             status = 'listed';
             visibility = 'public';
           }
+          const currentStatus = this.model.status;
           const pageId = this.model.id.replace(/\//g, '+');
           try {
+            // Always save the visibility field
             await this.$panel.api.patch('pages/' + pageId, { visibility: visibility });
-            if (status !== this.model.status) {
+            // Only call status endpoint when it actually needs to change
+            // (link and public share the same Kirby status 'listed')
+            if (status !== currentStatus) {
               const res = await this.$panel.api.patch('pages/' + pageId + '/status', {
                 status: status,
                 position: null

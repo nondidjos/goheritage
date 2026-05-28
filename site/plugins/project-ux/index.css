@@ -39,8 +39,8 @@
   align-items: center;
   gap: 0.45rem;
   height: var(--height-md, 2.25rem);
-  padding: 0 0.65rem;
-  border: 0;
+  padding: 0 0.85rem;
+  border: 1px solid var(--color-border, #444);
   border-radius: var(--rounded, 4px);
   background: #121212;
   color: #efefef;
@@ -53,8 +53,7 @@
   white-space: nowrap;
 }
 .gh-visibility__trigger:focus-visible {
-  outline: 2px solid var(--color-focus, #4271ae);
-  outline-offset: 2px;
+  outline: none;
 }
 
 .gh-visibility__icon {
@@ -1621,7 +1620,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: var(--color-text-dimmed);
+  color: #efefef;
   font: inherit;
   font-size: 0.8rem;
   font-weight: 500;
@@ -1632,12 +1631,118 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
 }
 
 .gh-visibility__manage-btn:hover {
-  background: var(--color-hover, rgba(0, 0, 0, 0.04));
-  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
 
 .gh-visibility__manage-btn .k-icon {
   width: 1em;
   height: 1em;
   opacity: 0.75;
+}
+
+/* ── Custom general access options list inside share dialog ── */
+.gh-share-dialog__access-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+
+.gh-share-dialog__access-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: 6px;
+  background: var(--color-white, #fff);
+  color: var(--color-text, #1a1a1a);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.1s ease, background 0.1s ease;
+  width: 100%;
+}
+
+.gh-share-dialog__access-opt:hover {
+  background: var(--color-hover, rgba(0, 0, 0, 0.04));
+}
+
+.gh-share-dialog__access-opt.is-active {
+  border-color: var(--color-focus, #4271ae);
+  background: var(--color-back, rgba(0, 0, 0, 0.015));
+}
+
+.gh-share-dialog__access-opt-icon {
+  margin-top: 0.15em;
+  color: var(--color-text-dimmed);
+}
+
+.gh-share-dialog__access-opt.is-active .gh-share-dialog__access-opt-icon {
+  color: var(--color-focus, #4271ae);
+}
+
+.gh-share-dialog__access-opt-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.gh-share-dialog__access-opt-text strong {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text, #1a1a1a);
+}
+
+.gh-share-dialog__access-opt-text span {
+  font-size: 0.75rem;
+  color: var(--color-text-dimmed, #777);
+  line-height: 1.3;
+}
+
+/* Explicit Dark Mode Overrides for access options inside dialog */
+html[data-theme="dark"] .gh-share-dialog__access-opt,
+body[data-theme="dark"] .gh-share-dialog__access-opt,
+.k-theme-dark .gh-share-dialog__access-opt {
+  background: #2a2a2a !important;
+  color: #efefef !important;
+  border-color: #3a3a3a !important;
+}
+
+html[data-theme="dark"] .gh-share-dialog__access-opt:hover,
+body[data-theme="dark"] .gh-share-dialog__access-opt:hover,
+.k-theme-dark .gh-share-dialog__access-opt:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-theme="dark"] .gh-share-dialog__access-opt.is-active,
+body[data-theme="dark"] .gh-share-dialog__access-opt.is-active,
+.k-theme-dark .gh-share-dialog__access-opt.is-active {
+  border-color: var(--color-focus, #4271ae) !important;
+  background: rgba(66, 113, 174, 0.15) !important;
+}
+
+html[data-theme="dark"] .gh-share-dialog__access-opt-text strong,
+body[data-theme="dark"] .gh-share-dialog__access-opt-text strong,
+.k-theme-dark .gh-share-dialog__access-opt-text strong {
+  color: #efefef !important;
+}
+
+html[data-theme="dark"] .gh-share-dialog__access-opt-text span,
+body[data-theme="dark"] .gh-share-dialog__access-opt-text span,
+.k-theme-dark .gh-share-dialog__access-opt-text span {
+  color: #aaa !important;
+}
+
+html[data-theme="dark"] .gh-share-dialog__access-opt-icon,
+body[data-theme="dark"] .gh-share-dialog__access-opt-icon,
+.k-theme-dark .gh-share-dialog__access-opt-icon {
+  color: #aaa !important;
+}
+
+html[data-theme="dark"] .gh-share-dialog__access-opt.is-active .gh-share-dialog__access-opt-icon,
+body[data-theme="dark"] .gh-share-dialog__access-opt.is-active .gh-share-dialog__access-opt-icon,
+.k-theme-dark .gh-share-dialog__access-opt.is-active .gh-share-dialog__access-opt-icon {
+  color: #7faadd !important;
 }
