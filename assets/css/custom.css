@@ -1213,6 +1213,26 @@ body.is-embedded #viewer-container {
     height: 100dvh !important;
 }
 
+/* ── Viewer-only mode (?embed=1&viewer=only) — the CMS panel preview ──
+   Hides the sidebar entirely so the iframe shows nothing but the 3D
+   viewer canvas, edge to edge. */
+body.is-embedded .project-panels-wrapper.is-viewer-only {
+    min-height: 0 !important;
+    height: 100dvh !important;
+}
+body.is-embedded .project-panels-wrapper.is-viewer-only #project-content,
+body.is-embedded .project-panels-wrapper.is-viewer-only #project-drawer-handle,
+body.is-embedded .project-panels-wrapper.is-viewer-only #project-fold-toggle {
+    display: none !important;
+}
+body.is-embedded .project-panels-wrapper.is-viewer-only #viewer-container {
+    width: 100% !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+
 body.is-embedded .map-layout {
     height: 100dvh !important;
 }

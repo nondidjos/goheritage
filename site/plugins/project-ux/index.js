@@ -1064,14 +1064,64 @@ panel.plugin('goheritage/project-ux', {
     });
   }
 
+  
+  /*  Inject a live 3D viewer preview at the top of the Modèle 3D tab
+   *  in read mode. Hidden when any section is in edit mode so the
+   *  iframe doesn't fight for vertical space while uploading files.   */
+  function ensureModelPreview() {
+    // Only on the Modèle 3D tab.
+    var params = new URLSearchParams(window.location.search);
+    var tab = params.get('tab');
+    if (tab !== 'model') {
+      var stale = document.getElementById('gh-model-preview');
+      if (stale) stale.remove();
+      return;
+    }
+
+    // Look up the page slug from panel state.
+    var slug = '';
+    try {
+      var id = window.panel && window.panel.view && window.panel.view.props
+            && window.panel.view.props.id;
+      if (typeof id === 'string') slug = id;
+    } catch (_) {}
+    if (!slug) return;
+
+    if (document.getElementById('gh-model-preview')) return;
+
+    // Prepend the preview as the FIRST sibling of the first section in
+    // the current tab. The .k-sections wrapper (parent of .k-section
+    // elements) is the natural content container — it shares whatever
+    // width Kirby gives the tab content, so the iframe will span the
+    // full content width.
+    var firstSection = document.querySelector('.k-page-view .k-section');
+    var host = firstSection && firstSection.parentNode;
+    if (!host) return;
+
+    var wrap = document.createElement('div');
+    wrap.id = 'gh-model-preview';
+    wrap.className = 'gh-model-preview';
+    wrap.innerHTML =
+      '<div class="gh-model-preview__head">' +
+        '<span class="gh-model-preview__label">Aperçu du modèle</span>' +
+        '<a class="gh-model-preview__open" href="/' + slug + '" target="_blank" rel="noopener">Ouvrir →</a>' +
+      '</div>' +
+      '<iframe class="gh-model-preview__frame" src="/' + slug + '?embed=1&viewer=only" ' +
+        'allow="xr-spatial-tracking; fullscreen" loading="lazy"></iframe>';
+    host.insertBefore(wrap, firstSection);
+  }
+
   function scan() {
     if (!isProjectPage()) {
       document.body.classList.remove(BODY_FLAG);
       document.body.style.removeProperty('--gh-header-height');
+      var stalePreview = document.getElementById('gh-model-preview');
+      if (stalePreview) stalePreview.remove();
       return;
     }
     document.body.classList.add(BODY_FLAG);
     measureHeader();
+    ensureModelPreview();
 
     // Tag EVERY .k-section on the page so the card styling applies
     // uniformly (info-only sections + file sections get the same chrome

@@ -26,6 +26,9 @@ $canSee = function (string $section) use ($page, $isAdmin) {
 
 // Define before snippet('header') so the title-bar markup below can use it.
 $isEmbedded = !empty(get('embed'));
+// viewer=only is an extra mode used by the CMS panel preview iframe —
+// hides the sidebar entirely so the viewer fills the iframe edge to edge.
+$isViewerOnly = $isEmbedded && get('viewer') === 'only';
 
 // ── Visitor-mode chrome ──────────────────────────────────────────────
 // Anyone WITHOUT a panel session (shared-link recipients, casual
@@ -184,7 +187,7 @@ $defaultMode = $availableModes[0] ?? 'model';
     <?php endif ?>
 
     <!-- ── Content and Viewer Wrapper for Animation ── -->
-    <div class="project-panels-wrapper">
+    <div class="project-panels-wrapper<?= $isViewerOnly ? ' is-viewer-only' : '' ?>">
         <!-- ── Left: Content & Specs (2 cols) — becomes bottom drawer on mobile ── -->
         <div class="flex flex-col gap-8 pb-10 project-content" id="project-content">
 
