@@ -155,7 +155,7 @@ return [
                 foreach ($map->children()->listed() as $proj) {
                     $panelPath = 'pages/' . str_replace('/', '+', $proj->id());
                     $items['project-' . $proj->slug()] = [
-                        'icon'    => 'angle-right',
+                        'icon'    => 'circle-half',
                         'label'   => (string) $proj->title(),
                         'link'    => $panelPath,
                         'current' => str_contains($path, str_replace('/', '+', $proj->id())),
