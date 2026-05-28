@@ -259,10 +259,33 @@ $defaultMode = $availableModes[0] ?? 'model';
                  a duplicate plans list. -->
             <?php if ($canSee('plans')) snippet('plan-viewer', ['modalOnly' => true]) ?>
 
-            <!-- Tags -->
+            <!-- Tags. A tag is only linkified if at least one LISTED
+                 project on the map actually carries it — otherwise the
+                 link would land on the map filtered for a tag that
+                 yields zero results. Orphan tags render as plain labels
+                 so the info is still shown but isn't a dead-end. -->
+            <?php
+            // Build the set of tags that exist across listed map projects
+            // (same collection the map page filters on). Normalised to
+            // lowercase for a case-insensitive match.
+            $liveTags = [];
+            $mapPage = page('map');
+            if ($mapPage) {
+                foreach ($mapPage->children()->listed() as $proj) {
+                    foreach ($proj->tags()->split(',') as $t) {
+                        $liveTags[mb_strtolower(trim($t))] = true;
+                    }
+                }
+            }
+            ?>
             <div class="flex flex-wrap gap-2 mt-4">
                 <?php foreach ($page->tags()->split(',') as $tag): ?>
-                    <a href="<?= url('map') ?>?tag=<?= urlencode(trim($tag)) ?><?= $isEmbedded ? '&embed=1' : '' ?>" class="tag"><?= esc(trim($tag)) ?></a>
+                    <?php $t = trim($tag); if ($t === '') continue; ?>
+                    <?php if (isset($liveTags[mb_strtolower($t)])): ?>
+                        <a href="<?= url('map') ?>?tag=<?= urlencode($t) ?><?= $isEmbedded ? '&embed=1' : '' ?>" class="tag"><?= esc($t) ?></a>
+                    <?php else: ?>
+                        <span class="tag tag--static"><?= esc($t) ?></span>
+                    <?php endif ?>
                 <?php endforeach ?>
             </div>
 

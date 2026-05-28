@@ -165,10 +165,10 @@
     full row borders span from one card edge to the other (negative
     margin pulls the table out past Kirby's field padding). The first
     and last cell get extra padding to compensate.                       */
+/* Full-bleed table — no negative margins, no side padding so the file
+   browser uses the entire section width. */
 .k-page-files-list {
-  width: calc(100% + 1.5rem);
-  margin-left: -0.75rem;
-  margin-right: -0.75rem;
+  width: 100%;
   border-collapse: collapse;
   table-layout: auto;
   font-size: 0.85rem;
@@ -176,7 +176,7 @@
 
 .k-page-files-list thead th {
   text-align: left;
-  padding: 0.6rem 0.6rem;
+  padding: 0.6rem 0.5rem;
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -184,21 +184,18 @@
   color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55));
   border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
 }
-.k-page-files-list thead th:first-child { padding-left: 0.75rem; }
-.k-page-files-list thead th:last-child  { padding-right: 0.75rem; }
+.k-page-files-list thead th:first-child { padding-left: 0; }
+.k-page-files-list thead th:last-child  { padding-right: 0; }
 
 .k-page-files-list tbody td {
-  padding: 0.65rem 0.6rem;
+  padding: 0.6rem 0.5rem;
   border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.06));
   vertical-align: middle;
   color: var(--color-text, #1a1a1a);
-  /*  Same line-height on every cell ensures rows are uniform height
-      regardless of which cell has an icon/badge/text — the earlier
-      display:flex on td made the name cell taller than the rest. */
   line-height: 1.4;
 }
-.k-page-files-list tbody td:first-child { padding-left: 0.75rem; }
-.k-page-files-list tbody td:last-child  { padding-right: 0.75rem; }
+.k-page-files-list tbody td:first-child { padding-left: 0; }
+.k-page-files-list tbody td:last-child  { padding-right: 0; }
 
 .k-page-files-list tbody tr:last-child td { border-bottom: none; }
 
@@ -219,8 +216,8 @@
 }
 .k-page-files-list__name-inner .k-icon {
   flex-shrink: 0;
-  width: 1em;
-  height: 1em;
+  width: 1.2em;
+  height: 1.2em;
   color: var(--color-text-dimmed, rgba(0, 0, 0, 0.5));
 }
 .k-page-files-list__name-inner a {
@@ -282,13 +279,13 @@
   border: 1px solid var(--color-border, rgba(0, 0, 0, 0.15));
   border-radius: 6px;
   background: transparent;
-  color: #121212;
+  color: var(--color-text);
   cursor: pointer;
   transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease;
 }
 .k-page-files-list__delete:hover {
-  background: #121212;
-  border-color: #121212;
+  background: var(--color-negative, #b3261e);
+  border-color: var(--color-negative, #b3261e);
   color: #fff;
 }
 .k-page-files-list__delete .k-icon { width: 0.95em; height: 0.95em; }
