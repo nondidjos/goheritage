@@ -256,12 +256,26 @@ body.gh-project-edit .k-section.gh-section {
   background: transparent !important;
   border: 0 !important;
   border-radius: 0 !important;
-  padding: 1.2rem 0 !important;
+  padding: 1.5rem 0 !important;
   margin: 0 !important;
   box-shadow: none !important;
 }
 body.gh-project-edit .k-section.gh-section + .k-section.gh-section {
   border-top: 1px solid var(--color-border) !important;
+}
+
+/* ── Model tab: the whole tab toggles edit/view via the preview header
+   button, so individual sections should NOT have their own per-section
+   edit dock or read-mode field hiding. In edit mode every field is
+   directly editable, no nested locking. ──────────────────────────── */
+body.gh-on-model-tab[data-gh-model-mode="edit"] .gh-section .gh-section__dock {
+  display: none !important;
+}
+body.gh-on-model-tab[data-gh-model-mode="edit"] .gh-section .k-field {
+  display: block !important;
+}
+body.gh-on-model-tab[data-gh-model-mode="edit"] .gh-section .gh-section__display {
+  display: none !important;
 }
 
 /* When a section is being edited, give it a little more right padding
@@ -295,29 +309,9 @@ body.gh-project-edit .gh-section > header.k-section-header {
   display: none !important;
 }
 
-/* Read-mode hides ONLY form-y field types. Visual fields (blocks,
-   files, gallery, image previews) keep Kirby's native rendering since
-   they already look like content. */
-body.gh-project-edit .gh-section:not(.is-editing) .k-text-field,
-body.gh-project-edit .gh-project-edit .gh-section:not(.is-editing) .k-textarea-field,
-body.gh-project-edit .gh-section:not(.is-editing) .k-number-field,
-body.gh-project-edit .gh-section:not(.is-editing) .k-url-field,
-body.gh-project-edit .gh-section:not(.is-editing) .k-email-field,
-body.gh-project-edit .gh-section:not(.is-editing) .k-date-field,
-body.gh-project-edit .gh-section:not(.is-editing) .k-select-field,
-body.gh-project-edit .gh-section:not(.is-editing) .k-tags-field,
-body.gh-project-edit .gh-section:not(.is-editing) .k-toggle-field,
-body.gh-project-edit .gh-section:not(.is-editing) .k-toggles-field,
-body.gh-project-edit .gh-section:not(.is-editing) .k-checkboxes-field,
-body.gh-project-edit .gh-section:not(.is-editing) .k-writer-field,
-body.gh-project-edit .gh-section:not(.is-editing) .k-location-search-field {
-  display: none !important;
-}
-
-/* In edit mode, hide the static dl so the form takes over. */
-body.gh-project-edit .gh-section.is-editing > .gh-section__display {
-  display: none !important;
-}
+/* Per-section read/edit mode retired — editing surfaces (Détails,
+   Modèle 3D) show fields directly editable like normal Kirby. The
+   read-only "document" view is the Aperçu tab's custom overview. */
 
 /*  Tighter spacing for Kirby's k-info / k-help / k-field-counter
     elements inside our cards — by default they get inherited margins
@@ -366,13 +360,37 @@ body.gh-project-edit .gh-section > .gh-section__title {
   font-weight: 600 !important;
   letter-spacing: -0.005em !important;
   color: var(--color-text, #1a1a1a) !important;
-  /* Tight margin + no border = title feels like a label on the card,
-     not a header bar separated from the content. */
-  margin: 0 0 0.6rem 0 !important;
+  /* Comfortable gap below the title so content doesn't crowd it. */
+  margin: 0 0 1.1rem 0 !important;
   padding: 0 9rem 0 0 !important;
   line-height: 1.3 !important;
   text-align: left !important;
   border: 0 !important;
+}
+
+/*  Collapsible title — clickable, with a chevron that rotates when the
+    section is collapsed. */
+body.gh-project-edit .gh-section > .gh-section__title--toggle {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  cursor: pointer !important;
+  user-select: none;
+}
+body.gh-project-edit .gh-section__chevron {
+  display: inline-flex;
+  color: var(--color-text-dimmed);
+  transition: transform 0.15s ease;
+}
+body.gh-project-edit .gh-section.gh-collapsed .gh-section__chevron {
+  transform: rotate(-90deg);
+}
+/*  Collapsed: hide everything in the card except the title. */
+body.gh-project-edit .gh-section.gh-collapsed > *:not(.gh-section__title):not(.gh-section__dock) {
+  display: none !important;
+}
+body.gh-project-edit .gh-section.gh-collapsed > .gh-section__title {
+  margin-bottom: 0 !important;
 }
 
 
@@ -648,25 +666,49 @@ body.gh-project-edit .gh-section.is-editing .gh-section__dock {
   letter-spacing: 0.06em;
   font-size: 0.7rem;
 }
-.gh-model-preview__open {
-  display: inline-flex;
+/* ── Persistent model-tab toolbar (always visible) ────────────────── */
+.gh-model-bar {
+  display: flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.4rem 0.7rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--rounded, 4px);
-  background: var(--panel-color-back);
-  color: var(--color-text);
-  text-decoration: none;
-  font-size: 0.78rem;
-  font-weight: 500;
-  line-height: 1;
-  transition: background 0.1s ease, border-color 0.1s ease;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin: 0 0 1rem;
 }
-.gh-model-preview__open:hover {
-  background: var(--color-hover);
-  border-color: var(--color-text);
-  text-decoration: none;
+/* Edit-mode banner — only shown when editing; pushes the toggle right. */
+.gh-model-bar__banner {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--rounded, 4px);
+  background: var(--color-notice-light, rgba(220, 150, 0, 0.12));
+  color: var(--color-notice-dark, #8a5a00);
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.gh-model-bar__banner svg { flex-shrink: 0; }
+body.gh-on-model-tab[data-gh-model-mode="edit"] .gh-model-bar__banner {
+  display: inline-flex;
+}
+
+/* ── 3D tab read/edit mode switching ──────────────────────────────── */
+/* Read mode: show the viewer preview, hide all the technical sections. */
+body.gh-on-model-tab[data-gh-model-mode="read"] .k-page-view .k-section {
+  display: none !important;
+}
+body.gh-on-model-tab[data-gh-model-mode="read"] #gh-model-preview {
+  display: block !important;
+}
+/* Edit mode: hide the viewer preview, show the technical sections.
+   The toolbar (#gh-model-bar) stays visible in BOTH modes so there's
+   always a way back to the viewer. */
+body.gh-on-model-tab[data-gh-model-mode="edit"] #gh-model-preview {
+  display: none !important;
+}
+body.gh-on-model-tab[data-gh-model-mode="edit"] .k-page-view .k-section {
+  display: block !important;
 }
 .gh-model-preview__frame {
   display: block;
@@ -825,6 +867,89 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
 .gh-pov__desc--empty {
   color: var(--color-text-dimmed);
   font-style: italic;
+}
+
+/* ── Subtitle (location · date) ───────────────────────────────────── */
+.gh-pov__subtitle {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: -0.75rem 0 0;
+  font-size: 0.9rem;
+  color: var(--color-text-dimmed);
+}
+.gh-pov__subtitle .k-icon {
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 0.2rem;
+}
+
+/* ── Stat strip ───────────────────────────────────────────────────── */
+.gh-pov__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
+}
+.gh-pov__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.85rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--rounded, 4px);
+  background: var(--panel-color-back);
+  text-align: center;
+}
+.gh-pov__stat-num {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text);
+}
+.gh-pov__stat-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-dimmed);
+}
+
+/* ── Quick actions row ────────────────────────────────────────────── */
+.gh-pov__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.gh-pov__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--rounded, 4px);
+  background: var(--panel-color-back);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+.gh-pov__action:hover {
+  background: var(--color-hover);
+  border-color: var(--color-text);
+  text-decoration: none;
+}
+.gh-pov__action .k-icon {
+  width: 1em;
+  height: 1em;
+}
+
+@media (max-width: 40rem) {
+  .gh-pov__stats { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ── Meta chips ───────────────────────────────────────────────────── */

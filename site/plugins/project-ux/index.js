@@ -94,57 +94,57 @@ var ProjectOverviewSection = {
             </span>
           </button>
 
-          <!-- Title bar + edit -->
+          <!-- Title bar + edit (Caractéristiques) -->
           <header class="gh-pov__head">
             <h1 class="gh-pov__title">{{ pageTitle }}</h1>
             <button
               type="button"
               class="gh-pov__head-edit"
-              @click="editFields('description', { description: 'description' })"
-              title="Modifier la description"
+              @click="editMeta"
+              title="Modifier les caractéristiques"
             >
               <k-icon type="edit" />
             </button>
           </header>
 
-          <!-- Description -->
-          <p v-if="description" class="gh-pov__desc">{{ description }}</p>
-          <p v-else class="gh-pov__desc gh-pov__desc--empty">
-            Aucune description. Cliquez sur le crayon pour en ajouter une.
+          <!-- Subtitle line: location · construction date (plain text,
+               not pills). Matterport shows the place prominently right
+               under the title. -->
+          <p v-if="location || constructionDate" class="gh-pov__subtitle">
+            <span v-if="location"><k-icon type="pin" /> {{ location }}</span>
+            <span v-if="constructionDate"> · {{ constructionDate }}</span>
           </p>
 
-          <!-- Meta chips: clicking any opens the Caractéristiques editor -->
-          <div class="gh-pov__chips">
-            <button class="gh-pov__chip" @click="editMeta">
-              <k-icon type="pin" />
-              <span>{{ location || 'Lieu inconnu' }}</span>
-            </button>
-            <button class="gh-pov__chip" @click="editMeta">
-              <k-icon type="calendar" />
-              <span>{{ constructionDate || 'Date inconnue' }}</span>
-            </button>
-            <button v-if="architect" class="gh-pov__chip" @click="editMeta">
-              <k-icon type="user" />
-              <span>{{ architect }}</span>
-            </button>
-            <button v-if="style" class="gh-pov__chip" @click="editMeta">
-              <k-icon type="brush" />
-              <span>{{ style }}</span>
-            </button>
-            <button v-if="dimensions" class="gh-pov__chip" @click="editMeta">
-              <k-icon type="dimensions" />
-              <span>{{ dimensions }}</span>
-            </button>
-            <button v-if="protectionStatus && protectionStatus !== 'Non protégé'" class="gh-pov__chip gh-pov__chip--accent" @click="editMeta">
-              <k-icon type="protected" />
-              <span>{{ protectionStatus }}</span>
-            </button>
+          <!-- Stat strip: at-a-glance metrics like Matterport's space
+               header (dimensions, areas, etc.). -->
+          <div class="gh-pov__stats">
+            <div class="gh-pov__stat">
+              <span class="gh-pov__stat-num">{{ has3dModel ? '✓' : '—' }}</span>
+              <span class="gh-pov__stat-label">Modèle 3D</span>
+            </div>
+            <div class="gh-pov__stat">
+              <span class="gh-pov__stat-num">{{ hotspotsCount }}</span>
+              <span class="gh-pov__stat-label">Points d’intérêt</span>
+            </div>
+            <div class="gh-pov__stat">
+              <span class="gh-pov__stat-num">{{ galleryCount }}</span>
+              <span class="gh-pov__stat-label">Images</span>
+            </div>
+            <div class="gh-pov__stat">
+              <span class="gh-pov__stat-num">{{ plansCount }}</span>
+              <span class="gh-pov__stat-label">Plans</span>
+            </div>
           </div>
 
-          <!-- Tags row hidden from the overview — tags are still
-               editable via the Détails tab or the meta dialog if
-               needed. Keeps the Aperçu reading like a project page
-               and not a tagging UI. -->
+          <!-- Quick actions row -->
+          <div class="gh-pov__actions">
+            <a class="gh-pov__action" :href="'/' + pageId" target="_blank" rel="noopener">
+              <k-icon type="open" /> Voir la page publique
+            </a>
+            <button type="button" class="gh-pov__action" @click="editFields('cover', { cover: 'cover' })">
+              <k-icon type="image" /> Image de couverture
+            </button>
+          </div>
 
           <!-- Assets grid: each tile shows what's there + opens to the right place -->
           <div class="gh-pov__assets">
@@ -313,19 +313,14 @@ var ProjectOverviewSection = {
         },
 
         editGallery() {
-          // Gallery editing goes through the Galerie field on the page.
-          // For now, navigate to the dedicated Galerie sub-tab if you add
-          // one — otherwise open a files dialog.
-          this.openTab('overview');
-          this.$panel.notification.info('Pour gérer la galerie, ouvrez le menu fichiers en bas.');
+          // Gallery + content blocks are complex field types (files,
+          // blocks) that don't fit a simple modal — they live in the
+          // Détails tab where Kirby's native editors handle them.
+          this.openTab('details');
         },
 
         editContent() {
-          // Long-form content blocks live in their own editor screen.
-          // Open a drawer-style editor via fiber if available.
-          if (window.panel?.view?.open) {
-            window.panel.view.open('/pages/' + this.pageId.replace(/\//g, '+') + '?tab=overview&edit=content');
-          }
+          this.openTab('details');
         },
       },
     };
@@ -548,100 +543,74 @@ panel.plugin('goheritage/project-ux', {
 
         async select(value) {
           if (value === this.current) { this.open = false; return; }
-
-          // Confirm any transition that EXPOSES content — going from
-          // draft/unlisted to publicly listed, or unlocking link sharing
-          // for the first time. Going BACK down (public→link, anything→
-          // brouillon) is silent since it only restricts access.
-          const needsConfirm =
-            (this.current === 'brouillon' && (value === 'link' || value === 'public')) ||
-            (this.current === 'link' && value === 'public');
-          if (needsConfirm) {
-            const opt = this.options.find(o => o.value === value);
-            const proceed = await new Promise((resolve) => {
-              this.$panel.dialog.open({
-                component: 'k-text-dialog',
-                props: {
-                  icon: opt.icon,
-                  text: value === 'public'
-                    ? '<strong>Rendre cette page publique ?</strong><br><br>Elle apparaîtra sur la carte GoHéritage et pourra être indexée.'
-                    : '<strong>Activer le partage par lien ?</strong><br><br>Toute personne avec le lien pourra accéder à la page sans compte.',
-                  submitButton: { text: 'Confirmer', icon: 'check', theme: 'positive' },
-                  cancelButton: { text: 'Annuler' },
-                },
-                on: {
-                  submit: () => { this.$panel.dialog.close(); resolve(true);  },
-                  cancel: () => { this.$panel.dialog.close(); resolve(false); },
-                  close:  () => resolve(false),
-                },
-              });
-            });
-            if (!proceed) return;
-          }
-
           await this.commit(value);
         },
 
         async commit(value) {
           if (!this.model) return;
-          const opt = this.options.find(o => o.value === value);
+          var opt = this.options.find(function (o) { return o.value === value; });
           if (!opt) return;
 
-          // Build the page ID Kirby expects in URLs (slashes → plus).
-          const pageId = this.model.id.replace(/\//g, '+');
-
-          // Build CSRF + headers. Kirby's panel exposes the CSRF token
-          // via window.panel.system.csrf — required for any state-changing
-          // request from a panel context.
-          const csrf = window.panel?.system?.csrf || window.panel?.csrf || '';
-          const headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-Fiber-Method': 'PATCH',
-          };
-          if (csrf) headers['X-CSRF'] = csrf;
-
-          async function apiPatch(path, body) {
-            const resp = await fetch('/api/' + path, {
-              method: 'PATCH',
-              credentials: 'same-origin',
-              headers,
-              body: JSON.stringify(body),
-            });
-            if (!resp.ok) {
-              let detail = '';
-              try { const j = await resp.json(); detail = j.message || j.error || ''; } catch (_) {}
-              throw new Error('HTTP ' + resp.status + (detail ? ' — ' + detail : ''));
-            }
-            return resp.json().catch(() => ({}));
-          }
+          var pageId = this.model.id.replace(/\//g, '+');
+          var self = this;
 
           try {
-            // 1. Update the visibility field via direct fetch — the
-            //    earlier $panel.api.patch route silently no-op'd in
-            //    some Kirby 5.4 panel contexts when the active view
-            //    wasn't the page itself.
-            await apiPatch('pages/' + pageId, { visibility: opt.visibility });
+            // Use Kirby's own panel API wrapper — it handles CSRF + auth
+            // + the changes/version system correctly. Raw fetch was
+            // unreliable across 5.4 panel contexts.
+            await this.$panel.api.patch('pages/' + pageId, { visibility: opt.visibility });
 
-            // 2. Update the page status (draft / listed) if it differs.
-            //    Done as a separate PATCH because Kirby keeps status in
-            //    its own endpoint.
             if (opt.status !== this.model.status) {
-              await apiPatch('pages/' + pageId + '/status', {
+              await this.$panel.api.patch('pages/' + pageId + '/status', {
                 status: opt.status,
                 position: null,
               });
             }
 
-            // 3. Reload the panel view so the new state shows up.
-            await this.$panel.view.reload();
-            this.$panel.notification.success('Statut mis à jour : ' + opt.label);
             this.open = false;
+            this.$panel.notification.success('Statut : ' + opt.label);
+            await this.$panel.view.reload();
           } catch (e) {
             this.$panel.notification.error(
-              'Impossible de mettre à jour : ' + (e.message || 'erreur inconnue')
+              'Impossible de mettre à jour : ' + (e && e.message ? e.message : 'erreur inconnue')
             );
           }
+        },
+
+        // Generate a fresh share token — invalidates the old link.
+        async regenerateLink() {
+          if (!this.model) return;
+          var pageId = this.model.id.replace(/\//g, '+');
+          // 32-hex token, same shape as the PHP-side generator.
+          var token = '';
+          var chars = '0123456789abcdef';
+          for (var i = 0; i < 32; i++) token += chars[Math.floor(Math.random() * 16)];
+          try {
+            await this.$panel.api.patch('pages/' + pageId, { share_token: token });
+            this.$panel.notification.success('Nouveau lien généré — l’ancien ne fonctionne plus.');
+            await this.$panel.view.reload();
+          } catch (e) {
+            this.$panel.notification.error('Erreur : ' + (e && e.message ? e.message : 'inconnue'));
+          }
+        },
+
+        copyShareUrl() {
+          const url = this.shareUrl;
+          if (!url) return;
+          const ok   = () => this.$panel.notification.success('Lien copié');
+          const fail = () => this.$panel.notification.error('Impossible de copier — sélectionnez manuellement.');
+          if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(url).then(ok, () => this._legacyCopy(ok, fail));
+          } else {
+            this._legacyCopy(ok, fail);
+          }
+        },
+
+        _legacyCopy(ok, fail) {
+          const el = this.$refs.shareInput;
+          if (!el) return fail();
+          el.select();
+          try { document.execCommand('copy'); ok(); } catch (_) { fail(); }
         },
 
         copyShareUrl() {
@@ -1139,20 +1108,29 @@ panel.plugin('goheritage/project-ux', {
     });
   }
 
-  /*  Inject a live 3D viewer preview at the top of the Modèle 3D tab
-   *  in read mode. Hidden when any section is in edit mode so the
-   *  iframe doesn't fight for vertical space while uploading files.   */
+  /*  Modèle 3D tab — read mode shows ONLY the live viewer preview;
+   *  edit mode shows the technical upload sections. A toggle button in
+   *  the preview header flips between the two. Body data-attr drives the
+   *  CSS that hides/shows sections + preview. */
   function ensureModelPreview() {
-    // Only on the Modèle 3D tab.
     var params = new URLSearchParams(window.location.search);
     var tab = params.get('tab');
+
+    // Off the model tab → clean up flags + preview, bail.
     if (tab !== 'model') {
       var stale = document.getElementById('gh-model-preview');
       if (stale) stale.remove();
+      document.body.classList.remove('gh-on-model-tab');
+      document.body.removeAttribute('data-gh-model-mode');
       return;
     }
 
-    // Look up the page slug from panel state.
+    document.body.classList.add('gh-on-model-tab');
+    // Default to read mode unless the user already toggled to edit.
+    if (!document.body.getAttribute('data-gh-model-mode')) {
+      document.body.setAttribute('data-gh-model-mode', 'read');
+    }
+
     var slug = '';
     try {
       var id = window.panel && window.panel.view && window.panel.view.props
@@ -1163,26 +1141,50 @@ panel.plugin('goheritage/project-ux', {
 
     if (document.getElementById('gh-model-preview')) return;
 
-    // Prepend the preview as the FIRST sibling of the first section in
-    // the current tab. The .k-sections wrapper (parent of .k-section
-    // elements) is the natural content container — it shares whatever
-    // width Kirby gives the tab content, so the iframe will span the
-    // full content width.
     var firstSection = document.querySelector('.k-page-view .k-section');
     var host = firstSection && firstSection.parentNode;
     if (!host) return;
+
+    // SVG icons: pencil (enter edit) and X (exit edit).
+    var penSvg =
+      '<svg class="gh-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    var xSvg =
+      '<svg class="gh-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+    // Persistent toolbar — a single right-aligned toggle button. Plain
+    // outlined .gh-btn (same as the section "Modifier" buttons): pen +
+    // "Modifier" in read mode, X + "Fermer" in edit mode.
+    var bar = document.createElement('div');
+    bar.id = 'gh-model-bar';
+    bar.className = 'gh-model-bar';
+    bar.innerHTML =
+      '<span class="gh-model-bar__banner">' +
+        '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>' +
+        'Mode édition — vous gérez les fichiers du modèle 3D.' +
+      '</span>' +
+      '<button type="button" class="gh-btn" data-gh-model-toggle></button>';
+    host.insertBefore(bar, firstSection);
 
     var wrap = document.createElement('div');
     wrap.id = 'gh-model-preview';
     wrap.className = 'gh-model-preview';
     wrap.innerHTML =
-      '<div class="gh-model-preview__head">' +
-        '<span class="gh-model-preview__label">Aperçu du modèle</span>' +
-        '<a class="gh-model-preview__open" href="/' + slug + '" target="_blank" rel="noopener">Ouvrir →</a>' +
-      '</div>' +
       '<iframe class="gh-model-preview__frame" src="/' + slug + '?embed=1&viewer=only" ' +
         'allow="xr-spatial-tracking; fullscreen" loading="lazy"></iframe>';
     host.insertBefore(wrap, firstSection);
+
+    var toggle = bar.querySelector('[data-gh-model-toggle]');
+    function paintToggle() {
+      var editing = document.body.getAttribute('data-gh-model-mode') === 'edit';
+      toggle.innerHTML = (editing ? xSvg : penSvg) +
+        '<span class="gh-btn__label">' + (editing ? 'Fermer' : 'Modifier') + '</span>';
+    }
+    paintToggle();
+    toggle.addEventListener('click', function () {
+      var mode = document.body.getAttribute('data-gh-model-mode') === 'edit' ? 'read' : 'edit';
+      document.body.setAttribute('data-gh-model-mode', mode);
+      paintToggle();
+    });
   }
 
   function scan() {
@@ -1222,9 +1224,46 @@ panel.plugin('goheritage/project-ux', {
         if (!hasVisible) return;
       }
       tag(s);
-      if (s.classList.contains('k-fields-section') && sectionIsEditable(s)) {
-        attach(s);
+      // Every tagged section gets a title (even non-editable ones like
+      // the file-upload sections).
+      ensureHeadline(s);
+      // ONLY the exterior/interior model file groups are collapsible —
+      // they're the bulky upload sections you want to fold away. Other
+      // sections (viewer settings, etc.) are just plain titled cards.
+      if (s.classList.contains('k-section-name-exterior_files')
+       || s.classList.contains('k-section-name-interior_files')) {
+        makeCollapsible(s);
       }
+      // NOTE: the per-section edit dock (Modifier/Terminé) has been
+      // retired — it was fragile and produced duplicate/non-working
+      // buttons. Editing surfaces (Détails, Modèle 3D) now show their
+      // fields directly editable, like normal Kirby. The read-only
+      // "document" view lives on the Aperçu tab (custom overview).
+    });
+  }
+
+  /*  Make a section card collapsible by clicking its title. A chevron is
+   *  appended to the title; clicking toggles .gh-collapsed on the
+   *  section (CSS hides everything but the title). Used for the
+   *  exterior/interior model file groups so they fold like before. */
+  function makeCollapsible(section) {
+    if (section.dataset.ghCollapsible === '1') return;
+    var title = section.querySelector(':scope > .gh-section__title');
+    if (!title) return;
+    section.dataset.ghCollapsible = '1';
+    title.classList.add('gh-section__title--toggle');
+
+    var chevron = document.createElement('span');
+    chevron.className = 'gh-section__chevron';
+    chevron.innerHTML =
+      '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+    title.appendChild(chevron);
+
+    title.addEventListener('click', function (e) {
+      // Don't toggle when clicking the edit dock buttons (they're not in
+      // the title, but guard anyway).
+      if (e.target.closest('.gh-section__dock')) return;
+      section.classList.toggle('gh-collapsed');
     });
   }
 
