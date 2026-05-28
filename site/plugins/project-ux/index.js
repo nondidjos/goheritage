@@ -26,27 +26,54 @@
  *   • share-link field (kept for backward compat)
  */
 
-panel.plugin('goheritage/project-ux', {
-
-  // ── Custom section component ────────────────────────────────────────
-  //
-  //  project-overview is the single source of truth for the Aperçu tab.
-  //  Renders a Matterport-style card with cover image, meta chips,
-  //  description, tags, and asset-tile rows. Editing happens via
-  //  k-form-dialog opened on click — no inline form chrome.
-  sections: {
-    'project-overview': {
-      props: [
-        'pageId', 'pageTitle',
-        'coverUrl',
-        'description', 'location', 'constructionDate', 'scanDate',
-        'architect', 'style', 'dimensions', 'protectionStatus',
-        'lat', 'lng',
-        'tags', 'primaryTag',
-        'has3dModel', 'modelSidesSummary',
-        'galleryCount', 'plansCount', 'docsCount',
-        'hotspotsCount', 'contentBlocksCount',
-      ],
+// Section component, factored out so we can register it under BOTH the
+// panel.plugin() `sections` key (Kirby's intended API) AND the
+// `components` key with its full `k-project-overview-section` name —
+// some versions of Kirby's plugin loader auto-name sections via the
+// `sections` key, others don't. Registering under both guarantees the
+// component is found regardless of which version is running.
+var ProjectOverviewSection = {
+      // Kirby's section components don't receive their PHP-computed values
+      // as props — they have to fetch them async via load() from the
+      // /api/{parent}/sections/{name} endpoint. SectionMixin (auto-applied
+      // when registering under panel.plugin()'s `sections` key) provides
+      // the load() method + name/parent props.
+      data() {
+        return {
+          pageId:             '',
+          pageTitle:          '',
+          coverUrl:           null,
+          description:        '',
+          location:           '',
+          constructionDate:   '',
+          scanDate:           '',
+          architect:          '',
+          style:              '',
+          dimensions:         '',
+          protectionStatus:   '',
+          lat:                '',
+          lng:                '',
+          tags:               [],
+          primaryTag:         '',
+          has3dModel:         false,
+          modelSidesSummary:  '',
+          galleryCount:       0,
+          plansCount:         0,
+          docsCount:          0,
+          hotspotsCount:      0,
+          contentBlocksCount: 0,
+        };
+      },
+      created() {
+        this.load().then((r) => {
+          Object.assign(this.$data, r);
+        }).catch((e) => {
+          // If the API call fails, surface it so we can debug
+          if (window.console && window.console.warn) {
+            window.console.warn('project-overview load failed:', e);
+          }
+        });
+      },
       template: /* html */`
         <section class="gh-pov">
           <!-- Cover image (or empty state with CTA) -->
@@ -114,15 +141,10 @@ panel.plugin('goheritage/project-ux', {
             </button>
           </div>
 
-          <!-- Tags -->
-          <div class="gh-pov__tags-row">
-            <span class="gh-pov__section-label">Tags</span>
-            <div class="gh-pov__tags">
-              <span v-for="t in tags" :key="t" class="gh-pov__tag" :class="{ 'is-primary': t === primaryTag }">{{ t }}</span>
-              <span v-if="!tags.length" class="gh-pov__tag gh-pov__tag--empty">Aucun</span>
-            </div>
-            <button class="gh-pov__inline-edit" @click="editTags"><k-icon type="edit" />Modifier</button>
-          </div>
+          <!-- Tags row hidden from the overview — tags are still
+               editable via the Détails tab or the meta dialog if
+               needed. Keeps the Aperçu reading like a project page
+               and not a tagging UI. -->
 
           <!-- Assets grid: each tile shows what's there + opens to the right place -->
           <div class="gh-pov__assets">
@@ -184,23 +206,29 @@ panel.plugin('goheritage/project-ux', {
       `,
 
       methods: {
-        // Switch to a different tab of the same page view.
+        // Switch tabs — use Kirby's own tab navigation by hitting the
+        // .k-tabs-button[data-tab=...]. Falls back to URL navigation.
         openTab(name) {
-          if (window.panel?.view?.open) {
-            window.panel.view.open(window.location.pathname + '?tab=' + name);
-          } else {
-            window.location.search = '?tab=' + name;
+          // 1. Click Kirby's own tab button if it exists — most reliable
+          //    way to switch tabs without a full reload.
+          var btn = document.querySelector('.k-tabs-button[data-tab="' + name + '"], .k-tabs-button[href*="tab=' + name + '"]');
+          if (btn) {
+            btn.click();
+            return;
           }
+          // 2. Fallback: full page reload with new tab query.
+          var url = new URL(window.location.href);
+          url.searchParams.set('tab', name);
+          window.location.href = url.toString();
         },
 
         // Opens a k-form-dialog with the requested fields, scoped to the
-        // current page. submitButton publishes the changes via the panel
-        // content API.
+        // current page.
         editFields(slug, fieldsSpec) {
-          const fields = {};
-          const initialValue = {};
-          // Expand the compact field spec into k-form-dialog field defs.
-          const defs = {
+          var self = this;
+          var fields = {};
+          var initialValue = {};
+          var defs = {
             cover:       { type: 'files', label: 'Image de couverture', layout: 'cards', max: 1, multiple: false, query: 'page.images' },
             description: { type: 'textarea', label: 'Description courte', size: 'small' },
             location:    { type: 'text', label: 'Lieu', icon: 'pin' },
@@ -220,34 +248,49 @@ panel.plugin('goheritage/project-ux', {
             },
             lat:         { type: 'number', label: 'Latitude', step: 0.000001 },
             lng:         { type: 'number', label: 'Longitude', step: 0.000001 },
-            'location-search': { type: 'location-search', label: 'Recherche', pageId: this.pageId },
             tags:        { type: 'tags', label: 'Tags' },
             primary_tag: { type: 'text', label: 'Tag mis en avant' },
           };
-          Object.keys(fieldsSpec).forEach(k => {
-            const fieldDef = defs[k] || { type: 'text', label: k };
-            fields[k] = fieldDef;
-            initialValue[k] = this.$panel.view.props.model.content[k] || '';
+          var content = (this.$panel.view.props.model && this.$panel.view.props.model.content) || {};
+          Object.keys(fieldsSpec).forEach(function (k) {
+            fields[k] = defs[k] || { type: 'text', label: k };
+            initialValue[k] = content[k] != null ? content[k] : '';
           });
+
+          var pageId = this.pageId.replace(/\//g, '+');
+          var csrf = window.panel && window.panel.system && window.panel.system.csrf;
 
           this.$panel.dialog.open({
             component: 'k-form-dialog',
             props: {
               fields: fields,
               value: initialValue,
-              submitButton: { text: 'Enregistrer', icon: 'check', theme: 'positive' },
-              cancelButton: { text: 'Annuler' },
+              submitButton: 'Enregistrer',
+              cancelButton: 'Annuler',
             },
             on: {
-              submit: async (newValues) => {
-                try {
-                  await this.$panel.api.patch('pages/' + this.pageId.replace(/\//g, '+'), newValues);
-                  this.$panel.dialog.close();
-                  this.$panel.notification.success('Mis à jour');
-                  await this.$panel.view.reload();
-                } catch (e) {
-                  this.$panel.notification.error('Erreur : ' + (e.message || 'inconnue'));
-                }
+              submit: function (newValues) {
+                // newValues comes from the dialog. Issue a direct PATCH
+                // for reliability (the $panel.api.patch path has been
+                // flaky in 5.4 from non-view contexts).
+                var headers = {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+                };
+                if (csrf) headers['X-CSRF'] = csrf;
+                return fetch('/api/pages/' + pageId, {
+                  method: 'PATCH',
+                  credentials: 'same-origin',
+                  headers: headers,
+                  body: JSON.stringify(newValues),
+                }).then(function (resp) {
+                  if (!resp.ok) return resp.text().then(function (t) { throw new Error('HTTP ' + resp.status + ' ' + t); });
+                  self.$panel.dialog.close();
+                  self.$panel.notification.success('Mis à jour');
+                  return self.$panel.view.reload();
+                }).catch(function (e) {
+                  self.$panel.notification.error('Erreur : ' + (e.message || 'inconnue'));
+                });
               },
             },
           });
@@ -285,7 +328,14 @@ panel.plugin('goheritage/project-ux', {
           }
         },
       },
-    },
+    };
+
+// Plugin registration — `sections` key handles the k-{type}-section
+// name internally; no need to also register under `components`.
+panel.plugin('goheritage/project-ux', {
+
+  sections: {
+    'project-overview': ProjectOverviewSection,
   },
 
   // ── Header view button ──────────────────────────────────────────────
@@ -540,22 +590,44 @@ panel.plugin('goheritage/project-ux', {
           // Build the page ID Kirby expects in URLs (slashes → plus).
           const pageId = this.model.id.replace(/\//g, '+');
 
-          try {
-            // 1. Update the visibility field via the direct page-content
-            //    PATCH endpoint. Earlier we routed through $panel.content
-            //    but in Kirby 5.4 that path didn't reliably persist field
-            //    updates from outside a fully-managed form view — selecting
-            //    "Avec un lien" looked like it worked, then reverted on
-            //    reload because nothing was actually written.
-            await this.$api.patch('pages/' + pageId, {
-              visibility: opt.visibility,
+          // Build CSRF + headers. Kirby's panel exposes the CSRF token
+          // via window.panel.system.csrf — required for any state-changing
+          // request from a panel context.
+          const csrf = window.panel?.system?.csrf || window.panel?.csrf || '';
+          const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Fiber-Method': 'PATCH',
+          };
+          if (csrf) headers['X-CSRF'] = csrf;
+
+          async function apiPatch(path, body) {
+            const resp = await fetch('/api/' + path, {
+              method: 'PATCH',
+              credentials: 'same-origin',
+              headers,
+              body: JSON.stringify(body),
             });
+            if (!resp.ok) {
+              let detail = '';
+              try { const j = await resp.json(); detail = j.message || j.error || ''; } catch (_) {}
+              throw new Error('HTTP ' + resp.status + (detail ? ' — ' + detail : ''));
+            }
+            return resp.json().catch(() => ({}));
+          }
+
+          try {
+            // 1. Update the visibility field via direct fetch — the
+            //    earlier $panel.api.patch route silently no-op'd in
+            //    some Kirby 5.4 panel contexts when the active view
+            //    wasn't the page itself.
+            await apiPatch('pages/' + pageId, { visibility: opt.visibility });
 
             // 2. Update the page status (draft / listed) if it differs.
             //    Done as a separate PATCH because Kirby keeps status in
             //    its own endpoint.
             if (opt.status !== this.model.status) {
-              await this.$api.patch('pages/' + pageId + '/status', {
+              await apiPatch('pages/' + pageId + '/status', {
                 status: opt.status,
                 position: null,
               });
@@ -687,8 +759,10 @@ panel.plugin('goheritage/project-ux', {
   //   • info / hidden fields (k-info-field, k-hidden-field)
   //   • page-files-list: has its own delete UI, edit dock would overlap
   //   • upload-overwrite: same — own dropzone + delete, doesn't need locking
+  //   • project-overview: our own custom section, owns its own chrome
   function sectionIsEditable(section) {
     if (!section) return false;
+    
     var fields = section.querySelectorAll('.k-field');
     if (!fields.length) return false;
     for (var i = 0; i < fields.length; i++) {
@@ -1064,7 +1138,6 @@ panel.plugin('goheritage/project-ux', {
     });
   }
 
-  
   /*  Inject a live 3D viewer preview at the top of the Modèle 3D tab
    *  in read mode. Hidden when any section is in edit mode so the
    *  iframe doesn't fight for vertical space while uploading files.   */
@@ -1129,6 +1202,8 @@ panel.plugin('goheritage/project-ux', {
     // fields get the action dock attached.
     var sections = document.querySelectorAll('.k-section');
     sections.forEach(function (s) {
+      
+
       // Skip sections that hold only hidden fields (no visible content)
       // — they'd render as empty card boxes which is worse than missing.
       if (s.classList.contains('k-fields-section')) {
