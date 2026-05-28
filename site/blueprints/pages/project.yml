@@ -9,13 +9,12 @@ num: 0
 # grayed-out (position, because num:0 auto-sorts by date) or irrelevant
 # (a project never changes template / moves out of the map).
 options:
-  changeStatus: false
   changeTemplate: false
   move: false
 
 status:
   draft:
-    label: Brouillon
+    label: Privé
     text: Page non finalisée — invisible publiquement.
   listed:
     label: Enregistré

@@ -52,8 +52,11 @@
   cursor: pointer;
   white-space: nowrap;
 }
+.gh-visibility__trigger:focus,
+.gh-visibility__trigger:active,
 .gh-visibility__trigger:focus-visible {
-  outline: none;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .gh-visibility__icon {
@@ -95,11 +98,11 @@
   z-index: 9999;
   min-width: 19rem;
   max-width: 24rem;
-  background: #fff;
-  color: #1a1a1a;
-  border: 1px solid #dcdcdc;
+  background: #1e1e1e;
+  color: #efefef;
+  border: 1px solid #3a3a3a;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 12px 28px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 12px 28px rgba(0, 0, 0, 0.5);
   padding: 0.4rem;
   display: flex;
   flex-direction: column;
@@ -115,7 +118,7 @@
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #1a1a1a !important;
+  color: #efefef;
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -124,25 +127,25 @@
 }
 .gh-visibility__opt:hover,
 .gh-visibility__opt:focus-visible {
-  background: rgba(0, 0, 0, 0.04) !important;
+  background: rgba(255, 255, 255, 0.07);
   outline: none;
 }
 
-/* Selected state - high contrast */
+/* Selected state */
 .gh-visibility__opt.is-active {
-  background: var(--color-bg-active, #1a1a1a) !important;
-  color: #fff !important;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 .gh-visibility__opt.is-active .gh-visibility__opt-icon,
 .gh-visibility__opt.is-active .gh-visibility__opt-check {
-  color: #fff !important;
+  color: #fff;
 }
 .gh-visibility__opt.is-active strong,
 .gh-visibility__opt.is-active .gh-visibility__opt-help {
-  color: #fff !important;
+  color: #fff;
 }
 .gh-visibility__opt.is-active .gh-visibility__opt-help {
-  color: rgba(255, 255, 255, 0.78) !important;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .gh-visibility__opt-icon {
@@ -150,7 +153,7 @@
   margin-top: 0.15em;
   width: 1.15em;
   height: 1.15em;
-  color: #555 !important;
+  color: #aaa;
 }
 
 .gh-visibility__opt-text {
@@ -163,11 +166,11 @@
 .gh-visibility__opt-text strong {
   font-weight: 600;
   line-height: 1.25;
-  color: #1a1a1a !important;
+  color: #efefef;
 }
 .gh-visibility__opt-help {
   font-size: 0.78rem;
-  color: #666 !important;
+  color: #999;
   line-height: 1.35;
 }
 .gh-visibility__opt-check {
@@ -175,14 +178,14 @@
   margin-top: 0.2em;
   width: 1em;
   height: 1em;
-  color: #555 !important;
+  color: #aaa;
 }
 
 /* Share-link panel inside the dropdown */
 .gh-visibility__share {
   margin-top: 0.35rem;
   padding: 0.6rem 0.7rem 0.7rem;
-  border-top: 1px solid #e3e3e3;
+  border-top: 1px solid #3a3a3a;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -195,15 +198,15 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #666 !important;
+  color: #999;
 }
 .gh-visibility__share-label .k-icon { opacity: 0.7; }
 .gh-visibility__share-row {
   display: flex;
   align-items: stretch;
   gap: 0.35rem;
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid #e3e3e3;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #3a3a3a;
   border-radius: 5px;
   padding: 0.25rem 0.35rem;
 }
@@ -215,7 +218,7 @@
   outline: none;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.78rem;
-  color: #1a1a1a !important;
+  color: #efefef;
   padding: 0.25rem 0;
 }
 .gh-visibility__share-copy {
@@ -225,19 +228,19 @@
   padding: 0.3rem 0.5rem;
   border: 0;
   border-radius: 4px;
-  background: var(--color-bg-active, #1a1a1a);
+  background: rgba(255, 255, 255, 0.15);
   color: #fff;
   cursor: pointer;
 }
-.gh-visibility__share-copy:hover { background: var(--color-hover, #2a2a2a); }
-.gh-visibility__share-copy .k-icon { width: 0.95em; height: 0.95em; color: #fff !important; }
+.gh-visibility__share-copy:hover { background: rgba(255, 255, 255, 0.25); }
+.gh-visibility__share-copy .k-icon { width: 0.95em; height: 0.95em; color: #fff; }
 .gh-visibility__share-empty {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   margin: 0;
   font-size: 0.8rem;
-  color: #777 !important;
+  color: #999;
   font-style: italic;
 }
 .gh-visibility__share-empty .k-icon { opacity: 0.7; }
@@ -248,10 +251,10 @@
   gap: 0.4rem;
   margin-top: 0.5rem;
   padding: 0.4rem 0.7rem;
-  border: 1px solid #ccc;
+  border: 1px solid #3a3a3a;
   border-radius: 4px;
   background: transparent;
-  color: #1a1a1a !important;
+  color: #efefef;
   font: inherit;
   font-size: 0.78rem;
   font-weight: 500;
@@ -259,95 +262,17 @@
   transition: background 0.1s ease, border-color 0.1s ease;
 }
 .gh-visibility__share-regen:hover {
-  background: rgba(0, 0, 0, 0.04) !important;
-  border-color: #1a1a1a !important;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #666;
 }
 .gh-visibility__share-regen .k-icon { width: 0.9em; height: 0.9em; }
 .gh-visibility__share-note {
   margin: 0.35rem 0 0;
   font-size: 0.72rem;
-  color: #777 !important;
+  color: #999;
   font-style: italic;
 }
 
-/* Explicit Dark Mode Overrides */
-html[data-theme="dark"] .gh-visibility__panel,
-body[data-theme="dark"] .gh-visibility__panel,
-.k-theme-dark .gh-visibility__panel {
-  background: #1e1e1e !important;
-  color: #efefef !important;
-  border-color: #3a3a3a !important;
-}
-html[data-theme="dark"] .gh-visibility__opt,
-body[data-theme="dark"] .gh-visibility__opt,
-.k-theme-dark .gh-visibility__opt {
-  color: #efefef !important;
-}
-html[data-theme="dark"] .gh-visibility__opt-icon,
-html[data-theme="dark"] .gh-visibility__opt-check,
-body[data-theme="dark"] .gh-visibility__opt-icon,
-body[data-theme="dark"] .gh-visibility__opt-check,
-.k-theme-dark .gh-visibility__opt-icon,
-.k-theme-dark .gh-visibility__opt-check {
-  color: #aaa !important;
-}
-html[data-theme="dark"] .gh-visibility__opt-text strong,
-body[data-theme="dark"] .gh-visibility__opt-text strong,
-.k-theme-dark .gh-visibility__opt-text strong {
-  color: #efefef !important;
-}
-html[data-theme="dark"] .gh-visibility__opt-help,
-body[data-theme="dark"] .gh-visibility__opt-help,
-.k-theme-dark .gh-visibility__opt-help {
-  color: #aaa !important;
-}
-html[data-theme="dark"] .gh-visibility__opt:hover,
-body[data-theme="dark"] .gh-visibility__opt:hover,
-.k-theme-dark .gh-visibility__opt:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-}
-html[data-theme="dark"] .gh-visibility__share,
-body[data-theme="dark"] .gh-visibility__share,
-.k-theme-dark .gh-visibility__share {
-  border-top-color: #3a3a3a !important;
-}
-html[data-theme="dark"] .gh-visibility__share-label,
-body[data-theme="dark"] .gh-visibility__share-label,
-.k-theme-dark .gh-visibility__share-label {
-  color: #aaa !important;
-}
-html[data-theme="dark"] .gh-visibility__share-row,
-body[data-theme="dark"] .gh-visibility__share-row,
-.k-theme-dark .gh-visibility__share-row {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border-color: #3a3a3a !important;
-}
-html[data-theme="dark"] .gh-visibility__share-row input,
-body[data-theme="dark"] .gh-visibility__share-row input,
-.k-theme-dark .gh-visibility__share-row input {
-  color: #efefef !important;
-}
-html[data-theme="dark"] .gh-visibility__share-empty,
-body[data-theme="dark"] .gh-visibility__share-empty,
-.k-theme-dark .gh-visibility__share-empty {
-  color: #aaa !important;
-}
-html[data-theme="dark"] .gh-visibility__share-regen,
-body[data-theme="dark"] .gh-visibility__share-regen,
-.k-theme-dark .gh-visibility__share-regen {
-  border-color: #3a3a3a !important;
-  color: #efefef !important;
-}
-html[data-theme="dark"] .gh-visibility__share-regen:hover,
-body[data-theme="dark"] .gh-visibility__share-regen:hover,
-.k-theme-dark .gh-visibility__share-regen:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-}
-html[data-theme="dark"] .gh-visibility__share-note,
-body[data-theme="dark"] .gh-visibility__share-note,
-.k-theme-dark .gh-visibility__share-note {
-  color: #aaa !important;
-}
 
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -405,7 +330,7 @@ body.gh-project-edit .gh-section.is-editing {
 body.gh-project-edit .gh-section.is-disabled { opacity: 0.5; }
 body.gh-project-edit .gh-section.is-disabled .gh-section__dock { pointer-events: none; }
 
-/*  NUCLEAR APPROACH: hide every direct child of an editable section by
+/*  Hide every direct child of an editable section by
     default, then explicitly whitelist what should be visible. This
     sidesteps every quirk of Kirby 5.4's variable section DOM —
     .k-section-header, .k-fields, .k-section-buttons, whatever else —
@@ -1270,10 +1195,90 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   display: none !important;
 }
 
-/* ======================================================================
- *  Dialogs & Popups styling (Cover image picker, Geolocation autocomplete,
- *  General info characteristics, and Google Drive-style share dialog)
- * ====================================================================== */
+/* ── Share overlay backdrop ── */
+.gh-share-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+/* ── Share modal card ── */
+.gh-share-modal {
+  background: #1e1e1e;
+  color: #efefef;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.gh-share-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #2e2e2e;
+  flex-shrink: 0;
+}
+
+.gh-share-modal__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #efefef;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gh-share-modal__title .k-icon {
+  color: #aaa;
+}
+
+.gh-share-modal__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #aaa;
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+.gh-share-modal__close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #efefef;
+}
+
+.gh-share-modal__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.gh-share-modal__footer {
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid #2e2e2e;
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
 
 /* ── Google Drive-Style Share Dialog ── */
 .gh-share-dialog {
@@ -1281,14 +1286,14 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   flex-direction: column;
   gap: 1.5rem;
   padding: 0.25rem 0;
-  color: var(--color-text, #1a1a1a);
+  color: #efefef;
 }
 
 .gh-share-dialog__section {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid #2e2e2e;
   padding-bottom: 1.25rem;
 }
 
@@ -1303,7 +1308,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--color-text);
+  color: #efefef;
   margin: 0;
 }
 
@@ -1326,7 +1331,35 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
 }
+
+.gh-share-dialog__intro {
+  flex: 1;
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #999;
+}
+
+/* Private page → links unavailable; gentle pointer back to the pill. */
+.gh-share-dialog__locked {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  color: #b0b0b0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.gh-share-dialog__locked .k-icon {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: #888;
+}
+.gh-share-dialog__locked p { margin: 0; }
+.gh-share-dialog__locked strong { color: #efefef; }
 
 .gh-share-dialog__empty {
   display: flex;
@@ -1342,29 +1375,97 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   justify-content: center;
 }
 
+/* Flat list — no inner scrollbar (the modal body scrolls if ever needed),
+   no nested boxes. Links are separated by a hairline divider only. */
 .gh-share-dialog__list {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  max-height: 320px;
-  overflow-y: auto;
-  padding-right: 0.25rem;
 }
 
 .gh-share-dialog__link-item {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  padding: 0.85rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--rounded);
-  background: var(--color-back, rgba(0, 0, 0, 0.015));
-  transition: border-color 0.15s, box-shadow 0.15s;
+  padding: 0.4rem 0;
+  border-top: 1px solid #2e2e2e;
 }
 
-.gh-share-dialog__link-item:hover {
-  border-color: var(--color-text-dimmed);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+.gh-share-dialog__link-item:first-child {
+  border-top: none;
+}
+
+/* ── Compact summary row (collapsed link) ── */
+.gh-share-dialog__link-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2rem;
+}
+.gh-share-dialog__link-row-ico {
+  flex-shrink: 0;
+  width: 1.05em;
+  height: 1.05em;
+  color: #b0b0b0;
+}
+.gh-share-dialog__link-row-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #efefef;
+  white-space: nowrap;
+}
+.gh-share-dialog__link-row-token {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.72rem;
+  color: #777;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gh-share-dialog__link-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+.gh-share-dialog__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #b0b0b0;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.gh-share-dialog__icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.gh-share-dialog__icon-btn--danger:hover {
+  background: var(--color-red, #c0392b);
+  color: #fff;
+}
+.gh-share-dialog__icon-btn .k-icon {
+  width: 0.95em;
+  height: 0.95em;
+}
+
+/* ── Expanded editor (one link at a time) ── */
+.gh-share-dialog__link-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+  padding: 0.75rem 0.85rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #333;
+  border-radius: 6px;
 }
 
 .gh-share-dialog__link-top {
@@ -1375,83 +1476,190 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
 }
 
 .gh-share-dialog__link-name {
-  font-size: 0.9rem;
-  font-weight: 600;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--color-text);
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  outline: none;
-  flex: 1;
-  min-width: 0;
-  transition: background 0.1s, border-color 0.1s;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: #efefef !important;
+  padding: 0.2rem 0.4rem !important;
+  border-radius: 4px !important;
+  outline: none !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  transition: background 0.1s, border-color 0.1s !important;
 }
 
 .gh-share-dialog__link-name:hover,
 .gh-share-dialog__link-name:focus {
-  background: var(--color-white, #fff);
-  border-color: var(--color-border);
+  background: #2a2a2a !important;
+  border-color: #555 !important;
+  color: #ffffff !important;
 }
 
 .gh-share-dialog__link-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-shrink: 0;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  flex-shrink: 0 !important;
 }
 
-.gh-share-dialog__url-preview {
-  background: var(--color-white, #fff);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  padding: 0.35rem 0.5rem;
-  overflow-x: auto;
+.gh-share-dialog__urls-container {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+  margin: 0 !important;
+  background: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
 }
 
-.gh-share-dialog__url-preview code {
-  font-family: var(--font-mono, monospace);
-  font-size: 0.75rem;
-  color: var(--color-text-dimmed);
-  white-space: nowrap;
+.gh-share-dialog__url-row {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.3rem !important;
+}
+
+.gh-share-dialog__url-label {
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  color: #888888 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.3rem !important;
+}
+
+.gh-share-dialog__url-label .k-icon {
+  width: 0.85em !important;
+  height: 0.85em !important;
+  opacity: 0.8 !important;
+}
+
+.gh-share-dialog__url-copy-box {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  background: #121212 !important;
+  border: 1px solid #2e2e2e !important;
+  border-radius: 4px !important;
+  padding: 0.25rem 0.5rem !important;
+}
+
+.gh-share-dialog__url-code {
+  flex: 1 !important;
+  font-family: var(--font-mono, monospace) !important;
+  font-size: 0.75rem !important;
+  color: #7faadd !important;
+  white-space: nowrap !important;
+  overflow-x: auto !important;
+}
+
+/* ── Per-link access-level selector (Visite / Dossier / Éditeur) ── */
+.gh-share-dialog__access-level {
+  display: flex !important;
+  gap: 0.4rem !important;
+  margin: 0.5rem 0 0.25rem !important;
+}
+
+.gh-share-dialog__level-btn {
+  flex: 1 !important;
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.25rem !important;
+  padding: 0.5rem 0.4rem !important;
+  background: #1a1a1a !important;
+  border: 1px solid #3a3a3a !important;
+  border-radius: 6px !important;
+  color: #b0b0b0 !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: border-color 0.12s, color 0.12s, background 0.12s !important;
+}
+
+.gh-share-dialog__level-btn .k-icon {
+  width: 1em !important;
+  height: 1em !important;
+}
+
+.gh-share-dialog__level-btn:hover:not(:disabled) {
+  color: #efefef !important;
+  border-color: #555 !important;
+}
+
+.gh-share-dialog__level-btn.is-active {
+  background: #4271ae !important;
+  border-color: #4271ae !important;
+  color: #ffffff !important;
+}
+
+.gh-share-dialog__level-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+.gh-share-dialog__url-help {
+  margin: 0.1rem 0 0 !important;
+  font-size: 0.72rem !important;
+  line-height: 1.4 !important;
+  color: #888888 !important;
+}
+
+.gh-share-dialog__url-warn {
+  margin: 0.3rem 0 0 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 0.35rem !important;
+  font-size: 0.72rem !important;
+  line-height: 1.4 !important;
+  color: #e0a14a !important;
+}
+
+.gh-share-dialog__url-warn .k-icon {
+  width: 0.9em !important;
+  height: 0.9em !important;
+  flex-shrink: 0 !important;
+  margin-top: 0.1rem !important;
 }
 
 .gh-share-dialog__permissions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin-top: 0.25rem;
-  padding-top: 0.5rem;
-  border-top: 1px dashed var(--color-border);
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.35rem !important;
+  margin-top: 0.25rem !important;
+  padding-top: 0.5rem !important;
+  border-top: 1px dashed #3a3a3a !important;
 }
 
 .gh-share-dialog__perm-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-dimmed);
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #999999 !important;
 }
 
 .gh-share-dialog__perm-checkboxes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.8rem;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.8rem !important;
 }
 
 .gh-share-dialog__perm-checkbox {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.8rem;
-  cursor: pointer;
-  user-select: none;
-  color: var(--color-text);
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  font-size: 0.8rem !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  color: #efefef !important;
 }
 
 .gh-share-dialog__perm-checkbox input[type="checkbox"] {
-  accent-color: var(--color-positive, #1a1a1a);
-  cursor: pointer;
+  accent-color: #4271ae !important; /* Beautiful blue accent */
+  cursor: pointer !important;
 }
 
 /* ── Cover Image Selector Dialog ── */
@@ -1613,136 +1821,104 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
 }
 
 .gh-visibility__manage-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.7rem;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: #efefef;
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-  width: 100%;
-  transition: background 0.1s ease, color 0.1s ease;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  padding: 0.6rem 0.8rem !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: #efefef !important;
+  font: inherit !important;
+  font-size: 0.825rem !important;
+  font-weight: 500 !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  transition: background 0.1s ease, color 0.1s ease !important;
 }
 
-.gh-visibility__manage-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+.gh-visibility__manage-btn:hover,
+.gh-visibility__manage-btn:focus {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
 }
 
 .gh-visibility__manage-btn .k-icon {
-  width: 1em;
-  height: 1em;
-  opacity: 0.75;
+  width: 1em !important;
+  height: 1em !important;
+  opacity: 0.75 !important;
 }
 
-/* ── Custom general access options list inside share dialog ── */
 .gh-share-dialog__access-options {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.65rem;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+  margin-top: 0.65rem !important;
 }
 
 .gh-share-dialog__access-opt {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.85rem;
-  padding: 0.65rem 0.85rem;
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: 6px;
-  background: var(--color-white, #fff);
-  color: var(--color-text, #1a1a1a);
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.1s ease, background 0.1s ease;
-  width: 100%;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 0.85rem !important;
+  padding: 0.65rem 0.85rem !important;
+  border: 1px solid #3a3a3a !important;
+  border-radius: 6px !important;
+  background: #232323 !important;
+  color: #aaaaaa !important; /* Inactive text color is dimmed */
+  cursor: pointer !important;
+  text-align: left !important;
+  transition: border-color 0.1s ease, background 0.1s ease !important;
+  width: 100% !important;
+  font: inherit !important;
 }
 
 .gh-share-dialog__access-opt:hover {
-  background: var(--color-hover, rgba(0, 0, 0, 0.04));
+  background: #2c2c2c !important;
+  border-color: #555 !important;
+  color: #efefef !important;
 }
 
 .gh-share-dialog__access-opt.is-active {
-  border-color: var(--color-focus, #4271ae);
-  background: var(--color-back, rgba(0, 0, 0, 0.015));
+  border-color: #4271ae !important;
+  background: rgba(66, 113, 174, 0.18) !important;
+  color: #ffffff !important;
 }
 
 .gh-share-dialog__access-opt-icon {
-  margin-top: 0.15em;
-  color: var(--color-text-dimmed);
+  margin-top: 0.15em !important;
+  color: #777777 !important;
+  flex-shrink: 0 !important;
 }
 
 .gh-share-dialog__access-opt.is-active .gh-share-dialog__access-opt-icon {
-  color: var(--color-focus, #4271ae);
+  color: #7faadd !important;
 }
 
 .gh-share-dialog__access-opt-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.15rem !important;
+  min-width: 0 !important;
 }
 
 .gh-share-dialog__access-opt-text strong {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text, #1a1a1a);
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  color: #aaaaaa !important; /* Inactive title */
+}
+
+.gh-share-dialog__access-opt.is-active .gh-share-dialog__access-opt-text strong {
+  color: #ffffff !important; /* Active title */
 }
 
 .gh-share-dialog__access-opt-text span {
-  font-size: 0.75rem;
-  color: var(--color-text-dimmed, #777);
-  line-height: 1.3;
+  font-size: 0.75rem !important;
+  color: #777777 !important; /* Inactive help text */
+  line-height: 1.3 !important;
 }
 
-/* Explicit Dark Mode Overrides for access options inside dialog */
-html[data-theme="dark"] .gh-share-dialog__access-opt,
-body[data-theme="dark"] .gh-share-dialog__access-opt,
-.k-theme-dark .gh-share-dialog__access-opt {
-  background: #2a2a2a !important;
-  color: #efefef !important;
-  border-color: #3a3a3a !important;
+.gh-share-dialog__access-opt.is-active .gh-share-dialog__access-opt-text span {
+  color: #b0cdec !important; /* Active help text */
 }
 
-html[data-theme="dark"] .gh-share-dialog__access-opt:hover,
-body[data-theme="dark"] .gh-share-dialog__access-opt:hover,
-.k-theme-dark .gh-share-dialog__access-opt:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-}
-
-html[data-theme="dark"] .gh-share-dialog__access-opt.is-active,
-body[data-theme="dark"] .gh-share-dialog__access-opt.is-active,
-.k-theme-dark .gh-share-dialog__access-opt.is-active {
-  border-color: var(--color-focus, #4271ae) !important;
-  background: rgba(66, 113, 174, 0.15) !important;
-}
-
-html[data-theme="dark"] .gh-share-dialog__access-opt-text strong,
-body[data-theme="dark"] .gh-share-dialog__access-opt-text strong,
-.k-theme-dark .gh-share-dialog__access-opt-text strong {
-  color: #efefef !important;
-}
-
-html[data-theme="dark"] .gh-share-dialog__access-opt-text span,
-body[data-theme="dark"] .gh-share-dialog__access-opt-text span,
-.k-theme-dark .gh-share-dialog__access-opt-text span {
-  color: #aaa !important;
-}
-
-html[data-theme="dark"] .gh-share-dialog__access-opt-icon,
-body[data-theme="dark"] .gh-share-dialog__access-opt-icon,
-.k-theme-dark .gh-share-dialog__access-opt-icon {
-  color: #aaa !important;
-}
-
-html[data-theme="dark"] .gh-share-dialog__access-opt.is-active .gh-share-dialog__access-opt-icon,
-body[data-theme="dark"] .gh-share-dialog__access-opt.is-active .gh-share-dialog__access-opt-icon,
-.k-theme-dark .gh-share-dialog__access-opt.is-active .gh-share-dialog__access-opt-icon {
-  color: #7faadd !important;
-}

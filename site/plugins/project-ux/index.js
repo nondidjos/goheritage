@@ -111,13 +111,13 @@ var ProjectOverviewSection = {
         <section class="gh-pov">
           <!-- Cover image. Clicking it opens the Cover Dialog directly on the page. -->
           <div class="gh-pov__cover" :class="{ 'gh-pov__cover--empty': !coverUrl }">
-            <button type="button" class="gh-pov__cover-hit" @click="openCoverDialog" title="Modifier la couverture">
+            <button type="button" class="gh-pov__cover-hit" :disabled="!canUpdate" @click="canUpdate && openCoverDialog()" title="Modifier la couverture">
               <img v-if="coverUrl" :src="coverUrl" :alt="pageTitle">
               <div v-else class="gh-pov__cover-empty">
                 <k-icon type="image" />
-                <span>Ajouter une image de couverture</span>
+                <span>Image de couverture</span>
               </div>
-              <span class="gh-pov__cover-edit"><k-icon type="edit" /> Modifier</span>
+              <span class="gh-pov__cover-edit" v-if="canUpdate"><k-icon type="edit" /> Modifier</span>
             </button>
             <a class="gh-pov__cover-cta" :href="'/' + pageId" target="_blank" rel="noopener" @click.stop>
               <k-icon type="open" /> Voir la page publique
@@ -130,6 +130,7 @@ var ProjectOverviewSection = {
             <button
               type="button"
               class="gh-pov__head-edit"
+              v-if="canUpdate"
               @click="openInfoDialog"
               title="Modifier les informations"
             >
@@ -211,7 +212,7 @@ var ProjectOverviewSection = {
             </button>
 
             <!-- Geolocation opens popup editor instead of jumping tab -->
-            <button class="gh-pov__asset" @click="openGeoDialog">
+            <button class="gh-pov__asset" @click="canUpdate ? openGeoDialog() : openTab('details', 'geo_section')">
               <k-icon type="map" class="gh-pov__asset-ico" />
               <div class="gh-pov__asset-body">
                 <strong>Géolocalisation</strong>
@@ -467,6 +468,13 @@ var ProjectOverviewSection = {
         </section>
       `,
 
+      computed: {
+        canUpdate() {
+          // Page permissions are a TOP-LEVEL view prop, not under model.
+          return this.$panel?.view?.props?.permissions?.update ?? false;
+        }
+      },
+
       methods: {
         openTab(name, scrollToSection) {
           var btn = document.querySelector('.k-tabs-button[data-tab="' + name + '"], .k-tabs-button[href*="tab=' + name + '"]');
@@ -717,7 +725,8 @@ panel.plugin('goheritage/project-ux', {
               :class="{ 'is-active': current === opt.value }"
               role="menuitemradio"
               :aria-checked="current === opt.value ? 'true' : 'false'"
-              @click="select(opt.value)"
+              :disabled="!canUpdate"
+              @click="canUpdate ? select(opt.value) : null"
             >
               <k-icon :type="opt.icon" class="gh-visibility__opt-icon" />
               <span class="gh-visibility__opt-text">
@@ -738,97 +747,137 @@ panel.plugin('goheritage/project-ux', {
                 class="gh-visibility__manage-btn"
                 @click="openShareDialog"
               >
-                <k-icon type="users" /> Gérer les liens & accès...
+                <k-icon type="url" /> Gérer les liens de partage
               </button>
             </div>
           </div>
 
-          <!-- ── Google Drive-Style Share Dialog ── -->
-          <k-dialog
+          <!-- ── Share / Access Manager — custom overlay, no deprecated k-dialog ── -->
+          <div
             v-if="shareDialogOpen"
-            ref="shareDialog"
-            :submit-button="{ text: 'Terminé', icon: 'check', theme: 'positive' }"
-            :cancel-button="false"
-            @submit="shareDialogOpen = false"
-            @close="shareDialogOpen = false"
-            size="medium"
+            class="gh-share-overlay"
+            @mousedown.self="closeShareDialog"
           >
-            <div class="gh-share-dialog">
-              <div class="gh-share-dialog__section">
-                <h3 class="gh-share-dialog__subtitle"><k-icon type="users" /> Accès général</h3>
-                <div class="gh-share-dialog__access-options">
-                  <button
-                    v-for="opt in options"
-                    :key="opt.value"
-                    type="button"
-                    class="gh-share-dialog__access-opt"
-                    :class="{ 'is-active': dialogVisibility === opt.visibility }"
-                    @click="updateVisibilityFromDialog(opt.visibility)"
-                  >
-                    <k-icon :type="opt.icon" class="gh-share-dialog__access-opt-icon" />
-                    <div class="gh-share-dialog__access-opt-text">
-                      <strong>{{ opt.label }}</strong>
-                      <span>{{ opt.help }}</span>
-                    </div>
-                  </button>
-                </div>
+            <div class="gh-share-modal" role="dialog" aria-modal="true" @click.stop>
+              <!-- Header -->
+              <div class="gh-share-modal__header">
+                <h2 class="gh-share-modal__title">
+                  <k-icon type="url" /> Liens de partage
+                </h2>
+                <button type="button" class="gh-share-modal__close" @click="closeShareDialog" title="Fermer">
+                  <k-icon type="cancel-small" />
+                </button>
               </div>
 
-              <!-- Links section, only shown if general access is 'link' (Avec un lien) -->
-              <div v-if="dialogVisibility === 'link'" class="gh-share-dialog__section gh-share-dialog__links">
-                <div class="gh-share-dialog__section-header">
-                  <h3 class="gh-share-dialog__subtitle"><k-icon type="url" /> Liens de partage actifs</h3>
-                  <k-button icon="add" size="sm" variant="filled" theme="positive" @click="createShareLink">
-                    Créer un lien
-                  </k-button>
+              <!-- Links manager. Page-level visibility (Privé / Avec un lien /
+                   Public) is set from the header pill — NOT duplicated here, so
+                   there's one obvious place to change it. -->
+              <div class="gh-share-modal__body">
+
+                <!-- Private page: links can't resolve — point back to the pill. -->
+                <div v-if="dialogVisibility === 'private'" class="gh-share-dialog__locked">
+                  <k-icon type="lock" />
+                  <p>Cette page est privée. Passez-la sur <strong>« Avec un lien »</strong> via le bouton <strong>Visibilité</strong> pour créer des liens de partage.</p>
                 </div>
 
-                <div v-if="localShareLinks.length === 0" class="gh-share-dialog__empty">
-                  <k-icon type="info" /> Aucun lien de partage actif. Créez-en un pour commencer à partager.
-                </div>
+                <div v-else class="gh-share-dialog__links">
+                  <div class="gh-share-dialog__section-header">
+                    <p class="gh-share-dialog__intro">Toute personne disposant d'un lien y accède selon le niveau choisi.</p>
+                    <k-button v-if="canUpdate" icon="add" size="sm" variant="filled" theme="positive" @click="createShareLink">
+                      Créer un lien
+                    </k-button>
+                  </div>
 
-                <div v-else class="gh-share-dialog__list">
-                  <div v-for="(link, index) in localShareLinks" :key="link.id" class="gh-share-dialog__link-item">
-                    <div class="gh-share-dialog__link-top">
-                      <!-- Editable Name -->
-                      <input
-                        type="text"
-                        v-model="link.label"
-                        @change="saveShareLinks"
-                        class="gh-share-dialog__link-name"
-                        placeholder="Nom du lien (ex: Partage client)"
-                      />
-                      <div class="gh-share-dialog__link-actions">
-                        <k-button icon="copy" size="xs" variant="filled" @click="copyLinkUrl(link)">Copier</k-button>
-                        <k-button icon="trash" size="xs" theme="negative" @click="deleteShareLink(link.id)">Supprimer</k-button>
+                  <div v-if="localShareLinks.length === 0" class="gh-share-dialog__empty">
+                    <k-icon type="info" /> Aucun lien pour l'instant. Créez-en un et choisissez son niveau d'accès.
+                  </div>
+
+                  <div v-else class="gh-share-dialog__list">
+                    <div
+                      v-for="link in localShareLinks"
+                      :key="link.id"
+                      class="gh-share-dialog__link-item"
+                      :class="{ 'is-open': expandedId === link.id }"
+                    >
+                      <!-- Compact summary row: access badge + copy + edit/delete.
+                           No name — links are identified by their access level. -->
+                      <div class="gh-share-dialog__link-row">
+                        <k-icon :type="currentLevel(link).icon" class="gh-share-dialog__link-row-ico" />
+                        <span class="gh-share-dialog__link-row-name">{{ currentLevel(link).label }}</span>
+                        <code class="gh-share-dialog__link-row-token">…{{ shortToken(link.token) }}</code>
+                        <div class="gh-share-dialog__link-row-actions">
+                          <button type="button" class="gh-share-dialog__icon-btn" @click="copyLinkUrl(link)" title="Copier le lien">
+                            <k-icon type="copy" />
+                          </button>
+                          <button v-if="canUpdate" type="button" class="gh-share-dialog__icon-btn" @click="toggleExpand(link)" :title="expandedId === link.id ? 'Fermer' : 'Modifier'">
+                            <k-icon :type="expandedId === link.id ? 'angle-up' : 'cog'" />
+                          </button>
+                          <button v-if="canUpdate" type="button" class="gh-share-dialog__icon-btn gh-share-dialog__icon-btn--danger" @click="deleteShareLink(link.id)" title="Supprimer le lien">
+                            <k-icon type="trash" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
 
-                    <!-- URL preview -->
-                    <div class="gh-share-dialog__url-preview">
-                      <code>{{ getFullLinkUrl(link.token) }}</code>
-                    </div>
+                      <!-- Expanded editor — only the link being edited -->
+                      <div v-if="expandedId === link.id" class="gh-share-dialog__link-detail">
+                        <!-- Access level — bound to the token server-side, so the
+                             link cannot be escalated by editing the URL. -->
+                        <div class="gh-share-dialog__access-level">
+                          <button
+                            v-for="lvl in accessLevels"
+                            :key="lvl.value"
+                            type="button"
+                            class="gh-share-dialog__level-btn"
+                            :class="{ 'is-active': (link.access || 'visit') === lvl.value }"
+                            :disabled="!canUpdate"
+                            :title="lvl.help"
+                            @click="canUpdate ? setLinkAccess(link, lvl.value) : null"
+                          >
+                            <k-icon :type="lvl.icon" />
+                            <span>{{ lvl.label }}</span>
+                          </button>
+                        </div>
 
-                    <!-- Permissions checkboxes -->
-                    <div class="gh-share-dialog__permissions">
-                      <span class="gh-share-dialog__perm-title">Autoriser l'accès aux sections :</span>
-                      <div class="gh-share-dialog__perm-checkboxes">
-                        <label v-for="sec in sectionOptions" :key="sec.value" class="gh-share-dialog__perm-checkbox">
-                          <input
-                            type="checkbox"
-                            :value="sec.value"
-                            :checked="link.visible_sections.includes(sec.value)"
-                            @change="toggleLinkSection(link, sec.value)"
-                          />
-                          <span>{{ sec.label }}</span>
-                        </label>
+                        <div class="gh-share-dialog__url-copy-box">
+                          <code class="gh-share-dialog__url-code">{{ getLinkUrl(link) }}</code>
+                          <k-button icon="copy" size="xs" variant="filled" @click="copyLinkUrl(link)">Copier</k-button>
+                        </div>
+                        <p class="gh-share-dialog__url-help">{{ currentLevel(link).help }}</p>
+                        <p v-if="(link.access || 'visit') === 'editor'" class="gh-share-dialog__url-warn">
+                          <k-icon type="alert" /> Donne un accès en modification au projet. À n'envoyer qu'à des personnes de confiance.
+                        </p>
+
+                        <!-- Section permissions only apply to the public "Visite"
+                             link; dossier/editor levels expose everything. -->
+                        <div v-if="(link.access || 'visit') === 'visit'" class="gh-share-dialog__permissions">
+                          <span class="gh-share-dialog__perm-title">Sections visibles dans la visite :</span>
+                          <div class="gh-share-dialog__perm-checkboxes">
+                            <label v-for="sec in sectionOptions" :key="sec.value" class="gh-share-dialog__perm-checkbox">
+                              <input
+                                type="checkbox"
+                                :value="sec.value"
+                                :checked="link.visible_sections.includes(sec.value)"
+                                :disabled="!canUpdate"
+                                @change="toggleLinkSection(link, sec.value)"
+                              />
+                              <span>{{ sec.label }}</span>
+                            </label>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+
+              <!-- Footer -->
+              <div class="gh-share-modal__footer">
+                <k-button variant="filled" theme="positive" icon="check" @click="closeShareDialog">
+                  Terminé
+                </k-button>
+              </div>
             </div>
-          </k-dialog>
+          </div>
         </div>
       `,
 
@@ -838,6 +887,8 @@ panel.plugin('goheritage/project-ux', {
           shareDialogOpen: false,
           dialogVisibility: 'private',
           localShareLinks: [],
+          localVisibility: null,
+          expandedId: null,
           sectionOptions: [
             { value: 'model', label: 'Modèle 3D' },
             { value: 'info', label: 'Fiche technique' },
@@ -845,8 +896,13 @@ panel.plugin('goheritage/project-ux', {
             { value: 'plans', label: 'Plans & docs' },
             { value: 'annotations', label: 'Points d\'intérêt' }
           ],
+          accessLevels: [
+            { value: 'visit',   icon: 'box', label: 'Visite 3D',      help: 'Page publique de présentation (visite type Matterport). Lecture seule, sans fichiers.' },
+            { value: 'dossier', icon: 'archive', label: 'Dossier complet', help: 'Page de consultation hors panel : tout le contenu + les fichiers téléchargeables. Aucun accès au CMS.' },
+            { value: 'editor',  icon: 'edit',  label: 'Éditeur',        help: 'Connexion au panel limitée à ce seul projet, avec droits de modification. Réservé aux personnes de confiance.' },
+          ],
           options: [
-            { value: 'brouillon', label: 'Brouillon',     icon: 'edit',  help: 'Page non publiée — vous et les administrateurs uniquement.', status: 'draft',  visibility: 'private' },
+            { value: 'brouillon', label: 'Privé',         icon: 'lock',  help: 'Page non publiée — vous et les administrateurs uniquement.', status: 'draft',  visibility: 'private' },
             { value: 'link',      label: 'Avec un lien',  icon: 'url',   help: 'Page publiée mais non listée. Accessible via un lien partagé.', status: 'listed', visibility: 'link'    },
             { value: 'public',    label: 'Public',        icon: 'globe', help: 'Page publiée et listée sur la carte GoHéritage.',              status: 'listed', visibility: 'public'  },
           ],
@@ -855,13 +911,19 @@ panel.plugin('goheritage/project-ux', {
 
       computed: {
         model()   { return this.$panel?.view?.props?.model ?? null; },
-        content() { return this.model?.content ?? {};               },
+        // The current view's saved content lives in versions.latest (Kirby 5),
+        // NOT on props.model — model only carries id/status/title/etc. Reading
+        // the wrong place is why visibility/share_links never loaded.
+        content() { return this.$panel?.view?.props?.versions?.latest ?? {}; },
         current() {
+          if (this.localVisibility) return this.localVisibility;
           if (this.model?.status === 'draft') return 'brouillon';
           const v = this.content.visibility;
-          if (v === 'link')   return 'link';
           if (v === 'public') return 'public';
-          return 'public';
+          if (v === 'link')   return 'link';
+          // Safe default: a listed page with no/unknown visibility is
+          // link-only, never silently public.
+          return 'link';
         },
         currentOption() {
           return this.options.find(o => o.value === this.current) || this.options[0];
@@ -920,6 +982,7 @@ panel.plugin('goheritage/project-ux', {
             id: l.id || '',
             token: l.token || '',
             label: l.label || '',
+            access: l.access || 'visit',
             visible_sections: Array.isArray(l.visible_sections)
               ? l.visible_sections
               : (typeof l.visible_sections === 'string' ? l.visible_sections.split(',').filter(Boolean) : [])
@@ -933,6 +996,10 @@ panel.plugin('goheritage/project-ux', {
           if (this.dialogVisibility === 'private') return 'Page non publiée — uniquement accessible aux éditeurs et administrateurs.';
           if (this.dialogVisibility === 'link') return 'Page accessible à toute personne disposant d\'un lien de partage actif. Non listée publiquement.';
           return 'Page publique et répertoriée sur la carte GoHéritage.';
+        },
+        canUpdate() {
+          // Page permissions are a TOP-LEVEL view prop, not under model.
+          return this.$panel?.view?.props?.permissions?.update ?? false;
         }
       },
 
@@ -945,6 +1012,15 @@ panel.plugin('goheritage/project-ux', {
         document.addEventListener('click', this._docHandler);
         this._escHandler = (e) => { if (e.key === 'Escape') this.open = false; };
         document.addEventListener('keydown', this._escHandler);
+
+        // Auto-restore share dialog across redirects
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('share') === 'true') {
+          this.openShareDialog();
+          const cleanSearch = window.location.search.replace(/[?&]share=true/, '').replace(/^&/, '?');
+          const newUrl = window.location.pathname + (cleanSearch === '?' ? '' : cleanSearch);
+          window.history.replaceState({}, '', newUrl);
+        }
       },
 
       beforeDestroy() {
@@ -968,26 +1044,39 @@ panel.plugin('goheritage/project-ux', {
           var opt = this.options.find(function (o) { return o.value === value; });
           if (!opt) return;
           var pageId = this.model.id.replace(/\//g, '+');
-          const currentStatus = this.model.status;
           try {
-            // Always update the visibility field first
-            await this.$panel.api.patch('pages/' + pageId, { visibility: opt.visibility });
-            // Only call the status endpoint when the Kirby status actually changes
-            // (link and public both use 'listed', so switching between them skips this)
-            if (opt.status !== currentStatus) {
-              const res = await this.$panel.api.patch('pages/' + pageId + '/status', {
-                status: opt.status,
-                position: null,
-              });
-              if (res && res.id) {
-                const newPageId = res.id.replace(/\//g, '+');
-                window.location.href = '/panel/pages/' + newPageId + '?tab=overview';
-                return;
-              }
+            // Always use custom PHP endpoint for consistent behavior & impersonation
+            const res = await this.$panel.api.patch('gh/pages/' + pageId + '/visibility', {
+              visibility: opt.visibility,
+            });
+            if (res && res.status === 'error') throw new Error(res.message);
+
+            // Optimistic update of local states
+            this.content.visibility = opt.visibility;
+            this.localVisibility = value;
+
+            // Picking "Avec un lien" jumps straight into link management —
+            // there's no point choosing link-sharing then hunting for where
+            // to create the link.
+            var openLinks = (value === 'link');
+
+            // If folder was renamed (draft→listed adds numeric prefix), redirect.
+            if (res && res.panelId && res.panelId !== pageId) {
+              window.location.href = '/panel/pages/' + res.panelId + '?tab=overview' + (openLinks ? '&share=true' : '');
+              return;
             }
+
             this.open = false;
             this.$panel.notification.success('Visibilité : ' + opt.label);
-            await this.$panel.view.reload();
+
+            if (openLinks) {
+              // Open the links dialog directly; its close handler reloads if
+              // links were changed. (Reloading first would remount us.)
+              this.openShareDialog();
+            } else {
+              await this.$panel.view.reload();
+              this.localVisibility = null; // Clear override to sync with fresh props
+            }
           } catch (e) {
             this.$panel.notification.error(
               'Impossible de mettre à jour : ' + (e && e.message ? e.message : 'erreur inconnue')
@@ -997,16 +1086,21 @@ panel.plugin('goheritage/project-ux', {
 
         openShareDialog() {
           this.open = false;
-          this.dialogVisibility = this.model.status === 'draft' ? 'private' : (this.content.visibility || 'public');
+          this._dialogNeedsReload = false;
+          this.dialogVisibility = this.model.status === 'draft' ? 'private' : (this.content.visibility || 'link');
           this.localShareLinks = JSON.parse(JSON.stringify(this.shareLinks));
           this.shareDialogOpen = true;
-          this.$nextTick(() => {
-            if (this.$refs.shareDialog) {
-              this.$refs.shareDialog.open();
-            }
-          });
+          this.localVisibility = this.dialogVisibility === 'private' ? 'brouillon' : this.dialogVisibility;
         },
 
+        async closeShareDialog() {
+          this.shareDialogOpen = false;
+          if (this._dialogNeedsReload) {
+            this._dialogNeedsReload = false;
+            await this.$panel.view.reload();
+            this.localVisibility = null; // Clear override to sync with fresh props
+          }
+        },
         async saveShareLinks() {
           if (!this.model) return;
           const pageId = this.model.id.replace(/\//g, '+');
@@ -1014,14 +1108,14 @@ panel.plugin('goheritage/project-ux', {
             id: l.id,
             token: l.token,
             label: l.label,
+            access: l.access || 'visit',
             visible_sections: l.visible_sections.join(',')
           }));
           try {
             await this.$panel.api.patch('pages/' + pageId, { share_links: formatted });
-            await this.$panel.view.reload();
-            this.$nextTick(() => {
-              this.localShareLinks = JSON.parse(JSON.stringify(this.shareLinks));
-            });
+            // Don't reload here — we're inside the dialog and reload remounts
+            // the component (resetting shareDialogOpen). Mark for reload on close.
+            this._dialogNeedsReload = true;
           } catch (e) {
             this.$panel.notification.error('Erreur lors de la sauvegarde : ' + e.message);
           }
@@ -1034,10 +1128,12 @@ panel.plugin('goheritage/project-ux', {
           const newLink = {
             id: 'link_' + Date.now() + '_' + Math.floor(Math.random() * 100),
             token: token,
-            label: 'Lien sans titre',
+            label: '',
+            access: 'visit',
             visible_sections: ['model', 'info', 'gallery', 'plans', 'annotations']
           };
           this.localShareLinks.push(newLink);
+          this.expandedId = newLink.id; // open the new link for editing
           this.saveShareLinks();
         },
 
@@ -1057,52 +1153,81 @@ panel.plugin('goheritage/project-ux', {
         },
 
         async updateVisibilityFromDialog(value) {
-          this.dialogVisibility = value;
-          let status = 'listed';
-          let visibility = 'public';
-          if (value === 'private') {
-            status = 'draft';
-            visibility = 'private';
-          } else if (value === 'link') {
-            status = 'listed';
-            visibility = 'link';
-          } else {
-            status = 'listed';
-            visibility = 'public';
-          }
-          const currentStatus = this.model.status;
+          const prev = this.dialogVisibility;
+          this.dialogVisibility = value; // Immediate UI feedback
+          const visMap = { private: 'private', link: 'link', public: 'public' };
+          const visibility = visMap[value] || 'public';
           const pageId = this.model.id.replace(/\//g, '+');
           try {
-            // Always save the visibility field
-            await this.$panel.api.patch('pages/' + pageId, { visibility: visibility });
-            // Only call status endpoint when it actually needs to change
-            // (link and public share the same Kirby status 'listed')
-            if (status !== currentStatus) {
-              const res = await this.$panel.api.patch('pages/' + pageId + '/status', {
-                status: status,
-                position: null
-              });
-              if (res && res.id) {
-                const newPageId = res.id.replace(/\//g, '+');
-                window.location.href = '/panel/pages/' + newPageId + '?tab=overview';
-                return;
-              }
+            // Always use custom PHP endpoint for consistent behavior & impersonation
+            const res = await this.$panel.api.patch('gh/pages/' + pageId + '/visibility', {
+              visibility: visibility,
+            });
+            if (res && res.status === 'error') throw new Error(res.message);
+
+            // Optimistic update of local states
+            this.content.visibility = visibility;
+            this.localVisibility = visibility === 'private' ? 'brouillon' : visibility;
+
+            // If folder was renamed, redirect but automatically reopen the dialog!
+            if (res && res.panelId && res.panelId !== pageId) {
+              window.location.href = '/panel/pages/' + res.panelId + '?tab=overview&share=true';
+              return;
             }
+
+            this._dialogNeedsReload = true;
             this.$panel.notification.success('Accès général mis à jour.');
-            await this.$panel.view.reload();
           } catch (e) {
+            this.dialogVisibility = prev; // Revert on error
+            this.localVisibility = prev === 'private' ? 'brouillon' : prev;
             this.$panel.notification.error('Impossible de modifier la visibilité : ' + e.message);
           }
         },
 
-        getFullLinkUrl(token) {
+        currentLevel(link) {
+          const a = (link && link.access) || 'visit';
+          return this.accessLevels.find(l => l.value === a) || this.accessLevels[0];
+        },
+
+        toggleExpand(link) {
+          this.expandedId = this.expandedId === link.id ? null : link.id;
+        },
+
+        shortToken(token) {
+          return token ? String(token).slice(-6) : '';
+        },
+
+        setLinkAccess(link, access) {
+          if ((link.access || 'visit') === access) return;
+          this.$set ? this.$set(link, 'access', access) : (link.access = access);
+          this.saveShareLinks();
+        },
+
+        // ── URL builders, one per access level ──────────────────────────
+        getVisitUrl(token) {
           const base = this.model?.previewUrl || this.model?.link || '';
           if (!base) return '';
           return base.split('?')[0].split('#')[0] + '?key=' + token;
         },
+        getDossierUrl(token) {
+          const slug = this.model.id.split('/').pop();
+          return window.location.origin + '/dossier/' + slug + '?key=' + token;
+        },
+        getEditorUrl(token) {
+          const slug = this.model.id.split('/').pop();
+          return window.location.origin + '/gh-share-login/' + slug + '?key=' + token + '&role=editor';
+        },
+
+        // The single URL appropriate to a link's chosen access level.
+        getLinkUrl(link) {
+          const access = (link && link.access) || 'visit';
+          if (access === 'editor')  return this.getEditorUrl(link.token);
+          if (access === 'dossier') return this.getDossierUrl(link.token);
+          return this.getVisitUrl(link.token);
+        },
 
         copyLinkUrl(link) {
-          const url = this.getFullLinkUrl(link.token);
+          const url = this.getLinkUrl(link);
           if (!url) return;
           if (navigator.clipboard?.writeText) {
             navigator.clipboard.writeText(url).then(
@@ -1501,9 +1626,6 @@ panel.plugin('goheritage/project-ux', {
     var dock = document.createElement('div');
     dock.className = 'gh-section__dock';
 
-    // Three buttons — "Terminé" reads more naturally for "I'm done
-    // editing this section" than "Enregistrer" (which feels like
-    // committing to a database record).
     var editBtn   = makeButton('Modifier', 'edit',   'edit');
     var saveBtn   = makeButton('Terminé',  'check',  'save');
     var cancelBtn = makeButton('Annuler',  'cancel', 'cancel');
@@ -1514,6 +1636,14 @@ panel.plugin('goheritage/project-ux', {
     dock.appendChild(editBtn);
     dock.appendChild(cancelBtn);
     dock.appendChild(saveBtn);
+
+    // Hide edit dock if current user has read-only access. Page permissions
+    // are a TOP-LEVEL view prop, not under model. The injector runs after the
+    // view renders, so props.permissions is populated by now.
+    var canUpdate = window.panel?.view?.props?.permissions?.update ?? false;
+    if (!canUpdate) {
+      dock.style.display = 'none';
+    }
 
     /*  Place the dock as a direct child of the section card. CSS will
      *  position it absolutely at top-right of the section. */
