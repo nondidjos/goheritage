@@ -2,7 +2,7 @@ Title: Chaire de Vérité (Cathédrale Saints-Michel-et-Gudule)
 
 ----
 
-Visibility: link
+Visibility: public
 
 ----
 
@@ -89,31 +89,31 @@ Model-texture: file://nbfpcyi0msujeuke
 Annotations:
 
 -
-  location: interior
+  location: exterior
   hotspot_id: hotspot_01
   title: 'Adam et Ève chassés'
   camera_mode: auto-orbit
   description: 'Grandeur nature, taillés dans un seul bloc de chêne. Détail virtuose des feuillages et animaux du paradis autour du palmier.'
 -
-  location: interior
+  location: exterior
   hotspot_id: hotspot_02
   title: "L'ange à l'épée flamboyante"
   camera_mode: fly
   description: 'Geste théâtral typique du baroque jésuite, conçu pour frapper le fidèle avant le sermon.'
 -
-  location: interior
+  location: exterior
   hotspot_id: hotspot_03
   title: 'Cuve : palmier & faune'
   camera_mode: orbit
   description: "Plus de 40 animaux exotiques sculptés dans le feuillage qui s'enroule autour du tronc."
 -
-  location: interior
+  location: exterior
   hotspot_id: hotspot_04
   title: 'Vierge sur le serpent'
   camera_mode: orbit
   description: "Abat-voix : la Vierge à l'Enfant écrase le serpent d'Éden. Référence directe à Genèse 3:15."
 -
-  location: interior
+  location: exterior
   hotspot_id: hotspot_05
   title: 'Escaliers sculptés'
   camera_mode: fly

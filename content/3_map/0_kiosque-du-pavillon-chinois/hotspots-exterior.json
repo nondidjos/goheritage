@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "exterior": {
+    "hotspots": [
+      {
+        "id": "hotspot_01",
+        "title": "Toiture en pagode",
+        "camera_mode": "orbit",
+        "position": {
+          "x": -1.0,
+          "y": 9.5,
+          "z": 0.5
+        }
+      },
+      {
+        "id": "hotspot_02",
+        "title": "Boiseries de Shanghai",
+        "camera_mode": "fly",
+        "position": {
+          "x": -1.0,
+          "y": 4.5,
+          "z": -3.0
+        }
+      },
+      {
+        "id": "hotspot_03",
+        "title": "Balustrade ajourée",
+        "camera_mode": "orbit",
+        "position": {
+          "x": 2.0,
+          "y": 2.0,
+          "z": 1.0
+        }
+      },
+      {
+        "id": "hotspot_04",
+        "title": "Vue sur le Pavillon Chinois",
+        "camera_mode": "fly",
+        "position": {
+          "x": 4.0,
+          "y": 5.0,
+          "z": 5.0
+        }
+      }
+    ]
+  }
+}

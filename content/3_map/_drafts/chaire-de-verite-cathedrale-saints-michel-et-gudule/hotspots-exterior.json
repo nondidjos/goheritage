@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "exterior": {
+    "hotspots": [
+      {
+        "id": "hotspot_01",
+        "title": "Adam et Ève chassés",
+        "camera_mode": "auto-orbit",
+        "position": {
+          "x": 0.0,
+          "y": 1.2,
+          "z": 3.0
+        }
+      },
+      {
+        "id": "hotspot_02",
+        "title": "L'ange à l'épée flamboyante",
+        "camera_mode": "fly",
+        "position": {
+          "x": -1.0,
+          "y": 2.8,
+          "z": 2.0
+        }
+      },
+      {
+        "id": "hotspot_03",
+        "title": "Cuve : palmier & faune",
+        "camera_mode": "orbit",
+        "position": {
+          "x": 0.0,
+          "y": 4.8,
+          "z": 1.0
+        }
+      },
+      {
+        "id": "hotspot_04",
+        "title": "Vierge sur le serpent",
+        "camera_mode": "orbit",
+        "position": {
+          "x": 0.0,
+          "y": 8.8,
+          "z": 0.5
+        }
+      },
+      {
+        "id": "hotspot_05",
+        "title": "Escaliers sculptés",
+        "camera_mode": "fly",
+        "position": {
+          "x": 2.5,
+          "y": 2.5,
+          "z": 1.5
+        }
+      }
+    ]
+  }
+}
