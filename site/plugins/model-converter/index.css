@@ -151,6 +151,16 @@
  *  Kirby's CSS vars so it works in light and dark panel themes.
  * ────────────────────────────────────────────────────────────────────── */
 
+/*  Kill the field label header outright — the blueprint's `label: false`
+    was rendering the literal string "false". The section already has the
+    "Inventaire des fichiers" headline, so no field label is needed. */
+.k-page-files-list-field > .k-field-header,
+.k-page-files-list-field > header,
+.k-page-files-list-field > label,
+.k-page-files-list-field > .k-label {
+  display: none !important;
+}
+
 /*  Use table-layout: fixed + 100% width so columns stay aligned and the
     full row borders span from one card edge to the other (negative
     margin pulls the table out past Kirby's field padding). The first
@@ -266,19 +276,22 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.35rem;
-  border: 0;
-  border-radius: 3px;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.15));
+  border-radius: 6px;
   background: transparent;
-  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.5));
+  color: #121212;
   cursor: pointer;
-  transition: background 0.1s ease, color 0.1s ease;
+  transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease;
 }
 .k-page-files-list__delete:hover {
-  background: var(--color-negative, #c0392b);
+  background: #121212;
+  border-color: #121212;
   color: #fff;
 }
-.k-page-files-list__delete .k-icon { width: 0.9em; height: 0.9em; }
+.k-page-files-list__delete .k-icon { width: 0.95em; height: 0.95em; }
 
 /* Narrow viewports: drop the date column to keep rows readable. */
 @media (max-width: 50rem) {

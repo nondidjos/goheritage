@@ -534,6 +534,10 @@ panel.plugin('goheritage/model-converter', {
     },
 
     'page-files-list': {
+      // Don't auto-apply inherited attrs (incl. the blueprint's
+      // `label: false`) to the root <k-field> — otherwise k-field
+      // renders the literal string "false" as its label.
+      inheritAttrs: false,
       props: {
         pageId: { type: String, default: '' },
         rows: { type: Array, default: () => [] },
@@ -598,7 +602,7 @@ panel.plugin('goheritage/model-converter', {
         },
       },
       template: `
-        <k-field label="Fichiers" class="k-page-files-list-field">
+        <k-field class="k-page-files-list-field">
           <k-button
             v-if="localFiles && localFiles.length"
             slot="options"
