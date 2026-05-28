@@ -254,13 +254,14 @@
 body.gh-project-edit .k-section.gh-section {
   position: relative;
   background: transparent !important;
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.10)) !important;
-  border-radius: var(--rounded, 4px) !important;
-  padding: 1.4rem 1.5rem !important;
-  /* extra room at the top for the absolute-positioned dock */
-  padding-top: 1.5rem !important;
-  margin: 0 0 1rem !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 1.2rem 0 !important;
+  margin: 0 !important;
   box-shadow: none !important;
+}
+body.gh-project-edit .k-section.gh-section + .k-section.gh-section {
+  border-top: 1px solid var(--color-border) !important;
 }
 
 /* When a section is being edited, give it a little more right padding
@@ -318,19 +319,60 @@ body.gh-project-edit .gh-section.is-editing > .gh-section__display {
   display: none !important;
 }
 
-/*  Section TITLE — our injected h2.gh-section__title. Big, bold, no
-    chance of being missed. */
+/*  Tighter spacing for Kirby's k-info / k-help / k-field-counter
+    elements inside our cards — by default they get inherited margins
+    that leave them floating away from the field they belong to. Pull
+    them visually closer so help text reads as "attached" to its field. */
+body.gh-project-edit .gh-section .k-info {
+  margin: 0.25rem 0 0.5rem !important;
+  padding: 0.6rem 0.75rem !important;
+  line-height: 1.4 !important;
+}
+body.gh-project-edit .gh-section .k-help {
+  margin-top: 0.3rem !important;
+  font-size: 0.78rem !important;
+  line-height: 1.4 !important;
+  color: var(--color-text-dimmed) !important;
+}
+body.gh-project-edit .gh-section .k-field-counter {
+  margin-top: 0.3rem !important;
+  font-size: 0.72rem !important;
+}
+
+/*  Tighten the gap between Kirby's .k-fields container and our title.
+    Kirby's default .k-fields-section__fields adds a top-margin that
+    makes the title look detached. */
+body.gh-project-edit .gh-section > .k-fields,
+body.gh-project-edit .gh-section > .k-fields-section__fields,
+body.gh-project-edit .gh-section > .k-section-body,
+body.gh-project-edit .gh-section > div.k-fields {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/*  And tighten the gap between successive fields so the form reads as
+    one coherent unit, not a stack of disconnected rows. */
+body.gh-project-edit .gh-section.is-editing .k-field + .k-field {
+  margin-top: 0.85rem !important;
+}
+
+/*  Section TITLE — our injected h2.gh-section__title. Visually
+    attached to the card content below (no border-bottom, just a tight
+    margin) so it doesn't read as a separate strip floating above the
+    fields. The dock sits to its right via absolute positioning. */
 body.gh-project-edit .gh-section > .gh-section__title {
   font-family: inherit !important;
-  font-size: 1.25rem !important;
-  font-weight: 700 !important;
-  letter-spacing: -0.01em !important;
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.005em !important;
   color: var(--color-text, #1a1a1a) !important;
-  margin: 0 0 1rem 0 !important;
-  padding: 0 11rem 0.85rem 0 !important;
+  /* Tight margin + no border = title feels like a label on the card,
+     not a header bar separated from the content. */
+  margin: 0 0 0.6rem 0 !important;
+  padding: 0 9rem 0 0 !important;
   line-height: 1.3 !important;
   text-align: left !important;
-  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.08)) !important;
+  border: 0 !important;
 }
 
 
@@ -578,6 +620,65 @@ body.gh-project-edit .gh-section.is-editing .gh-section__dock {
 
 
 /* ──────────────────────────────────────────────────────────────────────
+ *  3D viewer preview — top of the Modèle 3D tab (read mode emphasis).
+ *  Embeds the public-facing project page in viewer-only mode so the
+ *  user sees the actual rendered model before they edit anything.
+ * ────────────────────────────────────────────────────────────────────── */
+.gh-model-preview {
+  display: block;
+  width: 100%;
+  margin: 0 0 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--rounded, 4px);
+  overflow: hidden;
+  background: var(--panel-color-back);
+}
+.gh-model-preview__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.8rem;
+}
+.gh-model-preview__label {
+  font-weight: 600;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.7rem;
+}
+.gh-model-preview__open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--rounded, 4px);
+  background: var(--panel-color-back);
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+.gh-model-preview__open:hover {
+  background: var(--color-hover);
+  border-color: var(--color-text);
+  text-decoration: none;
+}
+.gh-model-preview__frame {
+  display: block;
+  width: 100%;
+  height: 60vh;
+  min-height: 480px;
+  border: 0;
+  background: #1a1a1a;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────
  *  project-overview section — the entire Aperçu tab.
  *
  *  Renders as ONE custom Vue card: cover image, meta chips, description,
@@ -585,10 +686,33 @@ body.gh-project-edit .gh-section.is-editing .gh-section__dock {
  *  from Kirby's CSS vars so it adapts to both light and dark themes.
  * ────────────────────────────────────────────────────────────────────── */
 
+/*  Defensive: even if the JS injector mistakenly tags the overview
+    section, strip our card-chrome treatment so the custom Vue component
+    owns 100% of the visuals (no double border/padding). */
+body.gh-project-edit .k-project-overview-section,
+body.gh-project-edit .k-project-overview-section.gh-section {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 0 1rem !important;
+  box-shadow: none !important;
+}
+body.gh-project-edit .k-project-overview-section > .gh-section__title,
+body.gh-project-edit .k-project-overview-section > .gh-section__dock,
+body.gh-project-edit .k-project-overview-section > .gh-section__display {
+  display: none !important;
+}
+
 .gh-pov {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  /* Keep the card from spreading to absurd line lengths on wide
+     viewports — caps at roughly 75 characters of reading width and
+     centers itself within the tab content. */
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 0.75rem;
 }
 
 /* ── Cover image ──────────────────────────────────────────────────── */
@@ -877,63 +1001,4 @@ body.gh-project-edit .gh-section.is-editing .gh-section__dock {
     them (sidebar bottom). */
 .k-panel-menu-button[data-dialog="changes"] {
   display: none !important;
-}
-
-
-/* ──────────────────────────────────────────────────────────────────────
- *  3D viewer preview — top of the Modèle 3D tab (read mode emphasis).
- *  Embeds the public-facing project page in viewer-only mode so the
- *  user sees the actual rendered model before they edit anything.
- * ────────────────────────────────────────────────────────────────────── */
-.gh-model-preview {
-  display: block;
-  width: 100%;
-  margin: 0 0 1.25rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--rounded, 4px);
-  overflow: hidden;
-  background: var(--panel-color-back);
-}
-.gh-model-preview__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 0.85rem;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.8rem;
-}
-.gh-model-preview__label {
-  font-weight: 600;
-  color: var(--color-text);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 0.7rem;
-}
-.gh-model-preview__open {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.4rem 0.7rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--rounded, 4px);
-  background: var(--panel-color-back);
-  color: var(--color-text);
-  text-decoration: none;
-  font-size: 0.78rem;
-  font-weight: 500;
-  line-height: 1;
-  transition: background 0.1s ease, border-color 0.1s ease;
-}
-.gh-model-preview__open:hover {
-  background: var(--color-hover);
-  border-color: var(--color-text);
-  text-decoration: none;
-}
-.gh-model-preview__frame {
-  display: block;
-  width: 100%;
-  height: 60vh;
-  min-height: 480px;
-  border: 0;
-  background: #1a1a1a;
 }

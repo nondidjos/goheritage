@@ -762,7 +762,8 @@ panel.plugin('goheritage/project-ux', {
   //   • project-overview: our own custom section, owns its own chrome
   function sectionIsEditable(section) {
     if (!section) return false;
-    
+    // Custom section type — never inject our edit dock or card chrome.
+    if (section.classList.contains('k-project-overview-section')) return false;
     var fields = section.querySelectorAll('.k-field');
     if (!fields.length) return false;
     for (var i = 0; i < fields.length; i++) {
@@ -1202,7 +1203,10 @@ panel.plugin('goheritage/project-ux', {
     // fields get the action dock attached.
     var sections = document.querySelectorAll('.k-section');
     sections.forEach(function (s) {
-      
+      // SKIP our custom section entirely — it owns its own chrome via
+      // the Vue component. Tagging it as .gh-section would slap our
+      // card padding/border on top of the component's own layout.
+      if (s.classList.contains('k-project-overview-section')) return;
 
       // Skip sections that hold only hidden fields (no visible content)
       // — they'd render as empty card boxes which is worse than missing.
