@@ -1,0 +1,16 @@
+title: Viewer
+description: Accès en lecture seule au panel d'administration.
+permissions:
+  access:
+    panel: true
+    site: true
+    settings: false
+    users: false
+    languages: false
+    system: false
+  pages:
+    create: false
+    read: true
+    update: false
+    delete: false
+    changeStatus: false

@@ -1,0 +1,52 @@
+title: Collaborateur
+description: >
+  Accès éditeur limité à un seul projet partagé (créé par un lien « Éditeur »).
+  Ne peut pas gérer les utilisateurs, le système ou le reste du site. Les
+  écritures hors du projet partagé sont bloquées côté serveur.
+
+# Hidden field recording which project this account is scoped to. Set on
+# creation by the gh-share-login route; read by the menu closure (config.php)
+# and the write-guard hooks (project-ux plugin).
+fields:
+  scoped_page:
+    type: hidden
+
+permissions:
+  access:
+    panel: true
+    site: true
+    languages: false
+    system: false
+    settings: false
+    users: false
+    account: false
+  pages:
+    create: false
+    read: true
+    update: true
+    delete: false
+    changeStatus: false
+    duplicate: false
+    move: false
+    sort: false
+    preview: true
+  files:
+    create: true
+    read: true
+    update: true
+    replace: true
+    delete: true
+  user:
+    create: false
+    read: false
+    update: false
+    delete: false
+    changeEmail: false
+    changeName: false
+    changePassword: false
+    changeRole: false
+  users:
+    create: false
+    read: false
+    update: false
+    delete: false
