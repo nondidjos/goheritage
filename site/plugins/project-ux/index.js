@@ -76,47 +76,43 @@ var ProjectOverviewSection = {
       },
       template: /* html */`
         <section class="gh-pov">
-          <!-- Cover image (or empty state with CTA) -->
-          <button
-            type="button"
-            class="gh-pov__cover"
-            :class="{ 'gh-pov__cover--empty': !coverUrl }"
-            @click="editFields('cover', { cover: 'cover' })"
-          >
-            <img v-if="coverUrl" :src="coverUrl" :alt="pageTitle">
-            <div v-else class="gh-pov__cover-empty">
-              <k-icon type="image" />
-              <span>Ajouter une image de couverture</span>
-            </div>
-            <span class="gh-pov__cover-edit">
-              <k-icon type="edit" />
-              Modifier
-            </span>
-          </button>
+          <!-- Cover image. Clicking it jumps to the Détails tab (where the
+               native Kirby cover field lives). "Voir la page publique" is
+               overlaid bottom-right and opens the public page in a new tab. -->
+          <div class="gh-pov__cover" :class="{ 'gh-pov__cover--empty': !coverUrl }">
+            <button type="button" class="gh-pov__cover-hit" @click="openTab('details')" title="Modifier la couverture">
+              <img v-if="coverUrl" :src="coverUrl" :alt="pageTitle">
+              <div v-else class="gh-pov__cover-empty">
+                <k-icon type="image" />
+                <span>Ajouter une image de couverture</span>
+              </div>
+              <span class="gh-pov__cover-edit"><k-icon type="edit" /> Modifier</span>
+            </button>
+            <a class="gh-pov__cover-cta" :href="'/' + pageId" target="_blank" rel="noopener" @click.stop>
+              <k-icon type="open" /> Voir la page publique
+            </a>
+          </div>
 
-          <!-- Title bar + edit (Caractéristiques) -->
+          <!-- Title bar + edit (jumps to Détails) -->
           <header class="gh-pov__head">
             <h1 class="gh-pov__title">{{ pageTitle }}</h1>
             <button
               type="button"
               class="gh-pov__head-edit"
-              @click="editMeta"
-              title="Modifier les caractéristiques"
+              @click="openTab('details')"
+              title="Modifier les informations"
             >
-              <k-icon type="edit" />
+              <k-icon type="edit" /> Modifier
             </button>
           </header>
 
-          <!-- Subtitle line: location · construction date (plain text,
-               not pills). Matterport shows the place prominently right
-               under the title. -->
+          <!-- Subtitle line: location · construction date -->
           <p v-if="location || constructionDate" class="gh-pov__subtitle">
             <span v-if="location"><k-icon type="pin" /> {{ location }}</span>
             <span v-if="constructionDate"> · {{ constructionDate }}</span>
           </p>
 
-          <!-- Stat strip: at-a-glance metrics like Matterport's space
-               header (dimensions, areas, etc.). -->
+          <!-- Stat strip -->
           <div class="gh-pov__stats">
             <div class="gh-pov__stat">
               <span class="gh-pov__stat-num">{{ has3dModel ? '✓' : '—' }}</span>
@@ -134,16 +130,6 @@ var ProjectOverviewSection = {
               <span class="gh-pov__stat-num">{{ plansCount }}</span>
               <span class="gh-pov__stat-label">Plans</span>
             </div>
-          </div>
-
-          <!-- Quick actions row -->
-          <div class="gh-pov__actions">
-            <a class="gh-pov__action" :href="'/' + pageId" target="_blank" rel="noopener">
-              <k-icon type="open" /> Voir la page publique
-            </a>
-            <button type="button" class="gh-pov__action" @click="editFields('cover', { cover: 'cover' })">
-              <k-icon type="image" /> Image de couverture
-            </button>
           </div>
 
           <!-- Assets grid: each tile shows what's there + opens to the right place -->
@@ -175,7 +161,7 @@ var ProjectOverviewSection = {
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
 
-            <button class="gh-pov__asset" @click="editGallery">
+            <button class="gh-pov__asset" @click="openTab('details', 'gallery_section')">
               <k-icon type="images" class="gh-pov__asset-ico" />
               <div class="gh-pov__asset-body">
                 <strong>Galerie</strong>
@@ -184,7 +170,7 @@ var ProjectOverviewSection = {
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
 
-            <button class="gh-pov__asset" @click="editContent">
+            <button class="gh-pov__asset" @click="openTab('details', 'content_section')">
               <k-icon type="text" class="gh-pov__asset-ico" />
               <div class="gh-pov__asset-body">
                 <strong>Contenu détaillé</strong>
@@ -193,7 +179,7 @@ var ProjectOverviewSection = {
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
 
-            <button class="gh-pov__asset" @click="editFields('geo', { location_search: 'location-search', lat: 'number', lng: 'number' })">
+            <button class="gh-pov__asset" @click="openTab('details', 'geo_section')">
               <k-icon type="map" class="gh-pov__asset-ico" />
               <div class="gh-pov__asset-body">
                 <strong>Géolocalisation</strong>
@@ -206,122 +192,40 @@ var ProjectOverviewSection = {
       `,
 
       methods: {
-        // Switch tabs — use Kirby's own tab navigation by hitting the
-        // .k-tabs-button[data-tab=...]. Falls back to URL navigation.
-        openTab(name) {
-          // 1. Click Kirby's own tab button if it exists — most reliable
-          //    way to switch tabs without a full reload.
+        // Switch tabs by clicking Kirby's own tab button. Optionally
+        // scroll to a specific section (by k-section-name-<name>) once
+        // the tab has rendered.
+        openTab(name, scrollToSection) {
           var btn = document.querySelector('.k-tabs-button[data-tab="' + name + '"], .k-tabs-button[href*="tab=' + name + '"]');
           if (btn) {
             btn.click();
-            return;
+          } else {
+            var url = new URL(window.location.href);
+            url.searchParams.set('tab', name);
+            window.location.href = url.toString();
           }
-          // 2. Fallback: full page reload with new tab query.
-          var url = new URL(window.location.href);
-          url.searchParams.set('tab', name);
-          window.location.href = url.toString();
+          if (scrollToSection) {
+            // Wait for the target tab's sections to render, then scroll.
+            var tries = 0;
+            var poll = setInterval(function () {
+              tries++;
+              var el = document.querySelector('.k-section-name-' + scrollToSection);
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                el.style.transition = 'background 0.3s';
+                el.style.background = 'var(--color-back)';
+                setTimeout(function () { el.style.background = ''; }, 1200);
+                clearInterval(poll);
+              }
+              if (tries > 40) clearInterval(poll); // ~4s safety
+            }, 100);
+          }
         },
 
-        // Opens a k-form-dialog with the requested fields, scoped to the
-        // current page.
-        editFields(slug, fieldsSpec) {
-          var self = this;
-          var fields = {};
-          var initialValue = {};
-          var defs = {
-            cover:       { type: 'files', label: 'Image de couverture', layout: 'cards', max: 1, multiple: false, query: 'page.images' },
-            description: { type: 'textarea', label: 'Description courte', size: 'small' },
-            location:    { type: 'text', label: 'Lieu', icon: 'pin' },
-            construction_date: { type: 'text', label: 'Date de construction' },
-            date:        { type: 'date', label: 'Date du scan' },
-            architect:   { type: 'text', label: 'Architecte' },
-            style:       { type: 'text', label: 'Style' },
-            dimensions:  { type: 'text', label: 'Dimensions' },
-            protection_status: {
-              type: 'select', label: 'Statut de protection',
-              options: {
-                'classé':   'Classé Monument Historique',
-                'unesco':   'Patrimoine mondial UNESCO',
-                'regional': 'Inventaire Régional',
-                'none':     'Non protégé',
-              },
-            },
-            lat:         { type: 'number', label: 'Latitude', step: 0.000001 },
-            lng:         { type: 'number', label: 'Longitude', step: 0.000001 },
-            tags:        { type: 'tags', label: 'Tags' },
-            primary_tag: { type: 'text', label: 'Tag mis en avant' },
-          };
-          var content = (this.$panel.view.props.model && this.$panel.view.props.model.content) || {};
-          Object.keys(fieldsSpec).forEach(function (k) {
-            fields[k] = defs[k] || { type: 'text', label: k };
-            initialValue[k] = content[k] != null ? content[k] : '';
-          });
-
-          var pageId = this.pageId.replace(/\//g, '+');
-          var csrf = window.panel && window.panel.system && window.panel.system.csrf;
-
-          this.$panel.dialog.open({
-            component: 'k-form-dialog',
-            props: {
-              fields: fields,
-              value: initialValue,
-              submitButton: 'Enregistrer',
-              cancelButton: 'Annuler',
-            },
-            on: {
-              submit: function (newValues) {
-                // newValues comes from the dialog. Issue a direct PATCH
-                // for reliability (the $panel.api.patch path has been
-                // flaky in 5.4 from non-view contexts).
-                var headers = {
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json',
-                };
-                if (csrf) headers['X-CSRF'] = csrf;
-                return fetch('/api/pages/' + pageId, {
-                  method: 'PATCH',
-                  credentials: 'same-origin',
-                  headers: headers,
-                  body: JSON.stringify(newValues),
-                }).then(function (resp) {
-                  if (!resp.ok) return resp.text().then(function (t) { throw new Error('HTTP ' + resp.status + ' ' + t); });
-                  self.$panel.dialog.close();
-                  self.$panel.notification.success('Mis à jour');
-                  return self.$panel.view.reload();
-                }).catch(function (e) {
-                  self.$panel.notification.error('Erreur : ' + (e.message || 'inconnue'));
-                });
-              },
-            },
-          });
-        },
-
-        editMeta() {
-          this.editFields('meta', {
-            location:          'text',
-            construction_date: 'text',
-            date:              'date',
-            architect:         'text',
-            style:             'text',
-            dimensions:        'text',
-            protection_status: 'select',
-          });
-        },
-
-        editTags() {
-          this.editFields('tags', { tags: 'tags', primary_tag: 'text' });
-        },
-
-        editGallery() {
-          // Gallery + content blocks are complex field types (files,
-          // blocks) that don't fit a simple modal — they live in the
-          // Détails tab where Kirby's native editors handle them.
-          this.openTab('details');
-        },
-
-        editContent() {
-          this.openTab('details');
-        },
+        // (Inline editing dialogs removed — all edit actions now navigate
+        //  to the Détails tab where Kirby's native fields handle saving
+        //  reliably. k-form-dialog couldn't render files/blocks fields
+        //  and the save path was flaky.)
       },
     };
 
@@ -408,6 +312,17 @@ panel.plugin('goheritage/project-ux', {
               </div>
               <p v-else class="gh-visibility__share-empty">
                 <k-icon type="info" /> Enregistrez la page pour générer un lien.
+              </p>
+              <button
+                v-if="shareUrl"
+                type="button"
+                class="gh-visibility__share-regen"
+                @click="regenerateLink"
+              >
+                <k-icon type="refresh" /> Régénérer le lien
+              </button>
+              <p class="gh-visibility__share-note">
+                Régénérer invalide immédiatement l’ancien lien.
               </p>
             </div>
           </div>
@@ -1139,7 +1054,14 @@ panel.plugin('goheritage/project-ux', {
     } catch (_) {}
     if (!slug) return;
 
-    if (document.getElementById('gh-model-preview')) return;
+    // Dedup: if exactly one bar + one preview already exist, nothing to
+    // do (avoids reloading the iframe every scan tick). If counts are
+    // off (0, or >1 from a tab-swap race), wipe and rebuild cleanly.
+    var existingBars  = document.querySelectorAll('#gh-model-bar');
+    var existingPrevs = document.querySelectorAll('#gh-model-preview');
+    if (existingBars.length === 1 && existingPrevs.length === 1) return;
+    existingBars.forEach(function (e) { e.remove(); });
+    existingPrevs.forEach(function (e) { e.remove(); });
 
     var firstSection = document.querySelector('.k-page-view .k-section');
     var host = firstSection && firstSection.parentNode;

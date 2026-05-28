@@ -3,6 +3,15 @@ icon: box
 
 num: 0
 
+# Trim the page options menu (the Settings button dropdown) to only what
+# makes sense for a project: rename, duplicate, delete, change status.
+# changeTemplate + move + changePosition are removed — they were either
+# grayed-out (position, because num:0 auto-sorts by date) or irrelevant
+# (a project never changes template / moves out of the map).
+options:
+  changeTemplate: false
+  move: false
+
 status:
   draft:
     label: Brouillon
