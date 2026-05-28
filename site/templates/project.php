@@ -212,25 +212,38 @@ $defaultMode = $availableModes[0] ?? 'model';
 
             <!-- Spec Sheet — monospace minimal -->
             <?php
+            // Map protection status code → human-readable label so the
+            // public fiche technique reads cleanly ("Classé Monument
+            // Historique" instead of the raw "classé").
+            $protectionLabels = [
+                'classé'   => 'Classé Monument Historique',
+                'unesco'   => 'Patrimoine mondial UNESCO',
+                'regional' => 'Inventaire Régional',
+                'none'     => 'Non protégé',
+            ];
+            $protectionRaw   = $page->protection_status()->value();
+            $protectionLabel = $protectionLabels[$protectionRaw] ?? $protectionRaw;
+
             $specFields = [
-                ['label' => 'Construction', 'value' => $page->construction_date()],
-                ['label' => 'Architecte',   'value' => $page->architect()],
-                ['label' => 'Style',        'value' => $page->style()],
-                ['label' => 'Dimensions',   'value' => $page->dimensions()],
-                ['label' => 'Protection',   'value' => $page->protection_status()],
+                ['label' => 'Construction', 'value' => $page->construction_date()->value()],
+                ['label' => 'Architecte',   'value' => $page->architect()->value()],
+                ['label' => 'Style',        'value' => $page->style()->value()],
+                ['label' => 'Dimensions',   'value' => $page->dimensions()->value()],
+                // Skip "Non protégé" — only show protection when it's meaningful.
+                ['label' => 'Protection',   'value' => ($protectionRaw && $protectionRaw !== 'none') ? $protectionLabel : ''],
             ];
             $hasSpecs = false;
-            foreach ($specFields as $sf) { if ($sf['value']->isNotEmpty()) { $hasSpecs = true; break; } }
+            foreach ($specFields as $sf) { if (!empty($sf['value'])) { $hasSpecs = true; break; } }
             ?>
             <?php if ($hasSpecs && $canSee('info')): ?>
                 <div class="spec-card">
                     <h3 class="font-mono text-xs uppercase tracking-widest text-ink mb-3">Fiche technique</h3>
                     <dl class="spec-card__grid">
                         <?php foreach ($specFields as $sf): ?>
-                            <?php if ($sf['value']->isNotEmpty()): ?>
+                            <?php if (!empty($sf['value'])): ?>
                                 <div class="spec-card__item">
                                     <dt class="spec-card__label"><?= $sf['label'] ?></dt>
-                                    <dd class="spec-card__value"><?= $sf['value']->esc() ?></dd>
+                                    <dd class="spec-card__value"><?= esc($sf['value']) ?></dd>
                                 </div>
                             <?php endif ?>
                         <?php endforeach ?>
@@ -554,38 +567,7 @@ $defaultMode = $availableModes[0] ?? 'model';
 </div>
 
 <?php if ($showModeChips): ?>
-<script>
-// Floating chip swapper — pure DOM, no framework. Active chip + pane share
-// the .is-active class. Switching panes also dispatches a custom event so
-// downstream JS (viewer.js, plan-viewer.js) can lazy-load resources on
-// first activation.
-(function () {
-    var container = document.getElementById('viewer-container');
-    if (!container) return;
-
-    var chips = container.querySelectorAll('.viewer-mode-chip');
-    var panes = container.querySelectorAll('[data-mode-pane]');
-
-    function setMode(target) {
-        chips.forEach(function (c) {
-            var match = c.getAttribute('data-mode-target') === target;
-            c.classList.toggle('is-active', match);
-            c.setAttribute('aria-selected', match ? 'true' : 'false');
-        });
-        panes.forEach(function (p) {
-            var match = p.getAttribute('data-mode-pane') === target;
-            p.classList.toggle('is-active', match);
-        });
-        container.dispatchEvent(new CustomEvent('viewer:mode-change', { detail: { mode: target } }));
-    }
-
-    chips.forEach(function (c) {
-        c.addEventListener('click', function () {
-            setMode(c.getAttribute('data-mode-target'));
-        });
-    });
-})();
-</script>
+<script src="<?= url('assets/js/viewer-modes.js') ?>?v=1" defer></script>
 <?php endif ?>
 
 <?php snippet('footer') ?>

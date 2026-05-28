@@ -1206,6 +1206,13 @@ body.is-embedded {
     background: var(--color-bg);
     overflow: hidden;
 }
+/* The global `html { scrollbar-gutter: stable }` reserves a strip on the
+   right for the scrollbar — inside an embed iframe that shows as dead
+   white space. Disable it when embedded. */
+html:has(body.is-embedded) {
+    scrollbar-gutter: auto !important;
+    overflow: hidden !important;
+}
 
 /* No header → viewer/map should start at top */
 body.is-embedded #viewer-container {
@@ -1215,10 +1222,27 @@ body.is-embedded #viewer-container {
 
 /* ── Viewer-only mode (?embed=1&viewer=only) — the CMS panel preview ──
    Hides the sidebar entirely so the iframe shows nothing but the 3D
-   viewer canvas, edge to edge. */
+   viewer canvas, edge to edge. Strips ALL padding/gutters on every
+   ancestor container so there's no white space around the canvas. */
+body.is-embedded:has(.is-viewer-only) main,
+body.is-embedded:has(.is-viewer-only) #map-main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+}
+body.is-embedded .items-start:has(.is-viewer-only) {
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+}
 body.is-embedded .project-panels-wrapper.is-viewer-only {
     min-height: 0 !important;
     height: 100dvh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    display: block !important;
 }
 body.is-embedded .project-panels-wrapper.is-viewer-only #project-content,
 body.is-embedded .project-panels-wrapper.is-viewer-only #project-drawer-handle,
@@ -1226,6 +1250,8 @@ body.is-embedded .project-panels-wrapper.is-viewer-only #project-fold-toggle {
     display: none !important;
 }
 body.is-embedded .project-panels-wrapper.is-viewer-only #viewer-container {
+    position: relative !important;
+    inset: 0 !important;
     width: 100% !important;
     height: 100dvh !important;
     min-height: 0 !important;

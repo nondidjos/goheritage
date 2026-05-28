@@ -784,6 +784,19 @@
     display: block;
 }
 
+/* viewer.js appends its WebGL <canvas> and #viewer-labels overlay as
+   DIRECT children of #viewer-container (not inside the model pane). In
+   gallery/plans mode those must be hidden + non-interactive, otherwise
+   the 3D camera keeps reacting to the mouse and the model shifts around
+   behind the gallery. */
+#viewer-container[data-active-mode]:not([data-active-mode="model"]) > canvas,
+#viewer-container[data-active-mode]:not([data-active-mode="model"]) > #viewer-labels,
+#viewer-container[data-active-mode]:not([data-active-mode="model"]) > .viewer-progress,
+#viewer-container[data-active-mode]:not([data-active-mode="model"]) > .viewer-controls-hint {
+    display: none !important;
+    pointer-events: none !important;
+}
+
 /* Gallery + plans panes use a scrollable layout; the model pane keeps
    its own fixed-fit layout (canvas/iframe sized to container). */
 .viewer-pane--gallery,
