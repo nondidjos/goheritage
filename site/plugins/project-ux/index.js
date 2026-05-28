@@ -76,6 +76,11 @@ var ProjectOverviewSection = {
           geoSaving: false,
           localGeo: { location: '', lat: '', lng: '' },
 
+          // Tags Dialog state
+          tagsDialogOpen: false,
+          tagsInput: '',
+          primaryTagInput: '',
+
           // General Info Dialog state
           dateRaw: '',
           protectionStatusRaw: '',
@@ -119,9 +124,6 @@ var ProjectOverviewSection = {
               </div>
               <span class="gh-pov__cover-edit" v-if="canUpdate"><k-icon type="edit" /> Modifier</span>
             </button>
-            <a class="gh-pov__cover-cta" :href="'/' + pageId" target="_blank" rel="noopener" @click.stop>
-              <k-icon type="open" /> Voir la page publique
-            </a>
           </div>
 
           <!-- Title bar + edit (opens Info Dialog) -->
@@ -140,9 +142,46 @@ var ProjectOverviewSection = {
 
           <!-- Subtitle line: location · construction date -->
           <p v-if="location || constructionDate" class="gh-pov__subtitle">
-            <span v-if="location"><k-icon type="pin" /> {{ location }}</span>
-            <span v-if="constructionDate"> · {{ constructionDate }}</span>
+            <span v-if="location" class="gh-pov__subtitle-loc"><k-icon type="pin" />{{ location }}</span>
+            <span v-if="constructionDate" class="gh-pov__subtitle-date"> · {{ constructionDate }}</span>
           </p>
+
+          <!-- Short description -->
+          <p v-if="description" class="gh-pov__desc">{{ description }}</p>
+          <p v-else-if="canUpdate" class="gh-pov__desc gh-pov__desc--empty" @click="openInfoDialog" style="cursor:pointer;">Ajouter une description — cliquez « Modifier » pour renseigner ce champ.</p>
+
+          <!-- Meta chips: architect · style · dimensions · protection -->
+          <div v-if="architect || style || dimensions || (protectionStatus && protectionStatus !== 'none')" class="gh-pov__chips">
+            <button v-if="architect" type="button" class="gh-pov__chip" @click="canUpdate && openInfoDialog()">
+              <k-icon type="user" />{{ architect }}
+            </button>
+            <button v-if="style" type="button" class="gh-pov__chip" @click="canUpdate && openInfoDialog()">
+              <k-icon type="tag" />{{ style }}
+            </button>
+            <button v-if="dimensions" type="button" class="gh-pov__chip" @click="canUpdate && openInfoDialog()">
+              <k-icon type="grid" />{{ dimensions }}
+            </button>
+            <button v-if="protectionStatus && protectionStatus !== 'none'" type="button" class="gh-pov__chip gh-pov__chip--accent" @click="canUpdate && openInfoDialog()">
+              <k-icon type="protected" />{{ protectionLabel }}
+            </button>
+          </div>
+
+          <!-- Tags row -->
+          <div class="gh-pov__tags-row">
+            <span class="gh-pov__section-label">Tags</span>
+            <div class="gh-pov__tags">
+              <span v-if="!tags || !tags.length" class="gh-pov__tag gh-pov__tag--empty">Aucun tag</span>
+              <span
+                v-for="(t, i) in tags"
+                :key="i"
+                class="gh-pov__tag"
+                :class="{ 'is-primary': t === primaryTag }"
+              >{{ t }}</span>
+            </div>
+            <button v-if="canUpdate" type="button" class="gh-pov__inline-edit" @click="openTagsDialog">
+              <k-icon type="edit" /> Modifier
+            </button>
+          </div>
 
           <!-- Stat strip -->
           <div class="gh-pov__stats">
@@ -465,6 +504,41 @@ var ProjectOverviewSection = {
               </div>
             </div>
           </k-dialog>
+
+          <!-- ── Dialog Tags ── -->
+          <k-dialog
+            v-if="tagsDialogOpen"
+            ref="tagsDialog"
+            :submit-button="{ text: 'Enregistrer', icon: 'check', theme: 'positive' }"
+            :cancel-button="{ text: 'Annuler' }"
+            @submit="saveTags"
+            @cancel="tagsDialogOpen = false"
+            size="medium"
+          >
+            <div class="gh-tags-dialog">
+              <div class="k-field k-textarea-field">
+                <label class="k-label">Tags (séparés par des virgules)</label>
+                <textarea
+                  v-model="tagsInput"
+                  class="k-textarea-input"
+                  rows="3"
+                  placeholder="patrimoine, XIXe, gothique, etc."
+                  style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text); font-family:inherit; font-size:inherit;"
+                ></textarea>
+              </div>
+              <div class="k-field k-text-field" style="margin-top:1rem;">
+                <label class="k-label">Tag mis en avant</label>
+                <input
+                  type="text"
+                  v-model="primaryTagInput"
+                  class="k-text-input"
+                  placeholder="ex. gothique"
+                  style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
+                />
+                <p style="margin-top:0.4rem; font-size:0.78rem; color:var(--color-text-dimmed);">Doit correspondre exactement à un tag ci-dessus. Affiché en badge sur les cartes.</p>
+              </div>
+            </div>
+          </k-dialog>
         </section>
       `,
 
@@ -472,6 +546,10 @@ var ProjectOverviewSection = {
         canUpdate() {
           // Page permissions are a TOP-LEVEL view prop, not under model.
           return this.$panel?.view?.props?.permissions?.update ?? false;
+        },
+        protectionLabel() {
+          const map = { 'classé': 'Classé MH', 'unesco': 'UNESCO', 'regional': 'Inventaire Régional', 'none': '' };
+          return map[this.protectionStatus] || this.protectionStatus;
         }
       },
 
@@ -675,6 +753,31 @@ var ProjectOverviewSection = {
           } catch (e) {
             this.$panel.notification.error('Erreur lors de la sauvegarde : ' + e.message);
           }
+        },
+
+        // Tags Dialog methods
+        openTagsDialog() {
+          this.tagsInput = Array.isArray(this.tags) ? this.tags.join(', ') : '';
+          this.primaryTagInput = this.primaryTag || '';
+          this.tagsDialogOpen = true;
+          this.$nextTick(() => {
+            if (this.$refs.tagsDialog) this.$refs.tagsDialog.open();
+          });
+        },
+        async saveTags() {
+          const pageId = this.pageId.replace(/\//g, '+');
+          const tagsArr = this.tagsInput.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
+          try {
+            await this.$panel.api.patch('pages/' + pageId, {
+              tags: tagsArr.join(','),
+              primary_tag: this.primaryTagInput.trim()
+            });
+            this.$panel.notification.success('Tags enregistrés');
+            this.tagsDialogOpen = false;
+            await this.$panel.view.reload();
+          } catch (e) {
+            this.$panel.notification.error('Erreur : ' + (e.message || 'Erreur inconnue'));
+          }
         }
       },
     };
@@ -783,7 +886,7 @@ panel.plugin('goheritage/project-ux', {
                 <div v-else class="gh-share-dialog__links">
                   <div class="gh-share-dialog__section-header">
                     <p class="gh-share-dialog__intro">Toute personne disposant d'un lien y accède selon le niveau choisi.</p>
-                    <k-button v-if="canUpdate" icon="add" size="sm" variant="filled" theme="positive" @click="createShareLink">
+                    <k-button v-if="canUpdate" icon="add" size="sm" variant="filled" @click="createShareLink">
                       Créer un lien
                     </k-button>
                   </div>
@@ -797,76 +900,80 @@ panel.plugin('goheritage/project-ux', {
                       v-for="link in localShareLinks"
                       :key="link.id"
                       class="gh-share-dialog__link-item"
-                      :class="{ 'is-open': expandedId === link.id }"
                     >
-                      <!-- Compact summary row: access badge + copy + edit/delete.
-                           No name — links are identified by their access level. -->
+                      <!-- Main row: [type btn] [url box w/ copy inside] [trash] -->
                       <div class="gh-share-dialog__link-row">
-                        <k-icon :type="currentLevel(link).icon" class="gh-share-dialog__link-row-ico" />
-                        <span class="gh-share-dialog__link-row-name">{{ currentLevel(link).label }}</span>
-                        <code class="gh-share-dialog__link-row-token">…{{ shortToken(link.token) }}</code>
-                        <div class="gh-share-dialog__link-row-actions">
-                          <button type="button" class="gh-share-dialog__icon-btn" @click="copyLinkUrl(link)" title="Copier le lien">
+
+                        <!-- Type switch button — icon + label + chevron -->
+                        <button
+                          type="button"
+                          class="gh-share-dialog__type-btn"
+                          :class="'gh-share-dialog__type-btn--' + (link.access || 'visit')"
+                          :title="currentLevel(link).label + ' — cliquez pour modifier'"
+                          @click.stop="toggleTypePopover(link, $event)"
+                        >
+                          <k-icon :type="currentLevel(link).icon" class="gh-share-dialog__type-btn-ico" />
+                          <span class="gh-share-dialog__type-btn-label">{{ currentLevel(link).label }}</span>
+                          <k-icon type="angle-down" class="gh-share-dialog__type-btn-chevron" :class="{ 'is-open': typePopoverId === link.id }" />
+                        </button>
+
+                        <!-- URL box — copy icon lives inside the box -->
+                        <div class="gh-share-dialog__link-url-box">
+                          <code class="gh-share-dialog__link-url">{{ getLinkUrl(link) }}</code>
+                          <button type="button" class="gh-share-dialog__url-copy-btn" @click.stop="copyLinkUrl(link)" title="Copier le lien">
                             <k-icon type="copy" />
                           </button>
-                          <button v-if="canUpdate" type="button" class="gh-share-dialog__icon-btn" @click="toggleExpand(link)" :title="expandedId === link.id ? 'Fermer' : 'Modifier'">
-                            <k-icon :type="expandedId === link.id ? 'angle-up' : 'cog'" />
-                          </button>
-                          <button v-if="canUpdate" type="button" class="gh-share-dialog__icon-btn gh-share-dialog__icon-btn--danger" @click="deleteShareLink(link.id)" title="Supprimer le lien">
-                            <k-icon type="trash" />
-                          </button>
                         </div>
+
+                        <!-- Trash only -->
+                        <button v-if="canUpdate" type="button" class="gh-share-dialog__icon-btn gh-share-dialog__icon-btn--danger" @click="deleteShareLink(link.id)" title="Supprimer le lien">
+                          <k-icon type="trash" />
+                        </button>
                       </div>
 
-                      <!-- Expanded editor — only the link being edited -->
-                      <div v-if="expandedId === link.id" class="gh-share-dialog__link-detail">
-                        <!-- Access level — bound to the token server-side, so the
-                             link cannot be escalated by editing the URL. -->
-                        <div class="gh-share-dialog__access-level">
-                          <button
-                            v-for="lvl in accessLevels"
-                            :key="lvl.value"
-                            type="button"
-                            class="gh-share-dialog__level-btn"
-                            :class="{ 'is-active': (link.access || 'visit') === lvl.value }"
-                            :disabled="!canUpdate"
-                            :title="lvl.help"
-                            @click="canUpdate ? setLinkAccess(link, lvl.value) : null"
-                          >
-                            <k-icon :type="lvl.icon" />
-                            <span>{{ lvl.label }}</span>
-                          </button>
-                        </div>
-
-                        <div class="gh-share-dialog__url-copy-box">
-                          <code class="gh-share-dialog__url-code">{{ getLinkUrl(link) }}</code>
-                          <k-button icon="copy" size="xs" variant="filled" @click="copyLinkUrl(link)">Copier</k-button>
-                        </div>
-                        <p class="gh-share-dialog__url-help">{{ currentLevel(link).help }}</p>
-                        <p v-if="(link.access || 'visit') === 'editor'" class="gh-share-dialog__url-warn">
-                          <k-icon type="alert" /> Donne un accès en modification au projet. À n'envoyer qu'à des personnes de confiance.
-                        </p>
-
-                        <!-- Section permissions only apply to the public "Visite"
-                             link; dossier/editor levels expose everything. -->
-                        <div v-if="(link.access || 'visit') === 'visit'" class="gh-share-dialog__permissions">
-                          <span class="gh-share-dialog__perm-title">Sections visibles dans la visite :</span>
-                          <div class="gh-share-dialog__perm-checkboxes">
-                            <label v-for="sec in sectionOptions" :key="sec.value" class="gh-share-dialog__perm-checkbox">
-                              <input
-                                type="checkbox"
-                                :value="sec.value"
-                                :checked="link.visible_sections.includes(sec.value)"
-                                :disabled="!canUpdate"
-                                @change="toggleLinkSection(link, sec.value)"
-                              />
-                              <span>{{ sec.label }}</span>
-                            </label>
-                          </div>
-                        </div>
+                      <!-- Section pills — only for Visite type -->
+                      <div v-if="(link.access || 'visit') === 'visit'" class="gh-share-dialog__link-perms">
+                        <button
+                          v-for="sec in sectionOptions"
+                          :key="sec.value"
+                          type="button"
+                          class="gh-share-dialog__perm-pill"
+                          :class="{ 'is-active': link.visible_sections.includes(sec.value) }"
+                          :disabled="!canUpdate"
+                          @click="toggleLinkSection(link, sec.value)"
+                        >{{ sec.label }}</button>
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <!-- Access-level popover — position:fixed so it escapes modal overflow clipping -->
+              <div
+                v-if="typePopoverId"
+                class="gh-share-dialog__type-popover"
+                :style="{ top: typePopoverPos.top + 'px', left: typePopoverPos.left + 'px' }"
+                @click.stop
+              >
+                <div class="gh-share-dialog__type-popover-title">Niveau d'accès</div>
+                <button
+                  v-for="lvl in accessLevels"
+                  :key="lvl.value"
+                  type="button"
+                  class="gh-share-dialog__type-opt"
+                  :class="{ 'is-active': activeLinkAccess === lvl.value }"
+                  :disabled="!canUpdate"
+                  @click="applyTypePopover(lvl.value)"
+                >
+                  <k-icon :type="lvl.icon" class="gh-share-dialog__type-opt-icon" />
+                  <span class="gh-share-dialog__type-opt-text">
+                    <strong>{{ lvl.label }}</strong>
+                    <span>{{ lvl.help }}</span>
+                  </span>
+                  <k-icon v-if="activeLinkAccess === lvl.value" type="check" class="gh-share-dialog__type-opt-check" />
+                </button>
+                <div v-if="activeLinkAccess === 'editor'" class="gh-share-dialog__type-warn">
+                  <k-icon type="alert" /> Donne un accès en modification au projet. Réservé aux personnes de confiance.
                 </div>
               </div>
 
@@ -888,13 +995,15 @@ panel.plugin('goheritage/project-ux', {
           dialogVisibility: 'private',
           localShareLinks: [],
           localVisibility: null,
-          expandedId: null,
+          // Type-popover state: which link's popover is open + its screen position
+          typePopoverId: null,
+          typePopoverPos: { top: 0, left: 0 },
           sectionOptions: [
-            { value: 'model', label: 'Modèle 3D' },
-            { value: 'info', label: 'Fiche technique' },
-            { value: 'gallery', label: 'Galerie' },
-            { value: 'plans', label: 'Plans & docs' },
-            { value: 'annotations', label: 'Points d\'intérêt' }
+            { value: 'model',       label: '3D' },
+            { value: 'info',        label: 'Fiche' },
+            { value: 'gallery',     label: 'Galerie' },
+            { value: 'plans',       label: 'Plans' },
+            { value: 'annotations', label: 'Annotations' }
           ],
           accessLevels: [
             { value: 'visit',   icon: 'box', label: 'Visite 3D',      help: 'Page publique de présentation (visite type Matterport). Lecture seule, sans fichiers.' },
@@ -1000,17 +1109,33 @@ panel.plugin('goheritage/project-ux', {
         canUpdate() {
           // Page permissions are a TOP-LEVEL view prop, not under model.
           return this.$panel?.view?.props?.permissions?.update ?? false;
-        }
+        },
+
+        // Current access level of the link whose type popover is open.
+        activeLinkAccess() {
+          if (!this.typePopoverId) return null;
+          const link = this.localShareLinks.find(l => l.id === this.typePopoverId);
+          return link ? (link.access || 'visit') : null;
+        },
       },
 
       mounted() {
         this._docHandler = (e) => {
-          if (!this.open) return;
           const inTrigger = this.$el && this.$el.contains(e.target);
-          if (!inTrigger) this.open = false;
+          // Close the visibility dropdown when clicking outside
+          if (this.open && !inTrigger) this.open = false;
+          // Close the type popover when clicking outside a .gh-share-dialog__type-btn
+          if (this.typePopoverId && !e.target.closest('.gh-share-dialog__type-btn') && !e.target.closest('.gh-share-dialog__type-popover')) {
+            this.typePopoverId = null;
+          }
         };
         document.addEventListener('click', this._docHandler);
-        this._escHandler = (e) => { if (e.key === 'Escape') this.open = false; };
+        this._escHandler = (e) => {
+          if (e.key === 'Escape') {
+            this.open = false;
+            this.typePopoverId = null;
+          }
+        };
         document.addEventListener('keydown', this._escHandler);
 
         // Auto-restore share dialog across redirects
@@ -1087,6 +1212,7 @@ panel.plugin('goheritage/project-ux', {
         openShareDialog() {
           this.open = false;
           this._dialogNeedsReload = false;
+          this.typePopoverId = null;
           this.dialogVisibility = this.model.status === 'draft' ? 'private' : (this.content.visibility || 'link');
           this.localShareLinks = JSON.parse(JSON.stringify(this.shareLinks));
           this.shareDialogOpen = true;
@@ -1094,6 +1220,7 @@ panel.plugin('goheritage/project-ux', {
         },
 
         async closeShareDialog() {
+          this.typePopoverId = null;
           this.shareDialogOpen = false;
           if (this._dialogNeedsReload) {
             this._dialogNeedsReload = false;
@@ -1133,7 +1260,6 @@ panel.plugin('goheritage/project-ux', {
             visible_sections: ['model', 'info', 'gallery', 'plans', 'annotations']
           };
           this.localShareLinks.push(newLink);
-          this.expandedId = newLink.id; // open the new link for editing
           this.saveShareLinks();
         },
 
@@ -1189,8 +1315,28 @@ panel.plugin('goheritage/project-ux', {
           return this.accessLevels.find(l => l.value === a) || this.accessLevels[0];
         },
 
-        toggleExpand(link) {
-          this.expandedId = this.expandedId === link.id ? null : link.id;
+        // ── Type popover ─────────────────────────────────────────────────
+        // activeLinkAccess is computed from the open link — used in the popover
+        // template to highlight the current selection without the full link obj.
+        toggleTypePopover(link, event) {
+          if (this.typePopoverId === link.id) {
+            this.typePopoverId = null;
+            return;
+          }
+          // Position the fixed popover just below the icon button
+          const btn = event.currentTarget;
+          const rect = btn.getBoundingClientRect();
+          // Clamp to viewport right edge so it doesn't overflow off-screen
+          const popoverWidth = 300;
+          const left = Math.min(rect.left, window.innerWidth - popoverWidth - 12);
+          this.typePopoverPos = { top: rect.bottom + 6, left: Math.max(8, left) };
+          this.typePopoverId = link.id;
+        },
+
+        applyTypePopover(access) {
+          const link = this.localShareLinks.find(l => l.id === this.typePopoverId);
+          if (link) this.setLinkAccess(link, access);
+          this.typePopoverId = null;
         },
 
         shortToken(token) {
@@ -1251,6 +1397,27 @@ panel.plugin('goheritage/project-ux', {
           document.body.removeChild(ta);
         }
       },
+    },
+
+    // ── "Voir la page publique" header button ────────────────────────
+    'visit-page': {
+      template: /* html */`
+        <a
+          class="gh-visit-page-btn"
+          :href="previewUrl"
+          target="_blank"
+          rel="noopener"
+          title="Voir la page publique"
+        >
+          <k-icon type="open" />
+          <span>Voir la page publique</span>
+        </a>
+      `,
+      computed: {
+        previewUrl() {
+          return this.$panel?.view?.props?.model?.previewUrl || '#';
+        }
+      }
     },
   },
 
@@ -1818,17 +1985,130 @@ panel.plugin('goheritage/project-ux', {
     });
   }
 
+  // ── Details tab read/edit mode toggle (same pattern as model tab) ──
+  function _escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function buildDetailsShowcase(showcase) {
+    var content = {};
+    try { content = window.panel.view.props.versions.latest || {}; } catch (_) {}
+    var desc = (content.description || '').trim();
+    var blocksCount = 0;
+    try {
+      var rawBlocks = content.text;
+      if (Array.isArray(rawBlocks)) blocksCount = rawBlocks.length;
+      else if (typeof rawBlocks === 'string' && rawBlocks.trim()) blocksCount = 1;
+    } catch (_) {}
+
+    showcase.innerHTML =
+      '<div class="gh-details-showcase__inner">' +
+        (desc
+          ? '<p class="gh-details-showcase__desc">' + _escHtml(desc) + '</p>'
+          : '<p class="gh-details-showcase__desc gh-details-showcase__desc--empty">Aucune description. Basculez en mode édition pour ajouter du contenu.</p>'
+        ) +
+        '<p class="gh-details-showcase__hint">' +
+          (blocksCount
+            ? blocksCount + ' bloc' + (blocksCount > 1 ? 's' : '') + ' de contenu éditorial'
+            : 'Aucun bloc de contenu'
+          ) +
+          ' — cliquez <strong>Modifier</strong> pour éditer le contenu et la galerie.' +
+        '</p>' +
+      '</div>';
+  }
+
+  function ensureDetailsToggle() {
+    var params = new URLSearchParams(window.location.search);
+    var tab = params.get('tab');
+
+    // Off the details tab → clean up and bail.
+    if (tab !== 'details') {
+      var staleBar  = document.getElementById('gh-details-bar');
+      if (staleBar) staleBar.remove();
+      var staleShow = document.getElementById('gh-details-showcase');
+      if (staleShow) staleShow.remove();
+      document.body.classList.remove('gh-on-details-tab');
+      document.body.removeAttribute('data-gh-details-mode');
+      return;
+    }
+
+    document.body.classList.add('gh-on-details-tab');
+    // Default to read mode on first visit.
+    if (!document.body.getAttribute('data-gh-details-mode')) {
+      document.body.setAttribute('data-gh-details-mode', 'read');
+    }
+
+    // Dedup: if exactly one bar + one showcase already exist, nothing to do.
+    var existingBars  = document.querySelectorAll('#gh-details-bar');
+    var existingShows = document.querySelectorAll('#gh-details-showcase');
+    if (existingBars.length === 1 && existingShows.length === 1) return;
+    existingBars.forEach(function(e) { e.remove(); });
+    existingShows.forEach(function(e) { e.remove(); });
+
+    var firstSection = document.querySelector('.k-page-view .k-section');
+    var host = firstSection && firstSection.parentNode;
+    if (!host) return;
+
+    var penSvg =
+      '<svg class="gh-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    var xSvg =
+      '<svg class="gh-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+    // Persistent toolbar at the top of the tab.
+    var bar = document.createElement('div');
+    bar.id = 'gh-details-bar';
+    bar.className = 'gh-details-bar';
+    bar.innerHTML =
+      '<span class="gh-details-bar__banner">' +
+        '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>' +
+        ' Mode édition — modifiez le contenu et la galerie.' +
+      '</span>' +
+      '<button type="button" class="gh-btn" data-gh-details-toggle></button>';
+    host.insertBefore(bar, firstSection);
+
+    // Showcase: pretty read-only card shown when not editing.
+    var showcase = document.createElement('div');
+    showcase.id = 'gh-details-showcase';
+    showcase.className = 'gh-details-showcase';
+    buildDetailsShowcase(showcase);
+    host.insertBefore(showcase, firstSection);
+
+    var dtoggle = bar.querySelector('[data-gh-details-toggle]');
+    function paintDetailsToggle() {
+      var editing = document.body.getAttribute('data-gh-details-mode') === 'edit';
+      dtoggle.innerHTML = (editing ? xSvg : penSvg) +
+        '<span class="gh-btn__label">' + (editing ? 'Fermer' : 'Modifier') + '</span>';
+    }
+    paintDetailsToggle();
+    dtoggle.addEventListener('click', function() {
+      var mode = document.body.getAttribute('data-gh-details-mode') === 'edit' ? 'read' : 'edit';
+      document.body.setAttribute('data-gh-details-mode', mode);
+      paintDetailsToggle();
+    });
+  }
+
   function scan() {
     if (!isProjectPage()) {
       document.body.classList.remove(BODY_FLAG);
       document.body.style.removeProperty('--gh-header-height');
       var stalePreview = document.getElementById('gh-model-preview');
       if (stalePreview) stalePreview.remove();
+      var staleDetailsBar = document.getElementById('gh-details-bar');
+      if (staleDetailsBar) staleDetailsBar.remove();
+      var staleDetailsShow = document.getElementById('gh-details-showcase');
+      if (staleDetailsShow) staleDetailsShow.remove();
+      document.body.classList.remove('gh-on-details-tab');
+      document.body.removeAttribute('data-gh-details-mode');
       return;
     }
     document.body.classList.add(BODY_FLAG);
     measureHeader();
     ensureModelPreview();
+    ensureDetailsToggle();
 
     // Tag EVERY .k-section on the page so the card styling applies
     // uniformly (info-only sections + file sections get the same chrome

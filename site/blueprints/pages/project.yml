@@ -28,7 +28,7 @@ status:
 # + visibility=public. The native `status` button is intentionally NOT
 # listed here — it would duplicate the same control.
 buttons:
-  - open
+  - visit-page
   - preview
   - settings
   - visibility
@@ -83,18 +83,6 @@ tabs:
           share_token:   { type: hidden }
           share_links:   { type: hidden }
 
-      # Présentation — cover + short description (the "card preview").
-      cover_section:
-        type: fields
-        headline: Présentation
-        fields:
-          cover: fields/cover
-          description:
-            type: textarea
-            label: Description courte
-            help: Résumé affiché sous le titre et sur les cartes du site.
-            size: small
-
       # Long-form editorial content.
       content_section:
         type: fields
@@ -125,94 +113,6 @@ tabs:
             help: Images affichées dans la grille de droite de la page projet.
             uploads: image
             query: page.images.template('image')
-
-      # Key characteristics.
-      meta_section:
-        type: fields
-        headline: Caractéristiques
-        fields:
-          location:
-            width: 1/2
-            type: text
-            label: Lieu
-            placeholder: "ex. Bruxelles, Belgique"
-            icon: pin
-          construction_date:
-            width: 1/2
-            type: text
-            label: Date de construction
-            placeholder: "ex. XVe siècle, 1889"
-          date:
-            width: 1/2
-            type: date
-            label: Date du scan
-            default: now
-          architect:
-            width: 1/2
-            type: text
-            label: Architecte / Créateur
-            placeholder: "ex. Victor Horta"
-          style:
-            width: 1/2
-            type: text
-            label: Style architectural
-            placeholder: "ex. Art Nouveau"
-          dimensions:
-            width: 1/2
-            type: text
-            label: Dimensions
-            placeholder: "40 × 20 × 15 m"
-          protection_status:
-            width: 1/2
-            type: select
-            label: Statut de protection
-            icon: protected
-            options:
-              classé:   Classé Monument Historique
-              unesco:   Patrimoine mondial UNESCO
-              regional: Inventaire Régional
-              none:     Non protégé
-
-      # Geolocation.
-      geo_section:
-        type: fields
-        headline: Géolocalisation
-        fields:
-          location_search:
-            type: location-search
-            label: Recherche
-            help: Tapez un nom de lieu pour remplir lat/lng automatiquement.
-          lat:
-            width: 1/2
-            type: number
-            label: Latitude
-            step: 0.000001
-          lng:
-            width: 1/2
-            type: number
-            label: Longitude
-            step: 0.000001
-
-      # Tags.
-      tags_section:
-        type: fields
-        headline: Tags
-        fields:
-          tags:
-            width: 1/2
-            type: tags
-            label: Tags
-            options: query
-            query: site.index.pluck("tags", ",", true)
-            help: Réutilisez un tag existant ou créez-en un nouveau.
-          primary_tag:
-            width: 1/2
-            type: select
-            label: Tag mis en avant
-            placeholder: "Premier tag par défaut"
-            options: query
-            query: site.index.sortedUniqueTags()
-            help: Affiché en badge sur les cartes du site.
 
       # Sharing — only renders when visibility ≠ private.
       sharing_section:
