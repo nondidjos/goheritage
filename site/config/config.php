@@ -93,44 +93,58 @@ return [
         }
     ],
     'panel' => [
-        'menu' => [
-            // Site / Users / System are admin-only. Authors see only
-            // "Projets" since that's all they need.
-            'site' => [
-                'icon'  => 'cog',
-                'label' => 'Site',
-                'link'  => 'site',
-                'menu'  => function () {
-                    return \kirby()->user() && \kirby()->user()->isAdmin();
-                },
-                'current' => function () {
-                    return str_contains(\kirby()->request()->path()->toString(), 'site');
+        // The menu is a closure so we can build it dynamically:
+        //   • Admins: Site / Utilisateurs / Système on top, separator,
+        //     then a live list of every project page.
+        //   • Authors: just the list of projects they can access.
+        // The old single "Projets" link is replaced by the per-project
+        // list so the sidebar doubles as a project switcher.
+        'menu' => function ($kirby) {
+            $user    = $kirby->user();
+            $isAdmin = $user && $user->isAdmin();
+            $path    = $kirby->request()->path()->toString();
+
+            $items = [];
+
+            if ($isAdmin) {
+                $items['site'] = [
+                    'icon'    => 'cog',
+                    'label'   => 'Site',
+                    'link'    => 'site',
+                    'current' => str_contains($path, 'site'),
+                ];
+                // Empty arrays (not bare strings) so Kirby merges them
+                // with the global area defaults — closure-form menus pass
+                // each value to Menu::entry() which requires an array.
+                $items['users']  = [];
+                $items['system'] = [];
+                $items['-sep1']  = '-';
+            }
+
+            // Live project list — one entry per listed project page.
+            $map = $kirby->page('map');
+            if ($map) {
+                // A non-clickable header row (disabled entry) labelling
+                // the list.
+                $items['projects-header'] = [
+                    'icon'     => 'box',
+                    'label'    => 'Projets',
+                    'link'     => 'pages/map',
+                    'current'  => rtrim($path, '/') === 'pages/map',
+                ];
+                foreach ($map->children()->listed() as $proj) {
+                    $panelPath = 'pages/' . str_replace('/', '+', $proj->id());
+                    $items['project-' . $proj->slug()] = [
+                        'icon'    => 'angle-right',
+                        'label'   => (string) $proj->title(),
+                        'link'    => $panelPath,
+                        'current' => str_contains($path, str_replace('/', '+', $proj->id())),
+                    ];
                 }
-            ],
-            'projects' => [
-                'icon'  => 'box',
-                'label' => 'Projets',
-                'link'  => 'pages/map',
-                'current' => function () {
-                    return str_contains(\kirby()->request()->path()->toString(), 'pages/map');
-                }
-            ],
-            // Invitations no longer ship as a separate sidebar item — they
-            // live under the Users area (registered by the invite-system
-            // plugin as an additional view + opened via a dialog from the
-            // users page header). Pending users = invitations conceptually.
-            '-',
-            'users' => [
-                'menu' => function () {
-                    return \kirby()->user() && \kirby()->user()->isAdmin();
-                },
-            ],
-            'system' => [
-                'menu' => function () {
-                    return \kirby()->user() && \kirby()->user()->isAdmin();
-                },
-            ],
-        ]
+            }
+
+            return $items;
+        },
     ],
     'maptiler.key' => '', // set in host-specific config (config.goheritage.test.php / config.localhost.php / config.<host>.php)
     'hooks' => [
