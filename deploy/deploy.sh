@@ -55,7 +55,7 @@ echo "==> Installing Node runtime deps on server"
 ssh "${SSH_OPTS[@]}" "$LIGHTSAIL_HOST" "
     set -e
     cd '$REMOTE_DIR'
-    if [[ -f package.json ]]; then
+    if [[ -f package.json ]] && [[ ! -d node_modules ]]; then
         npm install --omit=dev --no-audit --no-fund --silent
     fi
 "

@@ -19,6 +19,7 @@ site/accounts/
 site/sessions/
 site/cache/
 site/logs/
+site/.private/
 
 # Production owns the content authored via the panel.
 # For the FIRST deploy only, comment out these two lines so the
