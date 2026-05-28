@@ -269,7 +269,7 @@ snippet('header');
 
   <div class="col-7 grid grid-cols-1 md:grid-cols-7 gap-6 md:gap-3">
     <?php
-    $projects = page('map') ? page('map')->children()->listed()->sortBy('date', 'desc')->limit(3) : pages();
+    $projects = page('map') ? page('map')->children()->listed()->filterBy('isPubliclyVisible', true)->sortBy('date', 'desc')->limit(3) : pages();
     foreach ($projects as $project):
       ?>
       <a href="<?= $project->url() ?>"

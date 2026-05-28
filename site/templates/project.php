@@ -1,14 +1,13 @@
 <?php
 // ── Access control ───────────────────────────────────────────────────────
-// New visibility model (private / link / public) gates non-admin access.
+// New visibility model (private / link / public) gates non-panel access.
 // Backward-compat: pages without a `visibility` field fall back to status
 // (listed → public, draft → private) via visibilityResolved().
 //
-// Admins always see the page (so the panel preview still works).
+// Logged-in panel users always see the page (so the panel preview still works).
 $panelUser = $kirby->user();
-$isAdmin   = $panelUser && $panelUser->isAdmin();
 
-if (!$isAdmin) {
+if (!$panelUser) {
     $sharedKey = get('key');
     if (!$page->canBeViewedWithToken($sharedKey)) {
         // Use Kirby's standard 404 so private pages don't leak their existence.
@@ -18,10 +17,10 @@ if (!$isAdmin) {
     }
 }
 
-// Section visibility helper — admins see everything; everyone else respects
+// Section visibility helper — panel users see everything; everyone else respects
 // the per-section toggles set on the page.
-$canSee = function (string $section) use ($page, $isAdmin) {
-    return $isAdmin || $page->sectionVisible($section);
+$canSee = function (string $section) use ($page, $panelUser) {
+    return $panelUser !== null || $page->sectionVisible($section);
 };
 
 // Define before snippet('header') so the title-bar markup below can use it.
@@ -271,7 +270,7 @@ $defaultMode = $availableModes[0] ?? 'model';
             $liveTags = [];
             $mapPage = page('map');
             if ($mapPage) {
-                foreach ($mapPage->children()->listed() as $proj) {
+                foreach ($mapPage->children()->listed()->filterBy('isPubliclyVisible', true) as $proj) {
                     foreach ($proj->tags()->split(',') as $t) {
                         $liveTags[mb_strtolower(trim($t))] = true;
                     }

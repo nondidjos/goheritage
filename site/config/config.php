@@ -103,8 +103,28 @@ return [
             $user    = $kirby->user();
             $isAdmin = $user && $user->isAdmin();
             $path    = $kirby->request()->path()->toString();
+            $role    = $user ? $user->role()->name() : null;
 
             $items = [];
+
+            // Scoped collaborator (editor share link): only ever sees the one
+            // project they were granted — no global project list, no admin
+            // areas. This is the visible half of the editor-share lockdown;
+            // the write-guard hooks in the project-ux plugin enforce it.
+            if ($role === 'collaborator') {
+                $scoped = $user->scoped_page()->value();
+                $proj   = $scoped ? $kirby->page($scoped) : null;
+                if ($proj) {
+                    $encoded = str_replace('/', '+', $proj->id());
+                    $items['project-' . $proj->slug()] = [
+                        'icon'    => 'box',
+                        'label'   => (string) $proj->title(),
+                        'link'    => 'pages/' . $encoded,
+                        'current' => str_contains($path, $encoded),
+                    ];
+                }
+                return $items;
+            }
 
             if ($isAdmin) {
                 $items['site'] = [

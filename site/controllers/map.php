@@ -2,7 +2,7 @@
 
 return function ($page) {
 
-    $projects = $page->children()->listed()->sortBy('title', 'asc');
+    $projects = $page->children()->listed()->filterBy('isPubliclyVisible', true)->sortBy('title', 'asc');
     $sitesData = [];
 
     foreach ($projects as $p) {
