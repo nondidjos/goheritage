@@ -33,11 +33,6 @@
 // `sections` key, others don't. Registering under both guarantees the
 // component is found regardless of which version is running.
 var ProjectOverviewSection = {
-      // Kirby's section components don't receive their PHP-computed values
-      // as props — they have to fetch them async via load() from the
-      // /api/{parent}/sections/{name} endpoint. SectionMixin (auto-applied
-      // when registering under panel.plugin()'s `sections` key) provides
-      // the load() method + name/parent props.
       data() {
         return {
           pageId:             '',
@@ -62,13 +57,51 @@ var ProjectOverviewSection = {
           docsCount:          0,
           hotspotsCount:      0,
           contentBlocksCount: 0,
+
+          // Dialog visibility
+          coverDialogOpen: false,
+          geoDialogOpen: false,
+          infoDialogOpen: false,
+
+          // Cover Dialog state
+          pageImages: [],
+          coverUuid: null,
+          selectedCoverUuid: null,
+          uploadingCover: false,
+
+          // Geolocation Dialog state
+          geoQuery: '',
+          geoResults: [],
+          geoSearching: false,
+          geoSaving: false,
+          localGeo: { location: '', lat: '', lng: '' },
+
+          // General Info Dialog state
+          dateRaw: '',
+          protectionStatusRaw: '',
+          localInfo: {
+            title: '',
+            description: '',
+            location: '',
+            constructionDate: '',
+            scanDate: '',
+            architect: '',
+            style: '',
+            dimensions: '',
+            protectionStatus: 'none'
+          },
+          protectionOptions: [
+            { value: 'classé', text: 'Classé Monument Historique' },
+            { value: 'unesco', text: 'Patrimoine mondial UNESCO' },
+            { value: 'regional', text: 'Inventaire Régional' },
+            { value: 'none', text: 'Non protégé' }
+          ]
         };
       },
       created() {
         this.load().then((r) => {
           Object.assign(this.$data, r);
         }).catch((e) => {
-          // If the API call fails, surface it so we can debug
           if (window.console && window.console.warn) {
             window.console.warn('project-overview load failed:', e);
           }
@@ -76,11 +109,9 @@ var ProjectOverviewSection = {
       },
       template: /* html */`
         <section class="gh-pov">
-          <!-- Cover image. Clicking it jumps to the Détails tab (where the
-               native Kirby cover field lives). "Voir la page publique" is
-               overlaid bottom-right and opens the public page in a new tab. -->
+          <!-- Cover image. Clicking it opens the Cover Dialog directly on the page. -->
           <div class="gh-pov__cover" :class="{ 'gh-pov__cover--empty': !coverUrl }">
-            <button type="button" class="gh-pov__cover-hit" @click="openTab('details')" title="Modifier la couverture">
+            <button type="button" class="gh-pov__cover-hit" @click="openCoverDialog" title="Modifier la couverture">
               <img v-if="coverUrl" :src="coverUrl" :alt="pageTitle">
               <div v-else class="gh-pov__cover-empty">
                 <k-icon type="image" />
@@ -93,13 +124,13 @@ var ProjectOverviewSection = {
             </a>
           </div>
 
-          <!-- Title bar + edit (jumps to Détails) -->
+          <!-- Title bar + edit (opens Info Dialog) -->
           <header class="gh-pov__head">
             <h1 class="gh-pov__title">{{ pageTitle }}</h1>
             <button
               type="button"
               class="gh-pov__head-edit"
-              @click="openTab('details')"
+              @click="openInfoDialog"
               title="Modifier les informations"
             >
               <k-icon type="edit" /> Modifier
@@ -132,7 +163,7 @@ var ProjectOverviewSection = {
             </div>
           </div>
 
-          <!-- Assets grid: each tile shows what's there + opens to the right place -->
+          <!-- Assets grid -->
           <div class="gh-pov__assets">
             <button class="gh-pov__asset" @click="openTab('model')">
               <k-icon type="box" class="gh-pov__asset-ico" />
@@ -179,7 +210,8 @@ var ProjectOverviewSection = {
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
 
-            <button class="gh-pov__asset" @click="openTab('details', 'geo_section')">
+            <!-- Geolocation opens popup editor instead of jumping tab -->
+            <button class="gh-pov__asset" @click="openGeoDialog">
               <k-icon type="map" class="gh-pov__asset-ico" />
               <div class="gh-pov__asset-body">
                 <strong>Géolocalisation</strong>
@@ -188,13 +220,254 @@ var ProjectOverviewSection = {
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
           </div>
+
+          <!-- ── Dialog Cover image ── -->
+          <k-dialog
+            v-if="coverDialogOpen"
+            ref="coverDialog"
+            :submit-button="{ text: 'Enregistrer', icon: 'check', theme: 'positive' }"
+            :cancel-button="{ text: 'Annuler' }"
+            @submit="saveCover"
+            @cancel="coverDialogOpen = false"
+            size="medium"
+          >
+            <div class="gh-cover-dialog">
+              <k-text class="mb-4">Choisissez une image de couverture ou déposez-en une nouvelle :</k-text>
+              
+              <div class="gh-cover-grid">
+                <div
+                  v-for="img in pageImages"
+                  :key="img.uuid"
+                  class="gh-cover-grid__item"
+                  :class="{ 'is-selected': selectedCoverUuid === img.uuid }"
+                  @click="selectCover(img)"
+                >
+                  <img :src="img.thumb" :alt="img.name" />
+                  <div class="gh-cover-grid__checkmark" v-if="selectedCoverUuid === img.uuid">
+                    <k-icon type="check" />
+                  </div>
+                  <span class="gh-cover-grid__name">{{ img.name }}</span>
+                </div>
+              </div>
+
+              <div class="gh-cover-upload">
+                <k-button
+                  icon="upload"
+                  variant="filled"
+                  size="sm"
+                  :disabled="uploadingCover"
+                  @click="$refs.coverFileInput.click()"
+                >
+                  {{ uploadingCover ? 'Téléversement...' : 'Téléverser une image' }}
+                </k-button>
+                <input
+                  ref="coverFileInput"
+                  type="file"
+                  accept="image/*"
+                  style="display:none"
+                  @change="uploadCoverFile"
+                />
+                
+                <k-button
+                  v-if="coverUrl"
+                  icon="trash"
+                  theme="negative"
+                  size="sm"
+                  @click="deleteCover"
+                >
+                  Supprimer la couverture
+                </k-button>
+              </div>
+            </div>
+          </k-dialog>
+
+          <!-- ── Dialog Geolocation ── -->
+          <k-dialog
+            v-if="geoDialogOpen"
+            ref="geoDialog"
+            :submit-button="{ text: 'Enregistrer', icon: 'check', theme: 'positive' }"
+            :cancel-button="{ text: 'Annuler' }"
+            @submit="saveGeo"
+            @cancel="geoDialogOpen = false"
+            size="medium"
+          >
+            <div class="gh-geo-dialog">
+              <div class="k-fieldset">
+                <div class="k-field k-text-field">
+                  <label class="k-label">Rechercher une adresse / un lieu</label>
+                  <div style="display:flex; gap:0.4rem; align-items:center; position:relative;">
+                    <input
+                      type="text"
+                      v-model="geoQuery"
+                      @input="onGeoInput"
+                      placeholder="Tapez un lieu..."
+                      class="k-text-input"
+                      style="flex:1; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
+                    />
+                    <k-icon v-if="geoSearching || geoSaving" type="loader" style="opacity:0.5;" />
+                    
+                    <ul v-if="geoResults.length" class="gh-geo-results">
+                      <li
+                        v-for="(r, i) in geoResults"
+                        :key="i"
+                        @click="pickGeoResult(r)"
+                      >
+                        <span class="gh-geo-results__name">{{ r.label }}</span>
+                        <span class="gh-geo-results__coords">{{ r.lat.toFixed(6) }}, {{ r.lng.toFixed(6) }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="k-field k-text-field" style="margin-top:1rem;">
+                  <label class="k-label">Lieu (Affichage textuel)</label>
+                  <input
+                    type="text"
+                    v-model="localGeo.location"
+                    placeholder="ex. Bruxelles, Belgique"
+                    class="k-text-input"
+                    style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
+                  />
+                </div>
+
+                <div style="display:flex; gap:1rem; margin-top:1rem;">
+                  <div class="k-field k-number-field" style="flex:1;">
+                    <label class="k-label">Latitude</label>
+                    <input
+                      type="number"
+                      step="0.000001"
+                      v-model.number="localGeo.lat"
+                      class="k-text-input"
+                      style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
+                    />
+                  </div>
+                  <div class="k-field k-number-field" style="flex:1;">
+                    <label class="k-label">Longitude</label>
+                    <input
+                      type="number"
+                      step="0.000001"
+                      v-model.number="localGeo.lng"
+                      class="k-text-input"
+                      style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </k-dialog>
+
+          <!-- ── Dialog Info (General Info & Characteristics) ── -->
+          <k-dialog
+            v-if="infoDialogOpen"
+            ref="infoDialog"
+            :submit-button="{ text: 'Enregistrer', icon: 'check', theme: 'positive' }"
+            :cancel-button="{ text: 'Annuler' }"
+            @submit="saveInfo"
+            @cancel="infoDialogOpen = false"
+            size="medium"
+          >
+            <div class="gh-info-dialog">
+              <div class="k-fieldset">
+                <div class="k-field k-text-field">
+                  <label class="k-label">Titre du projet</label>
+                  <input
+                    type="text"
+                    v-model="localInfo.title"
+                    class="k-text-input"
+                    style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
+                  />
+                </div>
+
+                <div class="k-field k-textarea-field" style="margin-top:1rem;">
+                  <label class="k-label">Description courte</label>
+                  <textarea
+                    v-model="localInfo.description"
+                    class="k-textarea-input"
+                    rows="3"
+                    style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text); font-family:inherit; font-size:inherit;"
+                  ></textarea>
+                </div>
+
+                <div style="display:flex; gap:1rem; margin-top:1rem;">
+                  <div class="k-field k-text-field" style="flex:1;">
+                    <label class="k-label">Lieu</label>
+                    <input
+                      type="text"
+                      v-model="localInfo.location"
+                      class="k-text-input"
+                      style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
+                    />
+                  </div>
+                  <div class="k-field k-text-field" style="flex:1;">
+                    <label class="k-label">Date de construction</label>
+                    <input
+                      type="text"
+                      v-model="localInfo.constructionDate"
+                      class="k-text-input"
+                      style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
+                    />
+                  </div>
+                </div>
+
+                <div style="display:flex; gap:1rem; margin-top:1rem;">
+                  <div class="k-field k-date-field" style="flex:1;">
+                    <label class="k-label">Date du scan</label>
+                    <k-date-input
+                      :value="localInfo.scanDate"
+                      @input="localInfo.scanDate = $event"
+                      style="width:100%;"
+                    />
+                  </div>
+                  <div class="k-field k-text-field" style="flex:1;">
+                    <label class="k-label">Architecte / Créateur</label>
+                    <input
+                      type="text"
+                      v-model="localInfo.architect"
+                      class="k-text-input"
+                      style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
+                    />
+                  </div>
+                </div>
+
+                <div style="display:flex; gap:1rem; margin-top:1rem;">
+                  <div class="k-field k-text-field" style="flex:1;">
+                    <label class="k-label">Style architectural</label>
+                    <input
+                      type="text"
+                      v-model="localInfo.style"
+                      class="k-text-input"
+                      style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
+                    />
+                  </div>
+                  <div class="k-field k-text-field" style="flex:1;">
+                    <label class="k-label">Dimensions</label>
+                    <input
+                      type="text"
+                      v-model="localInfo.dimensions"
+                      class="k-text-input"
+                      style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
+                    />
+                  </div>
+                </div>
+
+                <div style="margin-top:1rem;">
+                  <div class="k-field k-select-field">
+                    <label class="k-label">Statut de protection</label>
+                    <k-select-input
+                      :value="localInfo.protectionStatus"
+                      :options="protectionOptions"
+                      @input="localInfo.protectionStatus = $event"
+                      style="width:100%;"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </k-dialog>
         </section>
       `,
 
       methods: {
-        // Switch tabs by clicking Kirby's own tab button. Optionally
-        // scroll to a specific section (by k-section-name-<name>) once
-        // the tab has rendered.
         openTab(name, scrollToSection) {
           var btn = document.querySelector('.k-tabs-button[data-tab="' + name + '"], .k-tabs-button[href*="tab=' + name + '"]');
           if (btn) {
@@ -205,7 +478,6 @@ var ProjectOverviewSection = {
             window.location.href = url.toString();
           }
           if (scrollToSection) {
-            // Wait for the target tab's sections to render, then scroll.
             var tries = 0;
             var poll = setInterval(function () {
               tries++;
@@ -217,15 +489,185 @@ var ProjectOverviewSection = {
                 setTimeout(function () { el.style.background = ''; }, 1200);
                 clearInterval(poll);
               }
-              if (tries > 40) clearInterval(poll); // ~4s safety
+              if (tries > 40) clearInterval(poll);
             }, 100);
           }
         },
 
-        // (Inline editing dialogs removed — all edit actions now navigate
-        //  to the Détails tab where Kirby's native fields handle saving
-        //  reliably. k-form-dialog couldn't render files/blocks fields
-        //  and the save path was flaky.)
+        // Cover Dialog methods
+        openCoverDialog() {
+          this.selectedCoverUuid = this.coverUuid;
+          this.coverDialogOpen = true;
+          this.$nextTick(() => {
+            if (this.$refs.coverDialog) {
+              this.$refs.coverDialog.open();
+            }
+          });
+        },
+        selectCover(img) {
+          this.selectedCoverUuid = img.uuid;
+        },
+        async uploadCoverFile(e) {
+          const file = e.target.files[0];
+          if (!file) return;
+          this.uploadingCover = true;
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('pageId', this.pageId);
+          formData.append('template', 'image');
+          formData.append('fieldName', 'cover');
+          try {
+            const resp = await fetch('/api/goheritage/upload-overwrite', {
+              method: 'POST',
+              headers: { 'X-CSRF': panel.csrf },
+              body: formData
+            });
+            if (!resp.ok) throw new Error('Erreur de téléversement');
+            const res = await resp.json();
+            this.$panel.notification.success('Image téléversée : ' + res.filename);
+            
+            const sectionData = await this.load();
+            Object.assign(this.$data, sectionData);
+            this.selectedCoverUuid = res.id;
+          } catch (err) {
+            this.$panel.notification.error(err.message || 'Téléversement échoué');
+          } finally {
+            this.uploadingCover = false;
+            e.target.value = '';
+          }
+        },
+        async saveCover() {
+          const pageId = this.pageId.replace(/\//g, '+');
+          const value = this.selectedCoverUuid ? [this.selectedCoverUuid] : [];
+          try {
+            await this.$panel.api.patch('pages/' + pageId, { cover: value });
+            this.$panel.notification.success('Image de couverture enregistrée');
+            this.coverDialogOpen = false;
+            await this.$panel.view.reload();
+          } catch (err) {
+            this.$panel.notification.error('Erreur lors de la sauvegarde : ' + err.message);
+          }
+        },
+        async deleteCover() {
+          const pageId = this.pageId.replace(/\//g, '+');
+          try {
+            await this.$panel.api.patch('pages/' + pageId, { cover: [] });
+            this.$panel.notification.success('Image de couverture supprimée');
+            this.coverDialogOpen = false;
+            await this.$panel.view.reload();
+          } catch (err) {
+            this.$panel.notification.error('Erreur : ' + err.message);
+          }
+        },
+
+        // Geolocation Dialog methods
+        openGeoDialog() {
+          this.localGeo = {
+            location: this.location || '',
+            lat: this.lat ? parseFloat(this.lat) : '',
+            lng: this.lng ? parseFloat(this.lng) : ''
+          };
+          this.geoQuery = '';
+          this.geoResults = [];
+          this.geoDialogOpen = true;
+          this.$nextTick(() => {
+            if (this.$refs.geoDialog) {
+              this.$refs.geoDialog.open();
+            }
+          });
+        },
+        onGeoInput() {
+          clearTimeout(this._geoDebounce);
+          this.geoResults = [];
+          if (!this.geoQuery.trim()) return;
+          this._geoDebounce = setTimeout(() => this.searchGeo(), 400);
+        },
+        async searchGeo() {
+          this.geoSearching = true;
+          try {
+            const resp = await fetch('/api/goheritage/geocode?q=' + encodeURIComponent(this.geoQuery), {
+              headers: { 'X-CSRF': panel.csrf }
+            });
+            if (!resp.ok) { this.geoResults = []; return; }
+            const json = await resp.json();
+            this.geoResults = (json.features || []).map(f => ({
+              label: f.place_name || f.text || '',
+              lat: f.geometry.coordinates[1],
+              lng: f.geometry.coordinates[0]
+            }));
+          } catch (e) {
+            this.geoResults = [];
+          } finally {
+            this.geoSearching = false;
+          }
+        },
+        pickGeoResult(res) {
+          this.localGeo.location = res.label;
+          this.localGeo.lat = parseFloat(res.lat.toFixed(6));
+          this.localGeo.lng = parseFloat(res.lng.toFixed(6));
+          this.geoResults = [];
+          this.geoQuery = res.label;
+        },
+        async saveGeo() {
+          this.geoSaving = true;
+          const pageId = this.pageId.replace(/\//g, '+');
+          try {
+            await this.$panel.api.patch('pages/' + pageId, {
+              location: this.localGeo.location,
+              lat: this.localGeo.lat ? parseFloat(this.localGeo.lat) : '',
+              lng: this.localGeo.lng ? parseFloat(this.localGeo.lng) : ''
+            });
+            this.$panel.notification.success('Coordonnées enregistrées');
+            this.geoDialogOpen = false;
+            await this.$panel.view.reload();
+          } catch (e) {
+            this.$panel.notification.error(e.message || 'Erreur lors de la sauvegarde');
+          } finally {
+            this.geoSaving = false;
+          }
+        },
+
+        // General Info Dialog methods
+        openInfoDialog() {
+          this.localInfo = {
+            title: this.pageTitle || '',
+            description: this.description || '',
+            location: this.location || '',
+            constructionDate: this.constructionDate || '',
+            scanDate: this.dateRaw || '',
+            architect: this.architect || '',
+            style: this.style || '',
+            dimensions: this.dimensions || '',
+            protectionStatus: this.protectionStatusRaw || 'none'
+          };
+          this.infoDialogOpen = true;
+          this.$nextTick(() => {
+            if (this.$refs.infoDialog) {
+              this.$refs.infoDialog.open();
+            }
+          });
+        },
+        async saveInfo() {
+          const pageId = this.pageId.replace(/\//g, '+');
+          try {
+            await this.$panel.api.patch('pages/' + pageId, {
+              title: this.localInfo.title,
+              description: this.localInfo.description,
+              location: this.localInfo.location,
+              construction_date: this.localInfo.constructionDate,
+              date: this.localInfo.scanDate,
+              architect: this.localInfo.architect,
+              style: this.localInfo.style,
+              dimensions: this.localInfo.dimensions,
+              protection_status: this.localInfo.protectionStatus
+            });
+            this.$panel.notification.success('Informations enregistrées');
+            this.infoDialogOpen = false;
+            await this.$panel.view.reload();
+          } catch (e) {
+            this.$panel.notification.error('Erreur lors de la sauvegarde : ' + e.message);
+          }
+        }
       },
     };
 
@@ -261,10 +703,8 @@ panel.plugin('goheritage/project-ux', {
 
           <div
             v-show="open"
-            ref="panel"
             class="gh-visibility__panel"
             role="menu"
-            :style="panelStyle"
             @click.stop
           >
             <button
@@ -289,58 +729,119 @@ panel.plugin('goheritage/project-ux', {
               />
             </button>
 
-            <div v-if="current === 'link'" class="gh-visibility__share">
-              <label class="gh-visibility__share-label">
-                <k-icon type="url" /> Lien de partage
-              </label>
-              <div v-if="shareUrl" class="gh-visibility__share-row">
-                <input
-                  ref="shareInput"
-                  type="text"
-                  :value="shareUrl"
-                  readonly
-                  @click="$event.target.select()"
-                />
-                <button
-                  type="button"
-                  class="gh-visibility__share-copy"
-                  @click="copyShareUrl"
-                  title="Copier le lien"
-                >
-                  <k-icon type="copy" />
-                </button>
-              </div>
-              <p v-else class="gh-visibility__share-empty">
-                <k-icon type="info" /> Enregistrez la page pour générer un lien.
-              </p>
+            <!-- Dropdown footer: settings and share links link -->
+            <div class="gh-visibility__panel-footer">
               <button
-                v-if="shareUrl"
                 type="button"
-                class="gh-visibility__share-regen"
-                @click="regenerateLink"
+                class="gh-visibility__manage-btn"
+                @click="openShareDialog"
               >
-                <k-icon type="refresh" /> Régénérer le lien
+                <k-icon type="users" /> Gérer les liens & accès...
               </button>
-              <p class="gh-visibility__share-note">
-                Régénérer invalide immédiatement l’ancien lien.
-              </p>
             </div>
           </div>
+
+          <!-- ── Google Drive-Style Share Dialog ── -->
+          <k-dialog
+            v-if="shareDialogOpen"
+            ref="shareDialog"
+            :submit-button="{ text: 'Terminé', icon: 'check', theme: 'positive' }"
+            :cancel-button="false"
+            @submit="shareDialogOpen = false"
+            @close="shareDialogOpen = false"
+            size="medium"
+          >
+            <div class="gh-share-dialog">
+              <div class="gh-share-dialog__section">
+                <h3 class="gh-share-dialog__subtitle"><k-icon type="users" /> Accès général</h3>
+                <div class="gh-share-dialog__access-row">
+                  <k-select-input
+                    :value="dialogVisibility"
+                    :options="[
+                      { value: 'private', text: '🔒 Privé (Brouillon)' },
+                      { value: 'link', text: '🔗 Limité (Avec un lien)' },
+                      { value: 'public', text: '🌐 Public' }
+                    ]"
+                    @input="updateVisibilityFromDialog"
+                    style="max-width: 250px;"
+                  />
+                  <p class="gh-share-dialog__access-help">
+                    {{ visibilityHelpText }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Links section, only shown if general access is 'link' (Avec un lien) -->
+              <div v-if="dialogVisibility === 'link'" class="gh-share-dialog__section gh-share-dialog__links">
+                <div class="gh-share-dialog__section-header">
+                  <h3 class="gh-share-dialog__subtitle"><k-icon type="url" /> Liens de partage actifs</h3>
+                  <k-button icon="add" size="sm" variant="filled" theme="positive" @click="createShareLink">
+                    Créer un lien
+                  </k-button>
+                </div>
+
+                <div v-if="localShareLinks.length === 0" class="gh-share-dialog__empty">
+                  <k-icon type="info" /> Aucun lien de partage actif. Créez-en un pour commencer à partager.
+                </div>
+
+                <div v-else class="gh-share-dialog__list">
+                  <div v-for="(link, index) in localShareLinks" :key="link.id" class="gh-share-dialog__link-item">
+                    <div class="gh-share-dialog__link-top">
+                      <!-- Editable Name -->
+                      <input
+                        type="text"
+                        v-model="link.label"
+                        @change="saveShareLinks"
+                        class="gh-share-dialog__link-name"
+                        placeholder="Nom du lien (ex: Partage client)"
+                      />
+                      <div class="gh-share-dialog__link-actions">
+                        <k-button icon="copy" size="xs" variant="filled" @click="copyLinkUrl(link)">Copier</k-button>
+                        <k-button icon="trash" size="xs" theme="negative" @click="deleteShareLink(link.id)">Supprimer</k-button>
+                      </div>
+                    </div>
+
+                    <!-- URL preview -->
+                    <div class="gh-share-dialog__url-preview">
+                      <code>{{ getFullLinkUrl(link.token) }}</code>
+                    </div>
+
+                    <!-- Permissions checkboxes -->
+                    <div class="gh-share-dialog__permissions">
+                      <span class="gh-share-dialog__perm-title">Autoriser l'accès aux sections :</span>
+                      <div class="gh-share-dialog__perm-checkboxes">
+                        <label v-for="sec in sectionOptions" :key="sec.value" class="gh-share-dialog__perm-checkbox">
+                          <input
+                            type="checkbox"
+                            :value="sec.value"
+                            :checked="link.visible_sections.includes(sec.value)"
+                            @change="toggleLinkSection(link, sec.value)"
+                          />
+                          <span>{{ sec.label }}</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </k-dialog>
         </div>
       `,
 
       data() {
         return {
           open: false,
-          // Computed each time we open — viewport-anchored top/right so
-          // position:fixed lifts the panel out of every parent stacking
-          // context (was rendering under the sticky .k-tabs strip).
-          panelPos: { top: 0, right: 0 },
-          // Three states — each maps to a (status, visibility) pair.
-          // status=draft/listed is Kirby's native publish flag; visibility
-          // is our own private/link/public layer. Brouillon means literally
-          // unpublished. Avec un lien = published-but-unlisted, accessible
-          // via the shared URL. Public = published + listed on the map.
+          shareDialogOpen: false,
+          dialogVisibility: 'private',
+          localShareLinks: [],
+          sectionOptions: [
+            { value: 'model', label: 'Modèle 3D' },
+            { value: 'info', label: 'Fiche technique' },
+            { value: 'gallery', label: 'Galerie' },
+            { value: 'plans', label: 'Plans & docs' },
+            { value: 'annotations', label: 'Points d\'intérêt' }
+          ],
           options: [
             { value: 'brouillon', label: 'Brouillon',     icon: 'edit',  help: 'Page non publiée — vous et les administrateurs uniquement.', status: 'draft',  visibility: 'private' },
             { value: 'link',      label: 'Avec un lien',  icon: 'url',   help: 'Page publiée mais non listée. Accessible via un lien partagé.', status: 'listed', visibility: 'link'    },
@@ -352,14 +853,11 @@ panel.plugin('goheritage/project-ux', {
       computed: {
         model()   { return this.$panel?.view?.props?.model ?? null; },
         content() { return this.model?.content ?? {};               },
-        // Resolve the current option by inspecting both status + visibility.
         current() {
           if (this.model?.status === 'draft') return 'brouillon';
           const v = this.content.visibility;
           if (v === 'link')   return 'link';
           if (v === 'public') return 'public';
-          // Listed page without explicit visibility — treat as public (the
-          // legacy default before the visibility field existed).
           return 'public';
         },
         currentOption() {
@@ -371,89 +869,90 @@ panel.plugin('goheritage/project-ux', {
           if (!token || !base) return null;
           return base.split('?')[0].split('#')[0] + '?key=' + token;
         },
-        // Inline style for the panel — viewport-anchored coords computed
-        // at the moment the dropdown opens.
-        panelStyle() {
-          return {
-            position: 'fixed',
-            top:   this.panelPos.top   + 'px',
-            right: this.panelPos.right + 'px',
-            zIndex: 99999,
-          };
+        shareLinks() {
+          let raw = this.content.share_links;
+          if (!raw) return [];
+          if (typeof raw === 'string') {
+            const items = [];
+            let currentItem = null;
+            const lines = raw.split(/\r?\n/);
+            for (let line of lines) {
+              let trimmed = line.trim();
+              if (!trimmed) continue;
+              
+              // Check if it's a new list item
+              let isNewItem = false;
+              if (trimmed === '-') {
+                isNewItem = true;
+                trimmed = '';
+              } else if (trimmed.startsWith('- ')) {
+                isNewItem = true;
+                trimmed = trimmed.substring(2).trim();
+              }
+              
+              if (isNewItem) {
+                if (currentItem) items.push(currentItem);
+                currentItem = {};
+              }
+              
+              if (trimmed) {
+                const idx = trimmed.indexOf(':');
+                if (idx > 0) {
+                  let key = trimmed.substring(0, idx).trim();
+                  let val = trimmed.substring(idx + 1).trim();
+                  
+                  // Strip surrounding quotes
+                  if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"'))) {
+                    val = val.substring(1, val.length - 1);
+                  }
+                  if (!currentItem) currentItem = {};
+                  currentItem[key] = val;
+                }
+              }
+            }
+            if (currentItem) items.push(currentItem);
+            raw = items;
+          }
+          if (Array.isArray(raw)) return raw.map(l => ({
+            id: l.id || '',
+            token: l.token || '',
+            label: l.label || '',
+            visible_sections: Array.isArray(l.visible_sections)
+              ? l.visible_sections
+              : (typeof l.visible_sections === 'string' ? l.visible_sections.split(',').filter(Boolean) : [])
+          }));
+          return [];
         },
+        pageTitle() {
+          return this.model?.title || 'le projet';
+        },
+        visibilityHelpText() {
+          if (this.dialogVisibility === 'private') return 'Page non publiée — uniquement accessible aux éditeurs et administrateurs.';
+          if (this.dialogVisibility === 'link') return 'Page accessible à toute personne disposant d\'un lien de partage actif. Non listée publiquement.';
+          return 'Page publique et répertoriée sur la carte GoHéritage.';
+        }
       },
 
       mounted() {
-        // Teleport the panel to document.body so it escapes all parent
-        // stacking contexts. position:fixed alone wasn't enough because
-        // .k-header creates its own --z-toolbar context that trapped
-        // the popup beneath the sticky .k-tabs strip. Moving it to body
-        // gets us out of every ancestor's stack.
-        this.$nextTick(() => {
-          const panel = this.$refs.panel;
-          if (panel && panel.parentNode !== document.body) {
-            this._originalParent = panel.parentNode;
-            document.body.appendChild(panel);
-          }
-        });
-
         this._docHandler = (e) => {
           if (!this.open) return;
           const inTrigger = this.$el && this.$el.contains(e.target);
-          const inPanel   = this.$refs.panel && this.$refs.panel.contains(e.target);
-          if (!inTrigger && !inPanel) this.open = false;
+          if (!inTrigger) this.open = false;
         };
         document.addEventListener('click', this._docHandler);
         this._escHandler = (e) => { if (e.key === 'Escape') this.open = false; };
         document.addEventListener('keydown', this._escHandler);
-
-        this._repositionHandler = () => { if (this.open) this.recomputePosition(); };
-        window.addEventListener('scroll', this._repositionHandler, true);
-        window.addEventListener('resize', this._repositionHandler);
       },
 
       beforeDestroy() {
-        // Pull the teleported panel out of body so Vue can finish its
-        // own teardown without trying to remove a node from the wrong
-        // parent. If we don't, Vue throws on hot-reload / view switch.
-        const panel = this.$refs.panel;
-        if (panel && panel.parentNode === document.body) {
-          document.body.removeChild(panel);
-        }
-
         if (this._docHandler) document.removeEventListener('click', this._docHandler);
         if (this._escHandler) document.removeEventListener('keydown', this._escHandler);
-        if (this._repositionHandler) {
-          window.removeEventListener('scroll', this._repositionHandler, true);
-          window.removeEventListener('resize', this._repositionHandler);
-        }
       },
 
       methods: {
         toggleOpen(e) {
           e?.stopPropagation?.();
           this.open = !this.open;
-          if (this.open) this.recomputePosition();
-        },
-
-        // Anchor the dropdown to the trigger's CURRENT viewport position so
-        // it floats correctly even when the page is scrolled. Re-call on
-        // window resize/scroll while open. Right-aligned to the trigger
-        // (panel grows leftwards) so it never overflows past the header.
-        recomputePosition() {
-          this.$nextTick(() => {
-            // The trigger is rendered as a k-button; its root element is
-            // .gh-visibility__trigger. Falling back to the wrapper if the
-            // trigger isn't yet in the DOM tree.
-            const trigger = this.$el?.querySelector?.('.gh-visibility__trigger')
-                         || this.$el;
-            if (!trigger) return;
-            const r = trigger.getBoundingClientRect();
-            this.panelPos = {
-              top:   r.bottom + 6, // 6 px gap below the button
-              right: Math.max(8, window.innerWidth - r.right),
-            };
-          });
         },
 
         async select(value) {
@@ -465,23 +964,20 @@ panel.plugin('goheritage/project-ux', {
           if (!this.model) return;
           var opt = this.options.find(function (o) { return o.value === value; });
           if (!opt) return;
-
           var pageId = this.model.id.replace(/\//g, '+');
-          var self = this;
-
           try {
-            // Use Kirby's own panel API wrapper — it handles CSRF + auth
-            // + the changes/version system correctly. Raw fetch was
-            // unreliable across 5.4 panel contexts.
             await this.$panel.api.patch('pages/' + pageId, { visibility: opt.visibility });
-
             if (opt.status !== this.model.status) {
-              await this.$panel.api.patch('pages/' + pageId + '/status', {
+              const res = await this.$panel.api.patch('pages/' + pageId + '/status', {
                 status: opt.status,
                 position: null,
               });
+              if (res && res.id) {
+                const newPageId = res.id.replace(/\//g, '+');
+                window.location.href = '/panel/pages/' + newPageId + '?tab=overview';
+                return;
+              }
             }
-
             this.open = false;
             this.$panel.notification.success('Statut : ' + opt.label);
             await this.$panel.view.reload();
@@ -492,60 +988,132 @@ panel.plugin('goheritage/project-ux', {
           }
         },
 
-        // Generate a fresh share token — invalidates the old link.
-        async regenerateLink() {
+        openShareDialog() {
+          this.open = false;
+          this.dialogVisibility = this.model.status === 'draft' ? 'private' : (this.content.visibility || 'public');
+          this.localShareLinks = JSON.parse(JSON.stringify(this.shareLinks));
+          this.shareDialogOpen = true;
+          this.$nextTick(() => {
+            if (this.$refs.shareDialog) {
+              this.$refs.shareDialog.open();
+            }
+          });
+        },
+
+        async saveShareLinks() {
           if (!this.model) return;
-          var pageId = this.model.id.replace(/\//g, '+');
-          // 32-hex token, same shape as the PHP-side generator.
+          const pageId = this.model.id.replace(/\//g, '+');
+          const formatted = this.localShareLinks.map(l => ({
+            id: l.id,
+            token: l.token,
+            label: l.label,
+            visible_sections: l.visible_sections.join(',')
+          }));
+          try {
+            await this.$panel.api.patch('pages/' + pageId, { share_links: formatted });
+            await this.$panel.view.reload();
+            this.$nextTick(() => {
+              this.localShareLinks = JSON.parse(JSON.stringify(this.shareLinks));
+            });
+          } catch (e) {
+            this.$panel.notification.error('Erreur lors de la sauvegarde : ' + e.message);
+          }
+        },
+
+        createShareLink() {
           var token = '';
           var chars = '0123456789abcdef';
-          for (var i = 0; i < 32; i++) token += chars[Math.floor(Math.random() * 16)];
+          for (var i = 0; i < 16; i++) token += chars[Math.floor(Math.random() * 16)];
+          const newLink = {
+            id: 'link_' + Date.now() + '_' + Math.floor(Math.random() * 100),
+            token: token,
+            label: 'Lien sans titre',
+            visible_sections: ['model', 'info', 'gallery', 'plans', 'annotations']
+          };
+          this.localShareLinks.push(newLink);
+          this.saveShareLinks();
+        },
+
+        deleteShareLink(id) {
+          this.localShareLinks = this.localShareLinks.filter(l => l.id !== id);
+          this.saveShareLinks();
+        },
+
+        toggleLinkSection(link, value) {
+          const idx = link.visible_sections.indexOf(value);
+          if (idx >= 0) {
+            link.visible_sections.splice(idx, 1);
+          } else {
+            link.visible_sections.push(value);
+          }
+          this.saveShareLinks();
+        },
+
+        async updateVisibilityFromDialog(value) {
+          this.dialogVisibility = value;
+          let status = 'listed';
+          let visibility = 'public';
+          if (value === 'private') {
+            status = 'draft';
+            visibility = 'private';
+          } else if (value === 'link') {
+            status = 'listed';
+            visibility = 'link';
+          } else {
+            status = 'listed';
+            visibility = 'public';
+          }
+          const pageId = this.model.id.replace(/\//g, '+');
           try {
-            await this.$panel.api.patch('pages/' + pageId, { share_token: token });
-            this.$panel.notification.success('Nouveau lien généré — l’ancien ne fonctionne plus.');
+            await this.$panel.api.patch('pages/' + pageId, { visibility: visibility });
+            if (status !== this.model.status) {
+              const res = await this.$panel.api.patch('pages/' + pageId + '/status', {
+                status: status,
+                position: null
+              });
+              if (res && res.id) {
+                const newPageId = res.id.replace(/\//g, '+');
+                window.location.href = '/panel/pages/' + newPageId + '?tab=overview';
+                return;
+              }
+            }
+            this.$panel.notification.success('Accès général mis à jour.');
             await this.$panel.view.reload();
           } catch (e) {
-            this.$panel.notification.error('Erreur : ' + (e && e.message ? e.message : 'inconnue'));
+            this.$panel.notification.error('Impossible de modifier la visibilité : ' + e.message);
           }
         },
 
-        copyShareUrl() {
-          const url = this.shareUrl;
+        getFullLinkUrl(token) {
+          const base = this.model?.previewUrl || this.model?.link || '';
+          if (!base) return '';
+          return base.split('?')[0].split('#')[0] + '?key=' + token;
+        },
+
+        copyLinkUrl(link) {
+          const url = this.getFullLinkUrl(link.token);
           if (!url) return;
-          const ok   = () => this.$panel.notification.success('Lien copié');
-          const fail = () => this.$panel.notification.error('Impossible de copier — sélectionnez manuellement.');
           if (navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(url).then(ok, () => this._legacyCopy(ok, fail));
+            navigator.clipboard.writeText(url).then(
+              () => this.$panel.notification.success('Lien copié !'),
+              () => this.$copyFallback(url)
+            );
           } else {
-            this._legacyCopy(ok, fail);
+            this.$copyFallback(url);
           }
         },
 
-        _legacyCopy(ok, fail) {
-          const el = this.$refs.shareInput;
-          if (!el) return fail();
-          el.select();
-          try { document.execCommand('copy'); ok(); } catch (_) { fail(); }
-        },
-
-        copyShareUrl() {
-          const url = this.shareUrl;
-          if (!url) return;
-          const ok   = () => this.$panel.notification.success('Lien copié');
-          const fail = () => this.$panel.notification.error('Impossible de copier — sélectionnez manuellement.');
-          if (navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(url).then(ok, () => this._legacyCopy(ok, fail));
-          } else {
-            this._legacyCopy(ok, fail);
-          }
-        },
-
-        _legacyCopy(ok, fail) {
-          const el = this.$refs.shareInput;
-          if (!el) return fail();
-          el.select();
-          try { document.execCommand('copy'); ok(); } catch (_) { fail(); }
-        },
+        $copyFallback(url) {
+          const ta = document.createElement('textarea');
+          ta.value = url;
+          ta.style.position = 'fixed';
+          ta.style.top = '-1000px';
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); this.$panel.notification.success('Lien copié !'); }
+          catch (_) { this.$panel.notification.error('Copie impossible.'); }
+          document.body.removeChild(ta);
+        }
       },
     },
   },
@@ -1162,7 +1730,104 @@ panel.plugin('goheritage/project-ux', {
       // fields directly editable, like normal Kirby. The read-only
       // "document" view lives on the Aperçu tab (custom overview).
     });
+    reworkSettingsDropdown();
   }
+
+  function reworkSettingsDropdown() {
+    if (!isProjectPage()) return;
+    var dropdown = document.querySelector('.k-dropdown-content');
+    if (!dropdown) return;
+
+    var hasDelete = false;
+    var items = dropdown.querySelectorAll('.k-dropdown-item');
+    items.forEach(function(item) {
+      var textEl = item.querySelector('.k-button-text');
+      if (textEl) {
+        var text = textEl.textContent.trim().toLowerCase();
+        if (text.includes('supprimer') || text.includes('delete') || text.includes('dupliquer') || text.includes('duplicate')) {
+          hasDelete = true;
+        }
+      }
+    });
+
+    if (!hasDelete) return;
+
+    items.forEach(function(item) {
+      var textEl = item.querySelector('.k-button-text');
+      if (!textEl) return;
+      var text = textEl.textContent.trim().toLowerCase();
+      
+      var iconEl = item.querySelector('.k-icon');
+      var iconType = '';
+      if (iconEl) {
+        iconEl.classList.forEach(function(cls) {
+          if (cls.startsWith('k-icon-')) {
+            iconType = cls.substring(7);
+          }
+        });
+      }
+      
+      var shouldRemove = false;
+      if (text.includes('statut') || text.includes('status') || iconType === 'status' || iconType === 'preview') {
+        shouldRemove = true;
+      } else if (text.includes('modèle') || text.includes('template') || iconType === 'template') {
+        shouldRemove = true;
+      } else if (text.includes('déplacer') || text.includes('move') || iconType === 'move') {
+        shouldRemove = true;
+      } else if (text.includes('position') || iconType === 'sort') {
+        shouldRemove = true;
+      }
+
+      if (shouldRemove) {
+        item.style.display = 'none';
+        var next = item.nextElementSibling;
+        if (next && next.tagName === 'HR') {
+          next.style.display = 'none';
+        }
+        var prev = item.previousElementSibling;
+        if (prev && prev.tagName === 'HR') {
+          prev.style.display = 'none';
+        }
+      }
+    });
+
+    var children = Array.from(dropdown.children);
+    var deleteIndex = -1;
+
+    children.forEach(function(child, index) {
+      if (child.tagName === 'HR') {
+        child.style.display = 'none';
+      } else if (child.classList.contains('k-dropdown-item') && child.style.display !== 'none') {
+        var textEl = child.querySelector('.k-button-text');
+        if (textEl) {
+          var text = textEl.textContent.trim().toLowerCase();
+          if (text.includes('supprimer') || text.includes('delete')) {
+            deleteIndex = index;
+          }
+        }
+      }
+    });
+
+    if (deleteIndex > 0) {
+      for (var j = deleteIndex - 1; j >= 0; j--) {
+        if (children[j].tagName === 'HR') {
+          children[j].style.setProperty('display', 'block', 'important');
+          break;
+        }
+        if (children[j].style.display !== 'none') {
+          break;
+        }
+      }
+    }
+  }
+
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.k-settings-view-button')) {
+      setTimeout(reworkSettingsDropdown, 30);
+      setTimeout(reworkSettingsDropdown, 100);
+      setTimeout(reworkSettingsDropdown, 250);
+    }
+  }, { passive: true });
 
   /*  Make a section card collapsible by clicking its title. A chevron is
    *  appended to the title; clicking toggles .gh-collapsed on the
