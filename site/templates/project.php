@@ -38,6 +38,44 @@ $isViewerOnly = $isEmbedded && get('viewer') === 'only';
 // entirely (iframe consumers don't want anything but the viewer).
 $isVisitor = !$panelUser && !$isEmbedded;
 
+// ── Point-cloud preview (?pointcloud=1) ──────────────────────────────────
+// A self-contained view used by the panel's "Nuage de points" tab: render
+// ONLY the point-cloud viewer (an uploaded PLY/PCD via pointcloud-viewer.js),
+// or point to an external viewer, or explain what's missing — then return so
+// the full 3D-model layout below never runs.
+if (!empty(get('pointcloud'))) {
+    snippet('header', ['isVisitor' => $isVisitor]);
+
+    $pcExternal = $page->pointcloud_url()->isNotEmpty() ? $page->pointcloud_url()->value() : null;
+    $pcInline   = $page->files()->filterBy('extension', 'in', ['ply', 'pcd'])->sortBy('modified', 'desc')->first();
+    $pcOther    = $page->files()->filterBy('extension', 'in', ['las', 'laz', 'e57', 'xyz', 'pts'])->sortBy('modified', 'desc')->first();
+    ?>
+    <style>
+      .pc-stage { position: fixed; inset: 0; background: #1a1a1a; }
+      .pc-stage iframe, #gh-pointcloud-viewer { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+      .pc-progress { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 240px; text-align: center; pointer-events: none; }
+      .pc-progress__bar { width: 100%; height: 2px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
+      .pc-progress__fill { width: 0; height: 100%; background: #fff; transition: width 0.2s; }
+      .pc-progress__text { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.6); }
+      .pc-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 2rem; text-align: center; color: rgba(255,255,255,0.75); font-family: sans-serif; font-size: 0.95rem; line-height: 1.5; }
+      .pc-msg strong { color: #fff; }
+    </style>
+    <div class="pc-stage">
+      <?php if ($pcExternal): ?>
+        <iframe src="<?= esc($pcExternal) ?>" allow="xr-spatial-tracking; fullscreen" allowfullscreen></iframe>
+      <?php elseif ($pcInline): ?>
+        <div id="gh-pointcloud-viewer" data-src="<?= esc($pcInline->url()) ?>" data-format="<?= esc($pcInline->extension()) ?>"></div>
+      <?php elseif ($pcOther): ?>
+        <div class="pc-msg">Le format <strong><?= strtoupper(esc($pcOther->extension())) ?></strong> n'est pas pris en charge par l'aperçu intégré.<br>Renseignez un viewer externe (Potree) dans l'onglet « Nuage de points ».</div>
+      <?php else: ?>
+        <div class="pc-msg">Aucun nuage de points.<br>Téléversez un fichier .ply ou .pcd, ou renseignez un viewer externe dans l'onglet « Nuage de points ».</div>
+      <?php endif ?>
+    </div>
+    <?php
+    snippet('footer');
+    return;
+}
+
 snippet('header', ['isVisitor' => $isVisitor]);
 
 // DRACO decoder ships with three.js. We use the local copy in
@@ -399,6 +437,13 @@ $defaultMode = $availableModes[0] ?? 'model';
             }
             <?php endif ?>
         });
+
+        // ?autoplay=1 — skip the "press play" splash and load the viewer
+        // immediately. Used by the CMS panel's Modèle 3D preview, where the
+        // model is the main subject rather than a teaser embed.
+        <?php if (get('autoplay')): ?>
+        document.getElementById('embed-play-btn').click();
+        <?php endif ?>
         </script>
         <?php endif ?>
 

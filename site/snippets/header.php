@@ -57,7 +57,10 @@ if ($isMapPage) {
   // The styles in viewer.css (chips, panes, spec card, poi sections…) apply
   // to every project page including iframe-only ones, so we always load the
   // stylesheet — just not the 30+ KB of three.js when it isn't needed.
-  $needsThreeJs = $isProjectPage && $page->viewer_url()->isEmpty();
+  // The point-cloud preview (?pointcloud=1) always needs three.js — even when
+  // a 3D external viewer URL is set — since it renders an uploaded PLY/PCD.
+  $isPointcloud = $isProjectPage && !empty(get('pointcloud'));
+  $needsThreeJs = $isProjectPage && ($isPointcloud || $page->viewer_url()->isEmpty());
   if ($isProjectPage): ?>
   <?= css('assets/css/lightbox.css') ?>
   <?= css('assets/css/viewer.css') ?>
@@ -89,7 +92,11 @@ if ($isMapPage) {
     }
   }
   </script>
+  <?php if ($isPointcloud): ?>
+  <script type="module" src="<?= url('assets/js/pointcloud-viewer.js') ?>"></script>
+  <?php else: ?>
   <script type="module" src="<?= url('assets/js/viewer.js') ?>"></script>
+  <?php endif ?>
   <?php endif ?>
   <link rel="shortcut icon" type="image/x-icon" href="<?= url('favicon.ico') ?>">
 </head>
