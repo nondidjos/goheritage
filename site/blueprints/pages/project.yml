@@ -57,7 +57,7 @@ tabs:
   #  they belong as page metadata.
   # ─────────────────────────────────────────────────────────────────────
   overview:
-    label: Aperçu
+    label: Vue d'ensemble
     icon: text
     sections:
       # Single custom-rendered overview card — cover image, meta chips,
