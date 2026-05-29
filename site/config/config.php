@@ -42,6 +42,13 @@ return [
             'obj' => 'model/obj',
             'mtl' => 'model/mtl',
             'glb' => 'model/gltf-binary',
+            // Point-cloud capture formats — no registered IANA mime, so map
+            // them to octet-stream; without this Kirby rejects the upload as
+            // an unknown type on the Nuage de points tab.
+            'las' => 'application/octet-stream',
+            'laz' => 'application/octet-stream',
+            'ply' => 'application/octet-stream',
+            'e57' => 'application/octet-stream',
         ]
     ],
     'auth' => [
