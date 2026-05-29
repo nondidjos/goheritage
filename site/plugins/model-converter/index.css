@@ -161,12 +161,16 @@
   display: none !important;
 }
 
-/*  Use table-layout: fixed + 100% width so columns stay aligned and the
-    full row borders span from one card edge to the other (negative
-    margin pulls the table out past Kirby's field padding). The first
-    and last cell get extra padding to compensate.                       */
-/* Full-bleed table — no negative margins, no side padding so the file
-   browser uses the entire section width. */
+/*  Card wrapper — gives the inventory a contained "browser" panel look
+    (border + rounded corners + clipped header fill) rather than a bare
+    table floating in the section. Theme-adaptive via Kirby's vars. */
+.k-page-files-list-wrap {
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
+  border-radius: var(--rounded, 6px);
+  overflow: hidden;
+  background: var(--panel-color-back, var(--color-bg, #fff));
+}
+
 .k-page-files-list {
   width: 100%;
   border-collapse: collapse;
@@ -174,33 +178,34 @@
   font-size: 0.85rem;
 }
 
+/* Header row — subtle fill so the columns read as a header band. */
 .k-page-files-list thead th {
   text-align: left;
-  padding: 0.6rem 0.5rem;
-  font-size: 0.7rem;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55));
+  background: var(--color-back, rgba(0, 0, 0, 0.03));
   border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
 }
-.k-page-files-list thead th:first-child { padding-left: 0; }
-.k-page-files-list thead th:last-child  { padding-right: 0; }
 
 .k-page-files-list tbody td {
-  padding: 0.6rem 0.5rem;
+  padding: 0.5rem 0.85rem;
   border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.06));
   vertical-align: middle;
   color: var(--color-text, #1a1a1a);
   line-height: 1.4;
 }
-.k-page-files-list tbody td:first-child { padding-left: 0; }
-.k-page-files-list tbody td:last-child  { padding-right: 0; }
-
 .k-page-files-list tbody tr:last-child td { border-bottom: none; }
 
+/* Gentle zebra striping + a clearer hover highlight. */
+.k-page-files-list tbody tr:nth-child(even) td {
+  background: var(--color-back, rgba(0, 0, 0, 0.015));
+}
 .k-page-files-list tbody tr:hover td {
-  background: var(--color-back, rgba(0, 0, 0, 0.025));
+  background: var(--color-hover, rgba(0, 0, 0, 0.05));
 }
 
 /* ── Name column: flex lives on the inner <span>, not the <td> ─────── */
@@ -228,6 +233,16 @@
   white-space: nowrap;
 }
 .k-page-files-list__name-inner a:hover { text-decoration: underline; }
+
+/* Category-tinted file-type icons — a gentle at-a-glance cue. Mid-tone
+   hues so they read on both light and dark panel themes. */
+.k-page-files-list__name-inner[data-cat="image"]   .k-icon { color: #4f9d69; }
+.k-page-files-list__name-inner[data-cat="model"]   .k-icon { color: #7a6ff0; }
+.k-page-files-list__name-inner[data-cat="cloud"]   .k-icon { color: #3e8ed0; }
+.k-page-files-list__name-inner[data-cat="doc"]     .k-icon { color: #c8694e; }
+.k-page-files-list__name-inner[data-cat="data"]    .k-icon { color: #b08900; }
+.k-page-files-list__name-inner[data-cat="archive"] .k-icon { color: #8a8a8a; }
+.k-page-files-list__name-inner[data-cat="video"]   .k-icon { color: #c2548a; }
 
 /* ── Type / size / date columns ───────────────────────────────────── */
 .k-page-files-list__th--ext,
@@ -264,25 +279,27 @@
 /* ── Actions column ───────────────────────────────────────────────── */
 .k-page-files-list__th--actions,
 .k-page-files-list__td--actions {
-  width: 2.5rem;
+  width: 3rem;
   text-align: right;
-  padding-right: 0.5rem !important;
 }
 
 .k-page-files-list__delete {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.9rem;
-  height: 1.9rem;
+  width: 1.85rem;
+  height: 1.85rem;
   padding: 0;
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.15));
+  border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.5));
   cursor: pointer;
-  transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+  /* Dimmed until you hover the row, so the list stays calm. */
+  opacity: 0.4;
+  transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease, opacity 0.1s ease;
 }
+.k-page-files-list tbody tr:hover .k-page-files-list__delete { opacity: 1; }
 .k-page-files-list__delete:hover {
   background: var(--color-negative, #b3261e);
   border-color: var(--color-negative, #b3261e);
@@ -290,8 +307,10 @@
 }
 .k-page-files-list__delete .k-icon { width: 0.95em; height: 0.95em; }
 
-/* Narrow viewports: drop the date column to keep rows readable. */
+/* Narrow viewports: drop the date column + keep the delete button visible
+   (no hover on touch). */
 @media (max-width: 50rem) {
   .k-page-files-list__th--date,
   .k-page-files-list__td--date { display: none; }
+  .k-page-files-list__delete { opacity: 1; }
 }

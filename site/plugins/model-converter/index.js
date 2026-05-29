@@ -600,6 +600,19 @@ panel.plugin('goheritage/model-converter', {
             this.busyAll = false;
           }
         },
+        // Pick a Kirby icon + a category class from the file extension so
+        // rows are scannable by type at a glance.
+        fileKind(ext) {
+          var e = String(ext || '').toLowerCase();
+          if (['jpg','jpeg','png','webp','gif','svg','tif','tiff','bmp','avif'].includes(e)) return { icon: 'image',         cat: 'image' };
+          if (['obj','glb','gltf','fbx','stl','mtl','dae','3ds'].includes(e))                return { icon: 'box',           cat: 'model' };
+          if (['ply','las','laz','e57','pts','pcd','xyz'].includes(e))                       return { icon: 'grid',          cat: 'cloud' };
+          if (['pdf','doc','docx','odt','rtf','txt','md'].includes(e))                       return { icon: 'file-document', cat: 'doc'   };
+          if (['json','csv','xml','yml','yaml'].includes(e))                                 return { icon: 'code',          cat: 'data'  };
+          if (['zip','rar','7z','tar','gz'].includes(e))                                     return { icon: 'archive',       cat: 'archive' };
+          if (['mp4','mov','webm','avi','mkv'].includes(e))                                  return { icon: 'video',         cat: 'video' };
+          return { icon: 'file', cat: 'other' };
+        },
       },
       template: `
         <k-field class="k-page-files-list-field">
@@ -613,37 +626,39 @@ panel.plugin('goheritage/model-converter', {
             :disabled="busyAll"
             @click="confirmDeleteAll"
           />
-          <table v-if="localFiles.length" class="k-page-files-list">
-            <thead>
-              <tr>
-                <th class="k-page-files-list__th--name">Nom</th>
-                <th class="k-page-files-list__th--ext">Type</th>
-                <th class="k-page-files-list__th--size">Taille</th>
-                <th class="k-page-files-list__th--date">Modifié</th>
-                <th class="k-page-files-list__th--actions"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="f in localFiles" :key="f.filename">
-                <td class="k-page-files-list__td--name">
-                  <span class="k-page-files-list__name-inner">
-                    <k-icon type="file" />
-                    <a :href="f.url" target="_blank" rel="noopener">{{ f.filename }}</a>
-                  </span>
-                </td>
-                <td class="k-page-files-list__td--ext">
-                  <span class="k-page-files-list__ext-badge">{{ f.extension }}</span>
-                </td>
-                <td class="k-page-files-list__td--size">{{ f.size }}</td>
-                <td class="k-page-files-list__td--date">{{ f.modified }}</td>
-                <td class="k-page-files-list__td--actions">
-                  <button type="button" class="k-page-files-list__delete" @click="confirmDelete(f)" :title="'Supprimer ' + f.filename">
-                    <k-icon type="trash" />
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div v-if="localFiles.length" class="k-page-files-list-wrap">
+            <table class="k-page-files-list">
+              <thead>
+                <tr>
+                  <th class="k-page-files-list__th--name">Nom</th>
+                  <th class="k-page-files-list__th--ext">Type</th>
+                  <th class="k-page-files-list__th--size">Taille</th>
+                  <th class="k-page-files-list__th--date">Modifié</th>
+                  <th class="k-page-files-list__th--actions"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="f in localFiles" :key="f.filename">
+                  <td class="k-page-files-list__td--name">
+                    <span class="k-page-files-list__name-inner" :data-cat="fileKind(f.extension).cat">
+                      <k-icon :type="fileKind(f.extension).icon" />
+                      <a :href="f.url" target="_blank" rel="noopener">{{ f.filename }}</a>
+                    </span>
+                  </td>
+                  <td class="k-page-files-list__td--ext">
+                    <span class="k-page-files-list__ext-badge" :data-cat="fileKind(f.extension).cat">{{ f.extension }}</span>
+                  </td>
+                  <td class="k-page-files-list__td--size">{{ f.size }}</td>
+                  <td class="k-page-files-list__td--date">{{ f.modified }}</td>
+                  <td class="k-page-files-list__td--actions">
+                    <button type="button" class="k-page-files-list__delete" @click="confirmDelete(f)" :title="'Supprimer ' + f.filename">
+                      <k-icon type="trash" />
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           <k-empty v-else icon="file">Aucun fichier sur cette page.</k-empty>
         </k-field>
       `,
