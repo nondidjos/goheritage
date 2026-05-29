@@ -231,6 +231,62 @@ Kirby::plugin('goheritage/project-ux', [
                     }
                 },
             ],
+
+            // Read-only content preview for the Détails "showcase" mode.
+            // Returns the cover, the rendered editorial blocks (same output
+            // as the public page) and gallery thumbnails so the panel can
+            // show a real preview instead of a CMS form.
+            [
+                'pattern' => 'gh/pages/(:any)/details-preview',
+                'method'  => 'GET',
+                'action'  => function (string $encodedId) {
+                    $kirby  = kirby();
+                    $pageId = str_replace('+', '/', $encodedId);
+                    $page   = $kirby->page($pageId);
+
+                    if (!$page) {
+                        return ['status' => 'error', 'message' => 'Page not found'];
+                    }
+
+                    // Cover — same crop ratio as the public poster.
+                    $cover    = $page->cover()->toFile();
+                    $coverUrl = $cover ? $cover->crop(1600, 700)->url() : null;
+
+                    // Editorial blocks rendered exactly as the public page
+                    // renders them (unstyled by site CSS in the panel, but
+                    // structurally identical: headings, text, images, etc.).
+                    $blocksHtml = '';
+                    try {
+                        if ($page->text()->isNotEmpty()) {
+                            $blocksHtml = (string) $page->text()->toBlocks()->toHtml();
+                        }
+                    } catch (\Throwable $e) {
+                        $blocksHtml = '';
+                    }
+
+                    // Gallery thumbnails (fall back to page images, like the
+                    // public template, so something shows even before the
+                    // gallery field is curated).
+                    $gallery = $page->gallery()->toFiles();
+                    if ($gallery->count() === 0) {
+                        $gallery = $page->images()
+                            ->filterBy('extension', 'in', ['jpg', 'jpeg', 'png', 'webp'])
+                            ->sortBy('sort');
+                    }
+                    $thumbs = [];
+                    foreach ($gallery as $img) {
+                        try { $thumbs[] = $img->crop(400, 300)->url(); }
+                        catch (\Throwable $e) {}
+                    }
+
+                    return [
+                        'status'     => 'ok',
+                        'coverUrl'   => $coverUrl,
+                        'blocksHtml' => $blocksHtml,
+                        'gallery'    => $thumbs,
+                    ];
+                },
+            ],
         ],
     ],
 
@@ -377,35 +433,6 @@ Kirby::plugin('goheritage/project-ux', [
                     } catch (\Throwable $e) {
                         return 0;
                     }
-                },
-            ],
-        ],
-    ],
-
-    // ── Custom panel fields ────────────────────────────────────────────────
-    'fields' => [
-
-        // Read-only display of the share URL with copy button.
-        // The URL is computed server-side from the page's share_token field.
-        //
-        // The earlier `section-edit-control` field has been retired. Per-section
-        // edit is now handled by a DOM injector in index.js that tags every
-        // `.k-fields-section` on a project page and appends a floating edit
-        // chip — no blueprint plumbing, no field-name collisions, no Kirby
-        // chrome around the button.
-        'share-link' => [
-            'props' => [
-                'label' => function ($label = null) { return $label; },
-                'help'  => function ($help = null)  { return $help; },
-            ],
-            'computed' => [
-                'shareUrl' => function () {
-                    $page  = $this->model();
-                    $token = $page->share_token()->value();
-                    if (!$token) {
-                        return null;
-                    }
-                    return $page->url() . '?key=' . $token;
                 },
             ],
         ],

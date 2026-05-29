@@ -9,21 +9,17 @@
  *       background, white icon + label; the dropdown surfaces the share
  *       URL inline when in "link" mode.
  *
- *   • per-section edit injector
- *       A DOM-level enhancement that finds every editable .k-section on a
- *       project page, tags it with a `.gh-section` class so our card CSS
- *       can take over (white card, rounded, padded — not Kirby's stock
- *       chrome), and injects a floating Modifier / Enregistrer / Annuler
- *       button group in the top-right corner. Sections start read-only;
- *       clicking Modifier unlocks just that section.
+ *   • DOM injector
+ *       A DOM-level enhancement that tags every .k-section on a project
+ *       page with a `.gh-section` class so our card CSS can take over,
+ *       injects section headlines, makes the bulky model-file sections
+ *       collapsible, and drives the read/edit "showcase" toggles on the
+ *       Modèle 3D and Détails tabs (body data-attr + CSS swaps between a
+ *       polished preview and the raw Kirby form).
  *
- *       Why DOM-injection (not a custom field type): the prior approach
- *       used `_edit_*: { type: section-edit-control }` rows in the
- *       blueprint, which collided on field-name uniqueness and rendered
- *       awkwardly because k-field's wrapper imposes layout. The injector
- *       bypasses Kirby's field system entirely.
- *
- *   • share-link field (kept for backward compat)
+ *       Why DOM-injection (not a custom field type): it bypasses Kirby's
+ *       field system entirely, so it works regardless of how the panel
+ *       re-mounts components on navigation.
  */
 
 // Section component, factored out so we can register it under BOTH the
@@ -150,19 +146,28 @@ var ProjectOverviewSection = {
           <p v-if="description" class="gh-pov__desc">{{ description }}</p>
           <p v-else-if="canUpdate" class="gh-pov__desc gh-pov__desc--empty" @click="openInfoDialog" style="cursor:pointer;">Ajouter une description — cliquez « Modifier » pour renseigner ce champ.</p>
 
-          <!-- Meta chips: architect · style · dimensions · protection -->
-          <div v-if="architect || style || dimensions || (protectionStatus && protectionStatus !== 'none')" class="gh-pov__chips">
-            <button v-if="architect" type="button" class="gh-pov__chip" @click="canUpdate && openInfoDialog()">
-              <k-icon type="user" />{{ architect }}
-            </button>
-            <button v-if="style" type="button" class="gh-pov__chip" @click="canUpdate && openInfoDialog()">
-              <k-icon type="tag" />{{ style }}
-            </button>
-            <button v-if="dimensions" type="button" class="gh-pov__chip" @click="canUpdate && openInfoDialog()">
-              <k-icon type="grid" />{{ dimensions }}
-            </button>
-            <button v-if="protectionStatus && protectionStatus !== 'none'" type="button" class="gh-pov__chip gh-pov__chip--accent" @click="canUpdate && openInfoDialog()">
-              <k-icon type="protected" />{{ protectionLabel }}
+          <!-- Caractéristiques row: architect · style · dimensions · protection,
+               with an explicit Modifier button (opens the Info dialog which
+               edits all metadata). -->
+          <div class="gh-pov__meta-row">
+            <span class="gh-pov__section-label">Caractéristiques</span>
+            <div class="gh-pov__chips">
+              <button v-if="architect" type="button" class="gh-pov__chip" @click="canUpdate && openInfoDialog()">
+                <k-icon type="user" />{{ architect }}
+              </button>
+              <button v-if="style" type="button" class="gh-pov__chip" @click="canUpdate && openInfoDialog()">
+                <k-icon type="tag" />{{ style }}
+              </button>
+              <button v-if="dimensions" type="button" class="gh-pov__chip" @click="canUpdate && openInfoDialog()">
+                <k-icon type="grid" />{{ dimensions }}
+              </button>
+              <button v-if="protectionStatus && protectionStatus !== 'none'" type="button" class="gh-pov__chip gh-pov__chip--accent" @click="canUpdate && openInfoDialog()">
+                <k-icon type="protected" />{{ protectionLabel }}
+              </button>
+              <span v-if="!architect && !style && !dimensions && (!protectionStatus || protectionStatus === 'none')" class="gh-pov__tag gh-pov__tag--empty">Aucune caractéristique</span>
+            </div>
+            <button v-if="canUpdate" type="button" class="gh-pov__inline-edit" @click="openInfoDialog">
+              <k-icon type="edit" /> Modifier
             </button>
           </div>
 
@@ -203,31 +208,14 @@ var ProjectOverviewSection = {
             </div>
           </div>
 
-          <!-- Assets grid -->
+          <!-- ── Visite publique — what a visitor experiences on the live page ── -->
+          <div class="gh-pov__group-label">Visite publique</div>
           <div class="gh-pov__assets">
             <button class="gh-pov__asset" @click="openTab('model')">
               <k-icon type="box" class="gh-pov__asset-ico" />
               <div class="gh-pov__asset-body">
                 <strong>Modèle 3D</strong>
                 <span>{{ modelSidesSummary }}{{ hotspotsCount ? ' · ' + hotspotsCount + ' point' + (hotspotsCount > 1 ? 's' : '') + ' d’intérêt' : '' }}</span>
-              </div>
-              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
-            </button>
-
-            <button class="gh-pov__asset" @click="openTab('documents')">
-              <k-icon type="image" class="gh-pov__asset-ico" />
-              <div class="gh-pov__asset-body">
-                <strong>Plans &amp; relevés</strong>
-                <span>{{ plansCount ? plansCount + ' fichier' + (plansCount > 1 ? 's' : '') : 'Aucun plan' }}</span>
-              </div>
-              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
-            </button>
-
-            <button class="gh-pov__asset" @click="openTab('documents')">
-              <k-icon type="file-document" class="gh-pov__asset-ico" />
-              <div class="gh-pov__asset-body">
-                <strong>Autres documents</strong>
-                <span>{{ docsCount ? docsCount + ' fichier' + (docsCount > 1 ? 's' : '') : 'Aucun document' }}</span>
               </div>
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
@@ -256,6 +244,28 @@ var ProjectOverviewSection = {
               <div class="gh-pov__asset-body">
                 <strong>Géolocalisation</strong>
                 <span>{{ lat && lng ? lat + ', ' + lng : 'Coordonnées non définies' }}</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+          </div>
+
+          <!-- ── Documents — internal files & archives ── -->
+          <div class="gh-pov__group-label">Documents</div>
+          <div class="gh-pov__assets">
+            <button class="gh-pov__asset" @click="openTab('documents')">
+              <k-icon type="image" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Plans &amp; relevés</strong>
+                <span>{{ plansCount ? plansCount + ' fichier' + (plansCount > 1 ? 's' : '') : 'Aucun plan' }}</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+
+            <button class="gh-pov__asset" @click="openTab('documents')">
+              <k-icon type="file-document" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Autres documents</strong>
+                <span>{{ docsCount ? docsCount + ' fichier' + (docsCount > 1 ? 's' : '') : 'Aucun document' }}</span>
               </div>
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
@@ -1421,45 +1431,6 @@ panel.plugin('goheritage/project-ux', {
     },
   },
 
-  // ── Backward-compat share-link field ────────────────────────────────
-  fields: {
-    'share-link': {
-      template: `
-        <k-field v-bind="$props" class="k-share-link-field">
-          <div v-if="shareUrl" class="goheritage-share-link">
-            <k-icon type="url" class="goheritage-share-link__icon" />
-            <input ref="urlInput" type="text" :value="shareUrl" readonly @click="$event.target.select()" />
-            <k-button icon="copy" size="sm" variant="filled" @click="copyToClipboard">Copier</k-button>
-          </div>
-          <p v-else class="goheritage-share-link__empty">
-            <k-icon type="info" /> Enregistrez la page pour générer un lien partageable.
-          </p>
-        </k-field>
-      `,
-      props: { shareUrl: { type: String, default: null } },
-      methods: {
-        copyToClipboard() {
-          const url = this.shareUrl;
-          if (!url) return;
-          if (navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(url).then(
-              () => this.$panel.notification.success('Lien copié'),
-              () => this._legacy(),
-            );
-          } else {
-            this._legacy();
-          }
-        },
-        _legacy() {
-          if (this.$refs.urlInput) {
-            this.$refs.urlInput.select();
-            document.execCommand('copy');
-            this.$panel.notification.success('Lien copié');
-          }
-        },
-      },
-    },
-  },
 });
 
 
@@ -1483,12 +1454,6 @@ panel.plugin('goheritage/project-ux', {
   // scope the whole custom-card style override to the project view only.
   var BODY_FLAG = 'gh-project-edit';
   var SECTION_CLASS = 'gh-section';
-  var EDITING_CLASS = 'is-editing';
-  var DISABLED_CLASS = 'is-disabled';
-
-  // Global single-section edit lock.
-  var editingToken = 0;
-  var allButtons   = [];  // { el, refresh() } — for cross-section disable
 
   function isProjectPage() {
     // Primary: read the blueprint name from panel state.
@@ -1509,72 +1474,6 @@ panel.plugin('goheritage/project-ux', {
     return false;
   }
 
-  // True if the section contains at least one user-editable field — i.e.
-  // we should attach an edit button. Skipped:
-  //   • info / hidden fields (k-info-field, k-hidden-field)
-  //   • page-files-list: has its own delete UI, edit dock would overlap
-  //   • upload-overwrite: same — own dropzone + delete, doesn't need locking
-  //   • project-overview: our own custom section, owns its own chrome
-  function sectionIsEditable(section) {
-    if (!section) return false;
-    // Custom section type — never inject our edit dock or card chrome.
-    if (section.classList.contains('k-project-overview-section')) return false;
-    var fields = section.querySelectorAll('.k-field');
-    if (!fields.length) return false;
-    for (var i = 0; i < fields.length; i++) {
-      var f = fields[i];
-      if (f.classList.contains('k-info-field'))                       continue;
-      if (f.classList.contains('k-hidden-field'))                     continue;
-      if (f.classList.contains('k-page-files-list-field'))            continue;
-      if (f.classList.contains('k-upload-overwrite-field'))           continue;
-      // Anything else counts as editable content.
-      return true;
-    }
-    return false;
-  }
-
-  /*  Build an HTML element that mimics Kirby's own <k-button> output so
-   *  Kirby's stylesheet handles hover / focus / disabled / dark theme /
-   *  size tokens for us. We pass theme via data-theme; passive = neutral,
-   *  positive = primary action (Save), negative = destructive.        */
-  /*  Custom button — does NOT extend .k-button because that class only
-   *  has minimal default styling when Kirby's Vue component isn't
-   *  rendering it. Sets explicit dimensions inline so size is
-   *  guaranteed regardless of which Kirby CSS scope wins. */
-  function makeButton(label, iconType, variant) {
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'gh-btn gh-btn--' + variant;
-    btn.innerHTML =
-      '<svg class="gh-btn__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-        iconSvg(iconType) +
-      '</svg>' +
-      '<span class="gh-btn__label">' + label + '</span>';
-    return btn;
-  }
-
-  // Inline SVG paths so we don't depend on Kirby's icon font sprite being
-  // available in every panel state.
-  function iconSvg(name) {
-    switch (name) {
-      case 'edit':
-        return '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>' +
-               '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>';
-      case 'check':
-        return '<polyline points="20 6 9 17 4 12"/>';
-      case 'cancel':
-      case 'x':
-        return '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>';
-      case 'loader':
-        return '<line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>' +
-               '<line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>' +
-               '<line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>' +
-               '<line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>';
-      default:
-        return '';
-    }
-  }
-
   function tag(section) {
     // Always tag (so the card styling applies to info / file sections too)
     if (!section.classList.contains(SECTION_CLASS)) {
@@ -1589,16 +1488,9 @@ panel.plugin('goheritage/project-ux', {
    *  existing header element rendering. Source of truth = blueprint. */
   var HEADLINE_MAP = {
     sharing_section:     'Partage',
-    cover_section:       'Aperçu',
-    info_section:        'Présentation',
-    meta_section:        'Caractéristiques',
-    spec_section:        'Fiche technique',
-    geo_section:         'Géolocalisation',
     content_section:     'Contenu détaillé',
     gallery_section:     'Galerie d’images',
-    tags_section:        'Tags',
     viewer_settings:     'Réglages du viewer',
-    pipeline_info:       'Pipeline de production',
     exterior_files:      'Modèle extérieur',
     interior_files:      'Modèle intérieur',
     annotations_section: 'Points d’intérêt',
@@ -1606,6 +1498,47 @@ panel.plugin('goheritage/project-ux', {
     plans:               'Plans & relevés',
     docs:                'Autres documents',
   };
+
+  // ── Read/edit toggle infrastructure (shared by the Modèle 3D + Détails
+  //    tabs) ──────────────────────────────────────────────────────────
+  // Pen = enter edit, X = exit edit. Hoisted to module scope so both the
+  // injectors and the delegated click handler can reuse them.
+  var GH_PEN_SVG =
+    '<svg class="gh-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  var GH_X_SVG =
+    '<svg class="gh-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+  // Repaint a toggle button (pen+Modifier in read mode, X+Fermer in edit
+  // mode) to match the current body mode attribute.
+  function paintToggleBtn(btn, modeAttr) {
+    if (!btn) return;
+    var editing = document.body.getAttribute(modeAttr) === 'edit';
+    btn.innerHTML = (editing ? GH_X_SVG : GH_PEN_SVG) +
+      '<span class="gh-btn__label">' + (editing ? 'Fermer' : 'Modifier') + '</span>';
+  }
+
+  // Delegated click handling for BOTH toggles. Delegation (not a listener
+  // bound to a specific button) is essential: the panel re-renders the
+  // section container often, wiping and rebuilding our injected toolbar. A
+  // listener on a specific button is lost when that button is replaced —
+  // and a click landing mid-rebuild would fire on a detached node and do
+  // nothing. One document-level handler always catches the live button.
+  document.addEventListener('click', function (e) {
+    var mBtn = e.target.closest && e.target.closest('[data-gh-model-toggle]');
+    if (mBtn) {
+      var mMode = document.body.getAttribute('data-gh-model-mode') === 'edit' ? 'read' : 'edit';
+      document.body.setAttribute('data-gh-model-mode', mMode);
+      paintToggleBtn(document.querySelector('[data-gh-model-toggle]'), 'data-gh-model-mode');
+      return;
+    }
+    var dBtn = e.target.closest && e.target.closest('[data-gh-details-toggle]');
+    if (dBtn) {
+      var dMode = document.body.getAttribute('data-gh-details-mode') === 'edit' ? 'read' : 'edit';
+      document.body.setAttribute('data-gh-details-mode', dMode);
+      paintToggleBtn(document.querySelector('[data-gh-details-toggle]'), 'data-gh-details-mode');
+      return;
+    }
+  });
 
   /*  ALWAYS inject our own headline at the top of every section card.
    *  Reads the section name from Kirby's k-section-name-* class (the
@@ -1647,236 +1580,6 @@ panel.plugin('goheritage/project-ux', {
     h.className = 'gh-section__title';
     h.textContent = headlineText;
     section.prepend(h);
-  }
-
-  /*  Render a STATIC display of the section's current field values so
-   *  the page reads as a polished document, not a form. Inputs are
-   *  hidden via CSS in read mode; this element shows in their place.
-   *  Re-built whenever the section enters / leaves edit mode (values
-   *  may have changed). */
-  function buildDisplay(section) {
-    var existing = section.querySelector(':scope > .gh-section__display');
-    if (existing) existing.remove();
-
-    var dl = document.createElement('dl');
-    dl.className = 'gh-section__display';
-
-    // Only build the dl for SIMPLE form-y field types. Visual fields
-    // (blocks / files / gallery / image / structure) keep Kirby's
-    // native rendering since their on-screen presence already looks
-    // like content rather than a form.
-    var FORM_FIELD_CLASSES = [
-      'k-text-field', 'k-textarea-field', 'k-number-field',
-      'k-url-field', 'k-email-field', 'k-date-field',
-      'k-select-field', 'k-tags-field',
-      'k-toggle-field', 'k-toggles-field', 'k-checkboxes-field',
-      'k-writer-field',
-    ];
-
-    var fields = section.querySelectorAll(':scope .k-field');
-    var empty = true;
-    fields.forEach(function (field) {
-      // Skip if field isn't a form-y type we render.
-      var isFormy = false;
-      for (var k = 0; k < FORM_FIELD_CLASSES.length; k++) {
-        if (field.classList.contains(FORM_FIELD_CLASSES[k])) { isFormy = true; break; }
-      }
-      if (!isFormy) return;
-
-      var labelEl = field.querySelector('.k-field-header label, label.k-label, .k-label');
-      var label   = labelEl ? labelEl.textContent.trim() : '';
-      var value   = readFieldValue(field);
-
-      // Skip rows that have NEITHER a label NOR a value — they'd just
-      // render as "— · —" which is pure noise.
-      if (!label && !value) return;
-
-      var dt = document.createElement('dt');
-      dt.className = 'gh-section__display-key';
-      dt.textContent = label || '—';
-
-      var dd = document.createElement('dd');
-      dd.className = 'gh-section__display-val' + (value ? '' : ' is-empty');
-      if (value instanceof Node) {
-        dd.appendChild(value);
-      } else {
-        dd.textContent = value || '—';
-      }
-
-      dl.appendChild(dt);
-      dl.appendChild(dd);
-      empty = false;
-    });
-
-    // If literally nothing to display (rare — only happens for sections
-    // composed of only blocks/files which already render visually),
-    // skip the empty <dl> so we don't show a hollow card.
-    if (empty) return;
-    section.appendChild(dl);
-  }
-
-  /*  Extract a renderable value from a .k-field. Returns either a string
-   *  or a DOM Node (for chips, multi-values, etc). Best-effort — we read
-   *  from the actual rendered DOM since Kirby's content store isn't
-   *  reliably reachable from plain JS at this layer. */
-  function readFieldValue(field) {
-    // Tags field → chip list
-    if (field.classList.contains('k-tags-field')) {
-      var pills = field.querySelectorAll('.k-tags .k-tag, .k-tags-input li');
-      if (!pills.length) return '';
-      var wrap = document.createElement('span');
-      wrap.className = 'gh-chips';
-      pills.forEach(function (p) {
-        var label = p.textContent.replace(/×|✕|x/g, '').trim();
-        if (!label) return;
-        var chip = document.createElement('span');
-        chip.className = 'gh-chip';
-        chip.textContent = label;
-        wrap.appendChild(chip);
-      });
-      return wrap.children.length ? wrap : '';
-    }
-    // Toggle → Oui / Non
-    if (field.classList.contains('k-toggle-field')) {
-      var input = field.querySelector('input[type=checkbox]');
-      return input && input.checked ? 'Oui' : 'Non';
-    }
-    // Select / Toggles → show the selected option's TEXT
-    if (field.classList.contains('k-select-field')) {
-      var sel = field.querySelector('select');
-      if (sel && sel.selectedIndex >= 0) {
-        var opt = sel.options[sel.selectedIndex];
-        return (opt && opt.textContent.trim()) || sel.value || '';
-      }
-      return '';
-    }
-    if (field.classList.contains('k-toggles-field')) {
-      var checked = field.querySelector('input[type=radio]:checked, .k-toggles-option.is-active');
-      if (checked) {
-        var lbl = checked.closest('label')?.textContent || checked.textContent;
-        return (lbl || '').trim();
-      }
-      return '';
-    }
-    // Date → format
-    if (field.classList.contains('k-date-field')) {
-      var d = field.querySelector('input');
-      var v = d ? d.value : '';
-      if (v) {
-        try {
-          var dt = new Date(v);
-          if (!isNaN(dt.getTime())) {
-            return dt.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
-          }
-        } catch (_) {}
-      }
-      return v;
-    }
-    // Textarea / writer / blocks → multi-line text
-    if (field.classList.contains('k-textarea-field') || field.classList.contains('k-writer-field')) {
-      var ta = field.querySelector('textarea, .k-writer-input');
-      return ta ? (ta.value || ta.textContent || '').trim() : '';
-    }
-    // Generic input
-    var generic = field.querySelector('input[type=text], input[type=email], input[type=url], input[type=number], input[type=date], input:not([type=checkbox]):not([type=radio]):not([type=hidden]), textarea');
-    if (generic) return (generic.value || '').trim();
-    // Fallback — read displayed text
-    return (field.textContent || '').trim();
-  }
-
-  function attach(section) {
-    tag(section);
-    ensureHeadline(section);
-    if (section.dataset.ghAttached === '1') return;
-    section.dataset.ghAttached = '1';
-
-    var dock = document.createElement('div');
-    dock.className = 'gh-section__dock';
-
-    var editBtn   = makeButton('Modifier', 'edit',   'edit');
-    var saveBtn   = makeButton('Terminé',  'check',  'save');
-    var cancelBtn = makeButton('Annuler',  'cancel', 'cancel');
-
-    saveBtn.style.display   = 'none';
-    cancelBtn.style.display = 'none';
-
-    dock.appendChild(editBtn);
-    dock.appendChild(cancelBtn);
-    dock.appendChild(saveBtn);
-
-    // Hide edit dock if current user has read-only access. Page permissions
-    // are a TOP-LEVEL view prop, not under model. The injector runs after the
-    // view renders, so props.permissions is populated by now.
-    var canUpdate = window.panel?.view?.props?.permissions?.update ?? false;
-    if (!canUpdate) {
-      dock.style.display = 'none';
-    }
-
-    /*  Place the dock as a direct child of the section card. CSS will
-     *  position it absolutely at top-right of the section. */
-    section.appendChild(dock);
-
-    // Build the initial read-only display of field values.
-    buildDisplay(section);
-
-    var myToken = 0;
-
-    function setEditing(on) {
-      section.classList.toggle(EDITING_CLASS, on);
-      editBtn.style.display   = on ? 'none' : '';
-      saveBtn.style.display   = on ? '' : 'none';
-      cancelBtn.style.display = on ? '' : 'none';
-    }
-
-    function refresh() {
-      var disabled = editingToken !== 0 && editingToken !== myToken;
-      section.classList.toggle(DISABLED_CLASS, disabled && !section.classList.contains(EDITING_CLASS));
-      editBtn.disabled = disabled;
-    }
-    allButtons.push({ refresh: refresh });
-
-    editBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (editingToken !== 0 && editingToken !== myToken) return;
-      myToken = Date.now() + Math.random();
-      editingToken = myToken;
-      setEditing(true);
-      allButtons.forEach(function (b) { b.refresh(); });
-    });
-
-    cancelBtn.addEventListener('click', async function (e) {
-      e.stopPropagation();
-      try { await window.panel?.view?.reload?.(); } catch (_) {}
-      myToken = 0;
-      editingToken = 0;
-      setEditing(false);
-      allButtons.forEach(function (b) { b.refresh(); });
-    });
-
-    saveBtn.addEventListener('click', async function (e) {
-      e.stopPropagation();
-      saveBtn.classList.add('is-loading');
-      saveBtn.disabled = true;
-      try {
-        if (window.panel?.content?.publish) {
-          await window.panel.content.publish();
-        }
-        window.panel?.notification?.success?.('Modifications enregistrées');
-        myToken = 0;
-        editingToken = 0;
-        setEditing(false);
-        // Rebuild the static display so it shows the saved values.
-        buildDisplay(section);
-        allButtons.forEach(function (b) { b.refresh(); });
-      } catch (err) {
-        window.panel?.notification?.error?.(err?.message || 'Impossible d\'enregistrer.');
-      } finally {
-        saveBtn.classList.remove('is-loading');
-        saveBtn.disabled = false;
-      }
-    });
-
-    refresh();
   }
 
   /*  Measure Kirby's .k-header height and publish it on <body> as
@@ -1943,12 +1646,6 @@ panel.plugin('goheritage/project-ux', {
     var host = firstSection && firstSection.parentNode;
     if (!host) return;
 
-    // SVG icons: pencil (enter edit) and X (exit edit).
-    var penSvg =
-      '<svg class="gh-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-    var xSvg =
-      '<svg class="gh-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-
     // Persistent toolbar — a single right-aligned toggle button. Plain
     // outlined .gh-btn (same as the section "Modifier" buttons): pen +
     // "Modifier" in read mode, X + "Fermer" in edit mode.
@@ -1971,18 +1668,9 @@ panel.plugin('goheritage/project-ux', {
         'allow="xr-spatial-tracking; fullscreen" loading="lazy"></iframe>';
     host.insertBefore(wrap, firstSection);
 
-    var toggle = bar.querySelector('[data-gh-model-toggle]');
-    function paintToggle() {
-      var editing = document.body.getAttribute('data-gh-model-mode') === 'edit';
-      toggle.innerHTML = (editing ? xSvg : penSvg) +
-        '<span class="gh-btn__label">' + (editing ? 'Fermer' : 'Modifier') + '</span>';
-    }
-    paintToggle();
-    toggle.addEventListener('click', function () {
-      var mode = document.body.getAttribute('data-gh-model-mode') === 'edit' ? 'read' : 'edit';
-      document.body.setAttribute('data-gh-model-mode', mode);
-      paintToggle();
-    });
+    // Click handling is delegated at the document level (see paintToggleBtn
+    // setup near HEADLINE_MAP); here we only paint the initial state.
+    paintToggleBtn(bar.querySelector('[data-gh-model-toggle]'), 'data-gh-model-mode');
   }
 
   // ── Details tab read/edit mode toggle (same pattern as model tab) ──
@@ -1998,27 +1686,91 @@ panel.plugin('goheritage/project-ux', {
     var content = {};
     try { content = window.panel.view.props.versions.latest || {}; } catch (_) {}
     var desc = (content.description || '').trim();
-    var blocksCount = 0;
-    try {
-      var rawBlocks = content.text;
-      if (Array.isArray(rawBlocks)) blocksCount = rawBlocks.length;
-      else if (typeof rawBlocks === 'string' && rawBlocks.trim()) blocksCount = 1;
-    } catch (_) {}
 
+    // Skeleton: description renders immediately (we already have it from the
+    // view props); cover + rendered blocks + gallery are fetched from the
+    // details-preview API route and filled in below.
     showcase.innerHTML =
       '<div class="gh-details-showcase__inner">' +
-        (desc
-          ? '<p class="gh-details-showcase__desc">' + _escHtml(desc) + '</p>'
-          : '<p class="gh-details-showcase__desc gh-details-showcase__desc--empty">Aucune description. Basculez en mode édition pour ajouter du contenu.</p>'
-        ) +
-        '<p class="gh-details-showcase__hint">' +
-          (blocksCount
-            ? blocksCount + ' bloc' + (blocksCount > 1 ? 's' : '') + ' de contenu éditorial'
-            : 'Aucun bloc de contenu'
-          ) +
-          ' — cliquez <strong>Modifier</strong> pour éditer le contenu et la galerie.' +
-        '</p>' +
+        '<div class="gh-details-showcase__cover-slot"></div>' +
+        (desc ? '<p class="gh-details-showcase__desc">' + _escHtml(desc) + '</p>' : '') +
+        '<div class="gh-details-showcase__content"><p class="gh-details-showcase__loading">Chargement de l’aperçu…</p></div>' +
+        '<div class="gh-details-showcase__gallery-slot"></div>' +
       '</div>';
+
+    var id = '';
+    try { id = window.panel.view.props.id || ''; } catch (_) {}
+    if (!id) return;
+    var enc  = id.replace(/\//g, '+');
+    var path = 'gh/pages/' + enc + '/details-preview';
+
+    // Prefer the panel API helper; fall back to a raw fetch so the preview
+    // never hangs on the loading state if the helper isn't present.
+    var request;
+    if (window.panel && window.panel.api && window.panel.api.get) {
+      request = window.panel.api.get(path);
+    } else {
+      request = fetch('/api/' + path, {
+        headers: { 'X-CSRF': (window.panel && window.panel.csrf) || '' },
+        credentials: 'same-origin'
+      }).then(function (r) { return r.json(); });
+    }
+
+    request.then(function (res) {
+      if (!res || res.status !== 'ok') { throw new Error('bad response'); }
+
+      // Cover
+      var coverSlot = showcase.querySelector('.gh-details-showcase__cover-slot');
+      if (coverSlot) {
+        if (res.coverUrl) {
+          var img = document.createElement('img');
+          img.className = 'gh-details-showcase__cover';
+          img.src = res.coverUrl;
+          img.alt = '';
+          coverSlot.appendChild(img);
+        } else {
+          coverSlot.remove();
+        }
+      }
+
+      // Rendered editorial blocks (server-rendered HTML, same as public page)
+      var contentEl = showcase.querySelector('.gh-details-showcase__content');
+      if (contentEl) {
+        if (res.blocksHtml && res.blocksHtml.trim()) {
+          contentEl.innerHTML = res.blocksHtml;
+        } else {
+          contentEl.innerHTML =
+            '<p class="gh-details-showcase__desc gh-details-showcase__desc--empty">' +
+            'Aucun contenu éditorial. Basculez en mode édition pour en ajouter.</p>';
+        }
+      }
+
+      // Gallery thumbnails
+      var gallerySlot = showcase.querySelector('.gh-details-showcase__gallery-slot');
+      if (gallerySlot) {
+        if (Array.isArray(res.gallery) && res.gallery.length) {
+          var grid = document.createElement('div');
+          grid.className = 'gh-details-showcase__gallery';
+          res.gallery.forEach(function (u) {
+            var t = document.createElement('img');
+            t.className = 'gh-details-showcase__thumb';
+            t.src = u;
+            t.alt = '';
+            t.loading = 'lazy';
+            grid.appendChild(t);
+          });
+          gallerySlot.appendChild(grid);
+        } else {
+          gallerySlot.remove();
+        }
+      }
+    }).catch(function () {
+      var contentEl = showcase.querySelector('.gh-details-showcase__content');
+      if (contentEl) {
+        contentEl.innerHTML =
+          '<p class="gh-details-showcase__desc gh-details-showcase__desc--empty">Aperçu indisponible.</p>';
+      }
+    });
   }
 
   function ensureDetailsToggle() {
@@ -2053,11 +1805,6 @@ panel.plugin('goheritage/project-ux', {
     var host = firstSection && firstSection.parentNode;
     if (!host) return;
 
-    var penSvg =
-      '<svg class="gh-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-    var xSvg =
-      '<svg class="gh-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-
     // Persistent toolbar at the top of the tab.
     var bar = document.createElement('div');
     bar.id = 'gh-details-bar';
@@ -2077,18 +1824,8 @@ panel.plugin('goheritage/project-ux', {
     buildDetailsShowcase(showcase);
     host.insertBefore(showcase, firstSection);
 
-    var dtoggle = bar.querySelector('[data-gh-details-toggle]');
-    function paintDetailsToggle() {
-      var editing = document.body.getAttribute('data-gh-details-mode') === 'edit';
-      dtoggle.innerHTML = (editing ? xSvg : penSvg) +
-        '<span class="gh-btn__label">' + (editing ? 'Fermer' : 'Modifier') + '</span>';
-    }
-    paintDetailsToggle();
-    dtoggle.addEventListener('click', function() {
-      var mode = document.body.getAttribute('data-gh-details-mode') === 'edit' ? 'read' : 'edit';
-      document.body.setAttribute('data-gh-details-mode', mode);
-      paintDetailsToggle();
-    });
+    // Click handling is delegated at the document level; paint initial state.
+    paintToggleBtn(bar.querySelector('[data-gh-details-toggle]'), 'data-gh-details-mode');
   }
 
   function scan() {
@@ -2267,19 +2004,13 @@ panel.plugin('goheritage/project-ux', {
       '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
     title.appendChild(chevron);
 
-    title.addEventListener('click', function (e) {
-      // Don't toggle when clicking the edit dock buttons (they're not in
-      // the title, but guard anyway).
-      if (e.target.closest('.gh-section__dock')) return;
+    title.addEventListener('click', function () {
       section.classList.toggle('gh-collapsed');
     });
   }
 
   // Re-scan whenever the panel re-renders (route change, view reload).
   var rescan = function () {
-    // Reset state — Vue may have torn down previous DOM.
-    allButtons = [];
-    editingToken = 0;
     setTimeout(scan, 50);
   };
 
