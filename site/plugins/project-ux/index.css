@@ -345,6 +345,21 @@ body.gh-project-edit .k-tabs {
   box-shadow: 0 1px 0 var(--color-border, rgba(0, 0, 0, 0.06));
 }
 
+/*  The "Fichiers" tab is a "see everything" file-inventory utility, not a
+    content tab. It's defined last in the blueprint and pushed to the far
+    right of the bar here (margin-left:auto on the last flex item) with a
+    faint divider, so it reads as separate from the content tabs. The icon
+    is nudged a touch dimmer to reinforce the utility role. */
+body.gh-project-edit .k-tabs-button[href*="tab=files"],
+body.gh-project-edit .k-tabs-button[data-tab="files"] {
+  margin-left: auto !important;
+  border-left: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+}
+body.gh-project-edit .k-tabs-button[href*="tab=files"]:not([aria-current]):not(.k-tabs-button--current),
+body.gh-project-edit .k-tabs-button[data-tab="files"]:not([aria-current]):not(.k-tabs-button--current) {
+  opacity: 0.8;
+}
+
 
 /* ──────────────────────────────────────────────────────────────────────
  *  3. Custom buttons (.gh-btn)
@@ -398,87 +413,73 @@ body.gh-project-edit .k-tabs {
 }
 
 /* ──────────────────────────────────────────────────────────────────────
- *  3D viewer preview — top of the Modèle 3D tab (read mode emphasis).
- *  Embeds the public-facing project page in viewer-only mode so the
- *  user sees the actual rendered model before they edit anything.
+ *  Viewer tabs (Modèle 3D · Nuage de points) — read mode shows a full-bleed
+ *  iframe of the public viewer; edit mode shows the upload sections. A
+ *  compact titled header carries the read/edit toggle (rendered in-content
+ *  so it clears on tab switch, and reads like a title rather than a strip).
  * ────────────────────────────────────────────────────────────────────── */
-.gh-model-preview {
+
+/* Compact header: title (left) + pen/X toggle (right). */
+.gh-viewer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 0.85rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.gh-viewer-head__title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--color-text);
+}
+
+/* Small variant of the custom button, used for the in-header toggle. */
+.gh-btn--sm {
+  height: 2rem;
+  padding: 0 0.7rem;
+  font-size: 0.8rem;
+}
+
+.gh-viewer-preview {
   display: block;
   width: 100%;
-  margin: 0 0 1.25rem;
+  margin: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--rounded, 4px);
   overflow: hidden;
   background: var(--panel-color-back);
 }
-.gh-model-preview__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 0.85rem;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.8rem;
-}
-.gh-model-preview__label {
-  font-weight: 600;
-  color: var(--color-text);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 0.7rem;
-}
-/* ── Persistent model-tab toolbar (always visible) ────────────────── */
-.gh-model-bar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin: 0 0 1rem;
-}
-/* Edit-mode banner — only shown when editing; pushes the toggle right. */
-.gh-model-bar__banner {
-  display: none;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1 1 auto;
-  padding: 0.55rem 0.85rem;
-  border-radius: var(--rounded, 4px);
-  background: var(--color-notice-light, rgba(220, 150, 0, 0.12));
-  color: var(--color-notice-dark, #8a5a00);
-  font-size: 0.82rem;
-  font-weight: 500;
-  line-height: 1.3;
-}
-.gh-model-bar__banner svg { flex-shrink: 0; }
-body.gh-on-model-tab[data-gh-model-mode="edit"] .gh-model-bar__banner {
-  display: inline-flex;
-}
-
-/* ── 3D tab read/edit mode switching ──────────────────────────────── */
-/* Read mode: show the viewer preview, hide all the technical sections.
-   Scoped by the body class (only set while on the model tab); ancestor
-   selector dropped so it works regardless of Kirby's section nesting. */
-body.gh-on-model-tab[data-gh-model-mode="read"] .k-section {
-  display: none !important;
-}
-body.gh-on-model-tab[data-gh-model-mode="read"] #gh-model-preview {
-  display: block !important;
-}
-/* Edit mode: hide the viewer preview, show the technical sections.
-   The toolbar (#gh-model-bar) stays visible in BOTH modes so there's
-   always a way back to the viewer. */
-body.gh-on-model-tab[data-gh-model-mode="edit"] #gh-model-preview {
-  display: none !important;
-}
-body.gh-on-model-tab[data-gh-model-mode="edit"] .k-section {
-  display: block !important;
-}
-.gh-model-preview__frame {
+.gh-viewer-preview__frame {
   display: block;
   width: 100%;
-  height: 60vh;
-  min-height: 480px;
+  /* Fill the viewport below the header + sticky tabs instead of a small box. */
+  height: calc(100vh - 13rem);
+  min-height: 600px;
   border: 0;
   background: #1a1a1a;
+}
+
+/* ── Read/edit switching (model + point cloud) ─────────────────────────
+   Read: show the viewer, hide the upload sections. Edit: the reverse. The
+   header (#gh-*-head) isn't a .k-section, so it stays visible in both. */
+body.gh-on-model-tab[data-gh-model-mode="read"] .k-section,
+body.gh-on-pointcloud-tab[data-gh-pointcloud-mode="read"] .k-section {
+  display: none !important;
+}
+body.gh-on-model-tab[data-gh-model-mode="read"] #gh-model-preview,
+body.gh-on-pointcloud-tab[data-gh-pointcloud-mode="read"] #gh-pointcloud-preview {
+  display: block !important;
+}
+body.gh-on-model-tab[data-gh-model-mode="edit"] #gh-model-preview,
+body.gh-on-pointcloud-tab[data-gh-pointcloud-mode="edit"] #gh-pointcloud-preview {
+  display: none !important;
+}
+body.gh-on-model-tab[data-gh-model-mode="edit"] .k-section,
+body.gh-on-pointcloud-tab[data-gh-pointcloud-mode="edit"] .k-section {
+  display: block !important;
 }
 
 
@@ -886,114 +887,6 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
 
 @media (max-width: 40rem) {
   .gh-pov__stats { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* ── Meta chips ───────────────────────────────────────────────────── */
-.gh-pov__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-.gh-pov__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.7rem;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background: var(--panel-color-back);
-  color: var(--color-text);
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  line-height: 1;
-  cursor: pointer;
-  transition: background 0.1s ease, border-color 0.1s ease;
-}
-.gh-pov__chip:hover {
-  background: var(--color-hover);
-  border-color: var(--color-text);
-}
-.gh-pov__chip .k-icon {
-  width: 0.95em;
-  height: 0.95em;
-  color: var(--color-text-dimmed);
-}
-.gh-pov__chip--accent {
-  border-color: var(--color-positive, var(--color-text));
-}
-.gh-pov__chip--accent .k-icon {
-  color: var(--color-positive, var(--color-text));
-}
-
-/* ── Tags row ─────────────────────────────────────────────────────── */
-.gh-pov__tags-row,
-.gh-pov__meta-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-/* Characteristics chips take the middle space, like the tags list does. */
-.gh-pov__meta-row .gh-pov__chips {
-  flex: 1 1 auto;
-}
-.gh-pov__section-label {
-  flex-shrink: 0;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--color-text-dimmed);
-}
-.gh-pov__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  flex: 1 1 auto;
-}
-.gh-pov__tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.18rem 0.55rem;
-  border: 1px solid var(--color-border);
-  border-radius: 3px;
-  background: var(--panel-color-back);
-  font-size: 0.78rem;
-  color: var(--color-text);
-}
-.gh-pov__tag.is-primary {
-  background: var(--color-text);
-  border-color: var(--color-text);
-  color: var(--color-bg);
-}
-.gh-pov__tag--empty {
-  color: var(--color-text-dimmed);
-  font-style: italic;
-  border-style: dashed;
-}
-.gh-pov__inline-edit {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.3rem 0.55rem;
-  border: 0;
-  border-radius: var(--rounded);
-  background: transparent;
-  color: var(--color-text-dimmed);
-  font: inherit;
-  font-size: 0.75rem;
-  cursor: pointer;
-}
-.gh-pov__inline-edit:hover {
-  background: var(--color-hover);
-  color: var(--color-text);
-}
-.gh-pov__inline-edit .k-icon {
-  width: 0.85em;
-  height: 0.85em;
 }
 
 /* ── Asset tile grid ──────────────────────────────────────────────── */

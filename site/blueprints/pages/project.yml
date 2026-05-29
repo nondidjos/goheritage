@@ -316,6 +316,47 @@ tabs:
 
 
   # ─────────────────────────────────────────────────────────────────────
+  #  Tab — Nuage de points
+  #
+  #  Scaffolding for a point-cloud viewer. Large clouds are best served by
+  #  an external octree viewer (Potree); paste its URL here. Raw captures
+  #  (.laz/.las/.ply/.e57/.zip) can also be attached for later processing.
+  #  The actual in-panel viewer is not built yet — see the project notes.
+  # ─────────────────────────────────────────────────────────────────────
+  pointcloud:
+    label: Nuage de points
+    icon: grid
+    sections:
+
+      pointcloud_settings:
+        type: fields
+        headline: Visualiseur
+        fields:
+          pc_info:
+            label: false
+            type: info
+            theme: info
+            text: |
+              **Nuage de points** — hébergez les nuages volumineux via un
+              viewer web (Potree, etc.) et collez le lien ci-dessous, ou
+              téléversez les données brutes pour traitement ultérieur.
+          pointcloud_url:
+            type: url
+            label: Viewer de nuage de points (externe)
+            placeholder: "https://…"
+            help: Lien Potree (ou autre viewer web). Affiché dans cet onglet une fois le viewer intégré.
+
+      pointcloud_files:
+        type: files
+        headline: Données brutes
+        template: default
+        accept: ".laz,.las,.ply,.e57,.zip"
+        layout: list
+        info: "{{ file.extension | upper }} · {{ file.niceSize }}"
+        empty: Glissez-déposez ici vos fichiers de nuage de points (.laz, .las, .ply, .e57, .zip).
+
+
+  # ─────────────────────────────────────────────────────────────────────
   #  Tab 3 — Documents
   #
   #  Single tab, three clearly-separated cards:
@@ -326,31 +367,7 @@ tabs:
   #    3) Tous les fichiers — flat list of every file attached to the
   #       page, including model files uploaded from the 3D tab
   # ─────────────────────────────────────────────────────────────────────
-  # ─────────────────────────────────────────────────────────────────────
-  #  Tab 3 — Fichiers (raw file inventory — comes BEFORE Documents on
-  #  purpose; this is the "see everything" view, Documents is the
-  #  curated upload UI).
-  # ─────────────────────────────────────────────────────────────────────
-  files:
-    label: Fichiers
-    icon: folder-structure
-    sections:
-
-      all_files:
-        type: fields
-        headline: Inventaire des fichiers
-        fields:
-          page_files:
-            type: page-files-list
-            label: false
-            help: |
-              Liste plate de **tous les fichiers attachés à cette page** — modèles 3D,
-              textures, plans, images de galerie, JSON, etc. Pour téléverser des
-              fichiers, utilisez les onglets dédiés (Documents, Modèle 3D, etc.).
-
-
-  # ─────────────────────────────────────────────────────────────────────
-  #  Tab 4 — Documents (curated upload UI: Plans + Autres documents)
+  #  Tab — Documents (curated upload UI: Plans + Autres documents)
   # ─────────────────────────────────────────────────────────────────────
   documents:
     label: Documents
@@ -382,3 +399,27 @@ tabs:
         empty: Rien pour l'instant. Glissez-déposez ici vos PDF, .docx, .zip, etc.
         template: default
         accept: ".pdf,.doc,.docx,.odt,.txt,.md,.zip"
+
+
+  # ─────────────────────────────────────────────────────────────────────
+  #  Tab — Fichiers (raw file inventory). Deliberately LAST and pushed to
+  #  the far right of the tab bar (via CSS in project-ux) to mark it as a
+  #  "see everything" utility, distinct from the content tabs. Documents
+  #  is the curated upload UI; this is the flat inventory of every file.
+  # ─────────────────────────────────────────────────────────────────────
+  files:
+    label: Fichiers
+    icon: folder-structure
+    sections:
+
+      all_files:
+        type: fields
+        headline: Inventaire des fichiers
+        fields:
+          page_files:
+            type: page-files-list
+            label: false
+            help: |
+              Liste plate de **tous les fichiers attachés à cette page** — modèles 3D,
+              textures, plans, images de galerie, JSON, etc. Pour téléverser des
+              fichiers, utilisez les onglets dédiés (Documents, Modèle 3D, etc.).

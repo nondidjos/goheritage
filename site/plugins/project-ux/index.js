@@ -72,8 +72,7 @@ var ProjectOverviewSection = {
           geoSaving: false,
           localGeo: { location: '', lat: '', lng: '' },
 
-          // Tags Dialog state
-          tagsDialogOpen: false,
+          // Tags editing state (fields live inside the Info dialog)
           tagsInput: '',
           primaryTagInput: '',
 
@@ -146,48 +145,6 @@ var ProjectOverviewSection = {
           <p v-if="description" class="gh-pov__desc">{{ description }}</p>
           <p v-else-if="canUpdate" class="gh-pov__desc gh-pov__desc--empty" @click="openInfoDialog" style="cursor:pointer;">Ajouter une description — cliquez « Modifier » pour renseigner ce champ.</p>
 
-          <!-- Caractéristiques row: architect · style · dimensions · protection,
-               with an explicit Modifier button (opens the Info dialog which
-               edits all metadata). -->
-          <div class="gh-pov__meta-row">
-            <span class="gh-pov__section-label">Caractéristiques</span>
-            <div class="gh-pov__chips">
-              <button v-if="architect" type="button" class="gh-pov__chip" @click="canUpdate && openInfoDialog()">
-                <k-icon type="user" />{{ architect }}
-              </button>
-              <button v-if="style" type="button" class="gh-pov__chip" @click="canUpdate && openInfoDialog()">
-                <k-icon type="tag" />{{ style }}
-              </button>
-              <button v-if="dimensions" type="button" class="gh-pov__chip" @click="canUpdate && openInfoDialog()">
-                <k-icon type="grid" />{{ dimensions }}
-              </button>
-              <button v-if="protectionStatus && protectionStatus !== 'none'" type="button" class="gh-pov__chip gh-pov__chip--accent" @click="canUpdate && openInfoDialog()">
-                <k-icon type="protected" />{{ protectionLabel }}
-              </button>
-              <span v-if="!architect && !style && !dimensions && (!protectionStatus || protectionStatus === 'none')" class="gh-pov__tag gh-pov__tag--empty">Aucune caractéristique</span>
-            </div>
-            <button v-if="canUpdate" type="button" class="gh-pov__inline-edit" @click="openInfoDialog">
-              <k-icon type="edit" /> Modifier
-            </button>
-          </div>
-
-          <!-- Tags row -->
-          <div class="gh-pov__tags-row">
-            <span class="gh-pov__section-label">Tags</span>
-            <div class="gh-pov__tags">
-              <span v-if="!tags || !tags.length" class="gh-pov__tag gh-pov__tag--empty">Aucun tag</span>
-              <span
-                v-for="(t, i) in tags"
-                :key="i"
-                class="gh-pov__tag"
-                :class="{ 'is-primary': t === primaryTag }"
-              >{{ t }}</span>
-            </div>
-            <button v-if="canUpdate" type="button" class="gh-pov__inline-edit" @click="openTagsDialog">
-              <k-icon type="edit" /> Modifier
-            </button>
-          </div>
-
           <!-- Stat strip -->
           <div class="gh-pov__stats">
             <div class="gh-pov__stat">
@@ -208,14 +165,45 @@ var ProjectOverviewSection = {
             </div>
           </div>
 
-          <!-- ── Visite publique — what a visitor experiences on the live page ── -->
-          <div class="gh-pov__group-label">Visite publique</div>
+          <!-- ── Documents — supporting files & archives (listed first) ── -->
+          <div class="gh-pov__group-label">Documents</div>
+          <div class="gh-pov__assets">
+            <button class="gh-pov__asset" @click="openTab('documents')">
+              <k-icon type="image" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Plans &amp; relevés</strong>
+                <span>{{ plansCount ? plansCount + ' fichier' + (plansCount > 1 ? 's' : '') : 'Aucun plan' }}</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+
+            <button class="gh-pov__asset" @click="openTab('documents')">
+              <k-icon type="file-document" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Autres documents</strong>
+                <span>{{ docsCount ? docsCount + ' fichier' + (docsCount > 1 ? 's' : '') : 'Aucun document' }}</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+          </div>
+
+          <!-- ── Données principales — the core dataset & editorial content ── -->
+          <div class="gh-pov__group-label">Données principales</div>
           <div class="gh-pov__assets">
             <button class="gh-pov__asset" @click="openTab('model')">
               <k-icon type="box" class="gh-pov__asset-ico" />
               <div class="gh-pov__asset-body">
                 <strong>Modèle 3D</strong>
                 <span>{{ modelSidesSummary }}{{ hotspotsCount ? ' · ' + hotspotsCount + ' point' + (hotspotsCount > 1 ? 's' : '') + ' d’intérêt' : '' }}</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+
+            <button class="gh-pov__asset" @click="openTab('pointcloud')">
+              <k-icon type="grid" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Nuage de points</strong>
+                <span>Visualiseur &amp; données brutes</span>
               </div>
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
@@ -247,25 +235,14 @@ var ProjectOverviewSection = {
               </div>
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
-          </div>
 
-          <!-- ── Documents — internal files & archives ── -->
-          <div class="gh-pov__group-label">Documents</div>
-          <div class="gh-pov__assets">
-            <button class="gh-pov__asset" @click="openTab('documents')">
-              <k-icon type="image" class="gh-pov__asset-ico" />
+            <!-- Caractéristiques & tags — moved off the page body into a tile;
+                 opens the Info dialog, which now edits the metadata AND tags. -->
+            <button class="gh-pov__asset" @click="canUpdate && openInfoDialog()">
+              <k-icon type="info" class="gh-pov__asset-ico" />
               <div class="gh-pov__asset-body">
-                <strong>Plans &amp; relevés</strong>
-                <span>{{ plansCount ? plansCount + ' fichier' + (plansCount > 1 ? 's' : '') : 'Aucun plan' }}</span>
-              </div>
-              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
-            </button>
-
-            <button class="gh-pov__asset" @click="openTab('documents')">
-              <k-icon type="file-document" class="gh-pov__asset-ico" />
-              <div class="gh-pov__asset-body">
-                <strong>Autres documents</strong>
-                <span>{{ docsCount ? docsCount + ' fichier' + (docsCount > 1 ? 's' : '') : 'Aucun document' }}</span>
+                <strong>Caractéristiques &amp; tags</strong>
+                <span>{{ architect || style || 'Architecte, style, protection…' }}{{ tags && tags.length ? ' · ' + tags.length + ' tag' + (tags.length > 1 ? 's' : '') : '' }}</span>
               </div>
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
@@ -511,41 +488,32 @@ var ProjectOverviewSection = {
                     />
                   </div>
                 </div>
-              </div>
-            </div>
-          </k-dialog>
 
-          <!-- ── Dialog Tags ── -->
-          <k-dialog
-            v-if="tagsDialogOpen"
-            ref="tagsDialog"
-            :submit-button="{ text: 'Enregistrer', icon: 'check', theme: 'positive' }"
-            :cancel-button="{ text: 'Annuler' }"
-            @submit="saveTags"
-            @cancel="tagsDialogOpen = false"
-            size="medium"
-          >
-            <div class="gh-tags-dialog">
-              <div class="k-field k-textarea-field">
-                <label class="k-label">Tags (séparés par des virgules)</label>
-                <textarea
-                  v-model="tagsInput"
-                  class="k-textarea-input"
-                  rows="3"
-                  placeholder="patrimoine, XIXe, gothique, etc."
-                  style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text); font-family:inherit; font-size:inherit;"
-                ></textarea>
-              </div>
-              <div class="k-field k-text-field" style="margin-top:1rem;">
-                <label class="k-label">Tag mis en avant</label>
-                <input
-                  type="text"
-                  v-model="primaryTagInput"
-                  class="k-text-input"
-                  placeholder="ex. gothique"
-                  style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
-                />
-                <p style="margin-top:0.4rem; font-size:0.78rem; color:var(--color-text-dimmed);">Doit correspondre exactement à un tag ci-dessus. Affiché en badge sur les cartes.</p>
+                <!-- Tags + featured tag — merged in from the old standalone
+                     Tags dialog so a single "Caractéristiques & tags" tile
+                     edits everything in one place. -->
+                <div class="k-field k-textarea-field" style="margin-top:1rem;">
+                  <label class="k-label">Tags (séparés par des virgules)</label>
+                  <textarea
+                    v-model="tagsInput"
+                    class="k-textarea-input"
+                    rows="2"
+                    placeholder="patrimoine, XIXe, gothique, etc."
+                    style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text); font-family:inherit; font-size:inherit;"
+                  ></textarea>
+                </div>
+
+                <div class="k-field k-text-field" style="margin-top:1rem;">
+                  <label class="k-label">Tag mis en avant</label>
+                  <input
+                    type="text"
+                    v-model="primaryTagInput"
+                    class="k-text-input"
+                    placeholder="ex. gothique"
+                    style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
+                  />
+                  <p style="margin-top:0.4rem; font-size:0.78rem; color:var(--color-text-dimmed);">Doit correspondre exactement à un tag ci-dessus. Affiché en badge sur les cartes.</p>
+                </div>
               </div>
             </div>
           </k-dialog>
@@ -723,7 +691,9 @@ var ProjectOverviewSection = {
           }
         },
 
-        // General Info Dialog methods
+        // Info Dialog methods — edits the project's characteristics AND its
+        // tags (the standalone Tags dialog was folded in here so a single
+        // "Caractéristiques & tags" tile covers both).
         openInfoDialog() {
           this.localInfo = {
             title: this.pageTitle || '',
@@ -736,6 +706,8 @@ var ProjectOverviewSection = {
             dimensions: this.dimensions || '',
             protectionStatus: this.protectionStatusRaw || 'none'
           };
+          this.tagsInput = Array.isArray(this.tags) ? this.tags.join(', ') : '';
+          this.primaryTagInput = this.primaryTag || '';
           this.infoDialogOpen = true;
           this.$nextTick(() => {
             if (this.$refs.infoDialog) {
@@ -745,6 +717,7 @@ var ProjectOverviewSection = {
         },
         async saveInfo() {
           const pageId = this.pageId.replace(/\//g, '+');
+          const tagsArr = this.tagsInput.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
           try {
             await this.$panel.api.patch('pages/' + pageId, {
               title: this.localInfo.title,
@@ -755,38 +728,15 @@ var ProjectOverviewSection = {
               architect: this.localInfo.architect,
               style: this.localInfo.style,
               dimensions: this.localInfo.dimensions,
-              protection_status: this.localInfo.protectionStatus
+              protection_status: this.localInfo.protectionStatus,
+              tags: tagsArr.join(','),
+              primary_tag: this.primaryTagInput.trim()
             });
             this.$panel.notification.success('Informations enregistrées');
             this.infoDialogOpen = false;
             await this.$panel.view.reload();
           } catch (e) {
             this.$panel.notification.error('Erreur lors de la sauvegarde : ' + e.message);
-          }
-        },
-
-        // Tags Dialog methods
-        openTagsDialog() {
-          this.tagsInput = Array.isArray(this.tags) ? this.tags.join(', ') : '';
-          this.primaryTagInput = this.primaryTag || '';
-          this.tagsDialogOpen = true;
-          this.$nextTick(() => {
-            if (this.$refs.tagsDialog) this.$refs.tagsDialog.open();
-          });
-        },
-        async saveTags() {
-          const pageId = this.pageId.replace(/\//g, '+');
-          const tagsArr = this.tagsInput.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
-          try {
-            await this.$panel.api.patch('pages/' + pageId, {
-              tags: tagsArr.join(','),
-              primary_tag: this.primaryTagInput.trim()
-            });
-            this.$panel.notification.success('Tags enregistrés');
-            this.tagsDialogOpen = false;
-            await this.$panel.view.reload();
-          } catch (e) {
-            this.$panel.notification.error('Erreur : ' + (e.message || 'Erreur inconnue'));
           }
         }
       },
@@ -1494,6 +1444,8 @@ panel.plugin('goheritage/project-ux', {
     exterior_files:      'Modèle extérieur',
     interior_files:      'Modèle intérieur',
     annotations_section: 'Points d’intérêt',
+    pointcloud_settings: 'Visualiseur',
+    pointcloud_files:    'Données brutes',
     all_files:           'Inventaire des fichiers',
     plans:               'Plans & relevés',
     docs:                'Autres documents',
@@ -1517,27 +1469,21 @@ panel.plugin('goheritage/project-ux', {
       '<span class="gh-btn__label">' + (editing ? 'Fermer' : 'Modifier') + '</span>';
   }
 
-  // Delegated click handling for BOTH toggles. Delegation (not a listener
+  // Delegated click handling for EVERY read/edit toggle (model, point cloud,
+  // details). Each toggle button carries `data-gh-toggle="<body mode attr>"`,
+  // e.g. data-gh-toggle="data-gh-model-mode". Delegation (not a listener
   // bound to a specific button) is essential: the panel re-renders the
-  // section container often, wiping and rebuilding our injected toolbar. A
-  // listener on a specific button is lost when that button is replaced —
-  // and a click landing mid-rebuild would fire on a detached node and do
-  // nothing. One document-level handler always catches the live button.
+  // section container often, wiping and rebuilding our injected toolbar, so a
+  // listener on a specific button would be lost — and a click landing
+  // mid-rebuild would fire on a detached node and do nothing. One
+  // document-level handler always catches whatever button is live.
   document.addEventListener('click', function (e) {
-    var mBtn = e.target.closest && e.target.closest('[data-gh-model-toggle]');
-    if (mBtn) {
-      var mMode = document.body.getAttribute('data-gh-model-mode') === 'edit' ? 'read' : 'edit';
-      document.body.setAttribute('data-gh-model-mode', mMode);
-      paintToggleBtn(document.querySelector('[data-gh-model-toggle]'), 'data-gh-model-mode');
-      return;
-    }
-    var dBtn = e.target.closest && e.target.closest('[data-gh-details-toggle]');
-    if (dBtn) {
-      var dMode = document.body.getAttribute('data-gh-details-mode') === 'edit' ? 'read' : 'edit';
-      document.body.setAttribute('data-gh-details-mode', dMode);
-      paintToggleBtn(document.querySelector('[data-gh-details-toggle]'), 'data-gh-details-mode');
-      return;
-    }
+    var btn = e.target.closest && e.target.closest('[data-gh-toggle]');
+    if (!btn) return;
+    var attr = btn.getAttribute('data-gh-toggle');
+    var mode = document.body.getAttribute(attr) === 'edit' ? 'read' : 'edit';
+    document.body.setAttribute(attr, mode);
+    paintToggleBtn(btn, attr);
   });
 
   /*  ALWAYS inject our own headline at the top of every section card.
@@ -1602,27 +1548,31 @@ panel.plugin('goheritage/project-ux', {
     });
   }
 
-  /*  Modèle 3D tab — read mode shows ONLY the live viewer preview;
-   *  edit mode shows the technical upload sections. A toggle button in
-   *  the preview header flips between the two. Body data-attr drives the
-   *  CSS that hides/shows sections + preview. */
-  function ensureModelPreview() {
+  /*  Viewer tabs (Modèle 3D, Nuage de points) — read mode shows a full-bleed
+   *  iframe viewer; edit mode shows the Kirby upload sections. A compact
+   *  titled header (rendered IN the tab content, so it's cleared whenever the
+   *  panel swaps the view) carries the pen/X toggle. Body data-attr drives
+   *  the show/hide CSS.
+   *
+   *  cfg = { tab, bodyClass, modeAttr, previewId, headId, title, query } */
+  function ensureViewerTab(cfg) {
     var params = new URLSearchParams(window.location.search);
     var tab = params.get('tab');
 
-    // Off the model tab → clean up flags + preview, bail.
-    if (tab !== 'model') {
-      var stale = document.getElementById('gh-model-preview');
-      if (stale) stale.remove();
-      document.body.classList.remove('gh-on-model-tab');
-      document.body.removeAttribute('data-gh-model-mode');
+    // Off this tab → remove ALL our chrome for it (header + preview) and
+    // clear the body flags. (The old code removed only the preview, so the
+    // toggle header leaked onto other tabs — that's the "won't disappear".)
+    if (tab !== cfg.tab) {
+      document.querySelectorAll('#' + cfg.previewId + ', #' + cfg.headId)
+        .forEach(function (e) { e.remove(); });
+      document.body.classList.remove(cfg.bodyClass);
+      document.body.removeAttribute(cfg.modeAttr);
       return;
     }
 
-    document.body.classList.add('gh-on-model-tab');
-    // Default to read mode unless the user already toggled to edit.
-    if (!document.body.getAttribute('data-gh-model-mode')) {
-      document.body.setAttribute('data-gh-model-mode', 'read');
+    document.body.classList.add(cfg.bodyClass);
+    if (!document.body.getAttribute(cfg.modeAttr)) {
+      document.body.setAttribute(cfg.modeAttr, 'read');
     }
 
     var slug = '';
@@ -1633,44 +1583,59 @@ panel.plugin('goheritage/project-ux', {
     } catch (_) {}
     if (!slug) return;
 
-    // Dedup: if exactly one bar + one preview already exist, nothing to
-    // do (avoids reloading the iframe every scan tick). If counts are
-    // off (0, or >1 from a tab-swap race), wipe and rebuild cleanly.
-    var existingBars  = document.querySelectorAll('#gh-model-bar');
-    var existingPrevs = document.querySelectorAll('#gh-model-preview');
-    if (existingBars.length === 1 && existingPrevs.length === 1) return;
-    existingBars.forEach(function (e) { e.remove(); });
-    existingPrevs.forEach(function (e) { e.remove(); });
+    // Dedup: leave a healthy (1 head + 1 preview) pair alone so the iframe
+    // isn't reloaded on every scan tick.
+    var heads = document.querySelectorAll('#' + cfg.headId);
+    var prevs = document.querySelectorAll('#' + cfg.previewId);
+    if (heads.length === 1 && prevs.length === 1) return;
+    heads.forEach(function (e) { e.remove(); });
+    prevs.forEach(function (e) { e.remove(); });
 
     var firstSection = document.querySelector('.k-page-view .k-section');
     var host = firstSection && firstSection.parentNode;
     if (!host) return;
 
-    // Persistent toolbar — a single right-aligned toggle button. Plain
-    // outlined .gh-btn (same as the section "Modifier" buttons): pen +
-    // "Modifier" in read mode, X + "Fermer" in edit mode.
-    var bar = document.createElement('div');
-    bar.id = 'gh-model-bar';
-    bar.className = 'gh-model-bar';
-    bar.innerHTML =
-      '<span class="gh-model-bar__banner">' +
-        '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>' +
-        'Mode édition — vous gérez les fichiers du modèle 3D.' +
-      '</span>' +
-      '<button type="button" class="gh-btn" data-gh-model-toggle></button>';
-    host.insertBefore(bar, firstSection);
+    // Compact header that reads like a content title row (title left, pen/X
+    // toggle right) instead of a full-width strip under the tab bar.
+    var head = document.createElement('div');
+    head.id = cfg.headId;
+    head.className = 'gh-viewer-head';
+    head.innerHTML =
+      '<span class="gh-viewer-head__title">' + cfg.title + '</span>' +
+      '<button type="button" class="gh-btn gh-btn--sm" data-gh-toggle="' + cfg.modeAttr + '"></button>';
+    host.insertBefore(head, firstSection);
 
     var wrap = document.createElement('div');
-    wrap.id = 'gh-model-preview';
-    wrap.className = 'gh-model-preview';
+    wrap.id = cfg.previewId;
+    wrap.className = 'gh-viewer-preview';
+    // autoplay=1 skips the public page's "press play" splash so the viewer
+    // loads straight away — in the panel it's the dataset's centrepiece.
     wrap.innerHTML =
-      '<iframe class="gh-model-preview__frame" src="/' + slug + '?embed=1&viewer=only" ' +
+      '<iframe class="gh-viewer-preview__frame" src="/' + slug + cfg.query + '" ' +
         'allow="xr-spatial-tracking; fullscreen" loading="lazy"></iframe>';
     host.insertBefore(wrap, firstSection);
 
-    // Click handling is delegated at the document level (see paintToggleBtn
-    // setup near HEADLINE_MAP); here we only paint the initial state.
-    paintToggleBtn(bar.querySelector('[data-gh-model-toggle]'), 'data-gh-model-mode');
+    // Clicks are handled by the delegated [data-gh-toggle] listener; here we
+    // only paint the initial icon/label.
+    paintToggleBtn(head.querySelector('[data-gh-toggle]'), cfg.modeAttr);
+  }
+
+  function ensureModelPreview() {
+    ensureViewerTab({
+      tab: 'model', bodyClass: 'gh-on-model-tab', modeAttr: 'data-gh-model-mode',
+      previewId: 'gh-model-preview', headId: 'gh-model-head',
+      title: 'Modèle 3D',
+      query: '?embed=1&viewer=only&autoplay=1'
+    });
+  }
+
+  function ensurePointcloudPreview() {
+    ensureViewerTab({
+      tab: 'pointcloud', bodyClass: 'gh-on-pointcloud-tab', modeAttr: 'data-gh-pointcloud-mode',
+      previewId: 'gh-pointcloud-preview', headId: 'gh-pointcloud-head',
+      title: 'Nuage de points',
+      query: '?embed=1&viewer=only&autoplay=1&pointcloud=1'
+    });
   }
 
   // ── Details tab read/edit mode toggle (same pattern as model tab) ──
@@ -1814,7 +1779,7 @@ panel.plugin('goheritage/project-ux', {
         '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>' +
         ' Mode édition — modifiez le contenu et la galerie.' +
       '</span>' +
-      '<button type="button" class="gh-btn" data-gh-details-toggle></button>';
+      '<button type="button" class="gh-btn" data-gh-toggle="data-gh-details-mode"></button>';
     host.insertBefore(bar, firstSection);
 
     // Showcase: pretty read-only card shown when not editing.
@@ -1825,26 +1790,31 @@ panel.plugin('goheritage/project-ux', {
     host.insertBefore(showcase, firstSection);
 
     // Click handling is delegated at the document level; paint initial state.
-    paintToggleBtn(bar.querySelector('[data-gh-details-toggle]'), 'data-gh-details-mode');
+    paintToggleBtn(bar.querySelector('[data-gh-toggle]'), 'data-gh-details-mode');
   }
 
   function scan() {
     if (!isProjectPage()) {
       document.body.classList.remove(BODY_FLAG);
       document.body.style.removeProperty('--gh-header-height');
-      var stalePreview = document.getElementById('gh-model-preview');
-      if (stalePreview) stalePreview.remove();
-      var staleDetailsBar = document.getElementById('gh-details-bar');
-      if (staleDetailsBar) staleDetailsBar.remove();
-      var staleDetailsShow = document.getElementById('gh-details-showcase');
-      if (staleDetailsShow) staleDetailsShow.remove();
-      document.body.classList.remove('gh-on-details-tab');
-      document.body.removeAttribute('data-gh-details-mode');
+      // Tear down every bit of tab chrome we may have injected + its flags.
+      ['gh-model-head', 'gh-model-preview', 'gh-pointcloud-head', 'gh-pointcloud-preview',
+       'gh-details-bar', 'gh-details-showcase'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.remove();
+      });
+      ['gh-on-model-tab', 'gh-on-pointcloud-tab', 'gh-on-details-tab'].forEach(function (c) {
+        document.body.classList.remove(c);
+      });
+      ['data-gh-model-mode', 'data-gh-pointcloud-mode', 'data-gh-details-mode'].forEach(function (a) {
+        document.body.removeAttribute(a);
+      });
       return;
     }
     document.body.classList.add(BODY_FLAG);
     measureHeader();
     ensureModelPreview();
+    ensurePointcloudPreview();
     ensureDetailsToggle();
 
     // Tag EVERY .k-section on the page so the card styling applies
