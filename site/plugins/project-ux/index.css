@@ -26,6 +26,40 @@
   z-index: 1000 !important;
 }
 
+/*  GoHéritage custom-UI palette — drives the visibility pill, its dropdown,
+    the share modal/popover and the "Voir la page publique" header button.
+    Defined on :root so every one of those (which live in different parts of
+    the panel DOM) shares one tweakable scale instead of repeating hex
+    literals. Dark is the default; the light override below kicks in when the
+    OS / panel appearance is light. */
+:root {
+  --gh-elev-0: #121212;  /* header buttons background        */
+  --gh-inset:  #141414;  /* inset field (the URL box)        */
+  --gh-elev-1: #1e1e1e;  /* raised surfaces: panel / modal   */
+  --gh-elev-2: #252525;  /* type button                      */
+  --gh-elev-3: #2e2e2e;  /* dividers · active pill           */
+  --gh-line:   #3a3a3a;  /* borders                          */
+  --gh-text:     #efefef; /* primary text on the surfaces    */
+  --gh-text-dim: #999;    /* secondary / helper text         */
+  --gh-hover:  rgba(255, 255, 255, 0.08); /* subtle hover fill */
+  --gh-active: rgba(255, 255, 255, 0.12); /* selected fill     */
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --gh-elev-0: #f1f1f1;
+    --gh-inset:  #ededed;
+    --gh-elev-1: #ffffff;
+    --gh-elev-2: #f4f4f4;
+    --gh-elev-3: #e8e8e8;
+    --gh-line:   #d9d9d9;
+    --gh-text:     #1a1a1a;
+    --gh-text-dim: #5d5d5d;
+    --gh-hover:  rgba(0, 0, 0, 0.06);
+    --gh-active: rgba(0, 0, 0, 0.09);
+  }
+}
+
 .gh-visibility {
   position: relative;
   display: inline-flex;
@@ -42,8 +76,8 @@
   padding: 0 0.85rem;
   border: 1px solid var(--color-border, #444);
   border-radius: var(--rounded, 4px);
-  background: #121212;
-  color: #efefef;
+  background: var(--gh-elev-0);
+  color: var(--gh-text);
   font: inherit;
   font-size: 0.875rem;
   font-weight: 500;
@@ -63,12 +97,12 @@
   flex-shrink: 0;
   width: 1em;
   height: 1em;
-  color: #efefef;
+  color: var(--gh-text);
 }
 
 .gh-visibility__label {
   font-weight: 500;
-  color: #efefef;
+  color: var(--gh-text);
 }
 
 /*  Chevron — rotates 180° when the dropdown is open as a clear visual
@@ -77,7 +111,7 @@
   flex-shrink: 0;
   width: 0.85em;
   height: 0.85em;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--gh-text-dim);
   margin-left: 0.1em;
   transition: transform 0.15s ease;
 }
@@ -98,9 +132,9 @@
   z-index: 9999;
   min-width: 19rem;
   max-width: 24rem;
-  background: #1e1e1e;
-  color: #efefef;
-  border: 1px solid #3a3a3a;
+  background: var(--gh-elev-1);
+  color: var(--gh-text);
+  border: 1px solid var(--gh-line);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 12px 28px rgba(0, 0, 0, 0.5);
   padding: 0.4rem;
@@ -118,7 +152,7 @@
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #efefef;
+  color: var(--gh-text);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -127,25 +161,25 @@
 }
 .gh-visibility__opt:hover,
 .gh-visibility__opt:focus-visible {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--gh-hover);
   outline: none;
 }
 
 /* Selected state */
 .gh-visibility__opt.is-active {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: var(--gh-active);
+  color: var(--gh-text);
 }
 .gh-visibility__opt.is-active .gh-visibility__opt-icon,
 .gh-visibility__opt.is-active .gh-visibility__opt-check {
-  color: #fff;
+  color: var(--gh-text);
 }
 .gh-visibility__opt.is-active strong,
 .gh-visibility__opt.is-active .gh-visibility__opt-help {
-  color: #fff;
+  color: var(--gh-text);
 }
 .gh-visibility__opt.is-active .gh-visibility__opt-help {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--gh-text-dim);
 }
 
 .gh-visibility__opt-icon {
@@ -166,11 +200,11 @@
 .gh-visibility__opt-text strong {
   font-weight: 600;
   line-height: 1.25;
-  color: #efefef;
+  color: var(--gh-text);
 }
 .gh-visibility__opt-help {
   font-size: 0.78rem;
-  color: #999;
+  color: var(--gh-text-dim);
   line-height: 1.35;
 }
 .gh-visibility__opt-check {
@@ -180,99 +214,6 @@
   height: 1em;
   color: #aaa;
 }
-
-/* Share-link panel inside the dropdown */
-.gh-visibility__share {
-  margin-top: 0.35rem;
-  padding: 0.6rem 0.7rem 0.7rem;
-  border-top: 1px solid #3a3a3a;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-.gh-visibility__share-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #999;
-}
-.gh-visibility__share-label .k-icon { opacity: 0.7; }
-.gh-visibility__share-row {
-  display: flex;
-  align-items: stretch;
-  gap: 0.35rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid #3a3a3a;
-  border-radius: 5px;
-  padding: 0.25rem 0.35rem;
-}
-.gh-visibility__share-row input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  outline: none;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 0.78rem;
-  color: #efefef;
-  padding: 0.25rem 0;
-}
-.gh-visibility__share-copy {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.3rem 0.5rem;
-  border: 0;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-  cursor: pointer;
-}
-.gh-visibility__share-copy:hover { background: rgba(255, 255, 255, 0.25); }
-.gh-visibility__share-copy .k-icon { width: 0.95em; height: 0.95em; color: #fff; }
-.gh-visibility__share-empty {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0;
-  font-size: 0.8rem;
-  color: #999;
-  font-style: italic;
-}
-.gh-visibility__share-empty .k-icon { opacity: 0.7; }
-
-.gh-visibility__share-regen {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.5rem;
-  padding: 0.4rem 0.7rem;
-  border: 1px solid #3a3a3a;
-  border-radius: 4px;
-  background: transparent;
-  color: #efefef;
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.1s ease, border-color 0.1s ease;
-}
-.gh-visibility__share-regen:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: #666;
-}
-.gh-visibility__share-regen .k-icon { width: 0.9em; height: 0.9em; }
-.gh-visibility__share-note {
-  margin: 0.35rem 0 0;
-  font-size: 0.72rem;
-  color: #999;
-  font-style: italic;
-}
-
 
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -300,54 +241,12 @@ body.gh-project-edit .k-section.gh-section + .k-section.gh-section {
   border-top: 1px solid var(--color-border) !important;
 }
 
-/* ── Model tab: the whole tab toggles edit/view via the preview header
-   button, so individual sections should NOT have their own per-section
-   edit dock or read-mode field hiding. In edit mode every field is
-   directly editable, no nested locking. ──────────────────────────── */
-body.gh-on-model-tab[data-gh-model-mode="edit"] .gh-section .gh-section__dock {
-  display: none !important;
-}
-body.gh-on-model-tab[data-gh-model-mode="edit"] .gh-section .k-field {
-  display: block !important;
-}
-body.gh-on-model-tab[data-gh-model-mode="edit"] .gh-section .gh-section__display {
-  display: none !important;
-}
-
-/* When a section is being edited, give it a little more right padding
-   so the wider [Annuler] [Enregistrer] pair doesn't crowd the header. */
-body.gh-project-edit .gh-section.is-editing {
-  padding-right: 1.5rem !important;
-}
-
-/*  Active (editing) card — ink border + slight tint marks the live one. */
-body.gh-project-edit .gh-section.is-editing {
-  border-color: var(--color-text, #1a1a1a) !important;
-  background: var(--color-back, rgba(0, 0, 0, 0.02)) !important;
-}
-
-/*  Disabled state when another section is in edit mode. */
-body.gh-project-edit .gh-section.is-disabled { opacity: 0.5; }
-body.gh-project-edit .gh-section.is-disabled .gh-section__dock { pointer-events: none; }
-
-/*  Hide every direct child of an editable section by
-    default, then explicitly whitelist what should be visible. This
-    sidesteps every quirk of Kirby 5.4's variable section DOM —
-    .k-section-header, .k-fields, .k-section-buttons, whatever else —
-    by NOT relying on any of them.
-    .gh-section__title (injected by JS), .gh-section__display (injected
-    by JS), .gh-section__dock (injected by JS), and Kirby's .k-fields
-    container in edit mode are the only things ever shown. */
 /* Hide Kirby's stock section header — we inject our own h2 instead so
    there's just ONE title per section instead of two. */
 body.gh-project-edit .gh-section > .k-section-header,
 body.gh-project-edit .gh-section > header.k-section-header {
   display: none !important;
 }
-
-/* Per-section read/edit mode retired — editing surfaces (Détails,
-   Modèle 3D) show fields directly editable like normal Kirby. The
-   read-only "document" view is the Aperçu tab's custom overview. */
 
 /*  Tighter spacing for Kirby's k-info / k-help / k-field-counter
     elements inside our cards — by default they get inherited margins
@@ -380,16 +279,10 @@ body.gh-project-edit .gh-section > div.k-fields {
   padding-top: 0 !important;
 }
 
-/*  And tighten the gap between successive fields so the form reads as
-    one coherent unit, not a stack of disconnected rows. */
-body.gh-project-edit .gh-section.is-editing .k-field + .k-field {
-  margin-top: 0.85rem !important;
-}
-
 /*  Section TITLE — our injected h2.gh-section__title. Visually
     attached to the card content below (no border-bottom, just a tight
     margin) so it doesn't read as a separate strip floating above the
-    fields. The dock sits to its right via absolute positioning. */
+    fields. */
 body.gh-project-edit .gh-section > .gh-section__title {
   font-family: inherit !important;
   font-size: 1.05rem !important;
@@ -398,7 +291,7 @@ body.gh-project-edit .gh-section > .gh-section__title {
   color: var(--color-text, #1a1a1a) !important;
   /* Comfortable gap below the title so content doesn't crowd it. */
   margin: 0 0 1.1rem 0 !important;
-  padding: 0 9rem 0 0 !important;
+  padding: 0 !important;
   line-height: 1.3 !important;
   text-align: left !important;
   border: 0 !important;
@@ -422,99 +315,11 @@ body.gh-project-edit .gh-section.gh-collapsed .gh-section__chevron {
   transform: rotate(-90deg);
 }
 /*  Collapsed: hide everything in the card except the title. */
-body.gh-project-edit .gh-section.gh-collapsed > *:not(.gh-section__title):not(.gh-section__dock) {
+body.gh-project-edit .gh-section.gh-collapsed > *:not(.gh-section__title) {
   display: none !important;
 }
 body.gh-project-edit .gh-section.gh-collapsed > .gh-section__title {
   margin-bottom: 0 !important;
-}
-
-
-/* ──────────────────────────────────────────────────────────────────────
- *  Read-only mode: HIDE the input chrome entirely, show the static
- *  display injected by JS. The page reads as a document until you click
- *  Modifier.
- *
- *  Edit-only field types (location-search and friends) stay hidden even
- *  when editing because they're just UI affordances, not values.
- * ────────────────────────────────────────────────────────────────────── */
-
-/* Read/edit visibility is now driven by the whitelist above — these
-   selectors stay only for safety in case Kirby renders something we
-   didn't anticipate. */
-body.gh-project-edit .gh-section.is-editing > .gh-section__display {
-  display: none !important;
-}
-
-/* Static display itself — definition-list, two columns: label / value. */
-.gh-section__display {
-  display: none;
-  grid-template-columns: minmax(8rem, max-content) 1fr;
-  column-gap: 1.25rem;
-  row-gap: 0.6rem;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.gh-section__display-key {
-  font-size: 0.72rem !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.06em !important;
-  text-transform: uppercase !important;
-  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55)) !important;
-  margin: 0 !important;
-  padding-top: 0.15rem !important;
-  align-self: start;
-}
-
-.gh-section__display-val {
-  font-size: 0.95rem !important;
-  font-weight: 400 !important;
-  color: var(--color-text, #1a1a1a) !important;
-  margin: 0 !important;
-  line-height: 1.45 !important;
-  word-break: break-word;
-}
-
-.gh-section__display-val.is-empty {
-  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.4)) !important;
-  font-style: italic;
-}
-
-/* Multi-value chip lists used for tags etc. */
-.gh-chips {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-.gh-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.18rem 0.55rem;
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.15));
-  border-radius: 999px;
-  background: var(--color-back, rgba(0, 0, 0, 0.025));
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--color-text, #1a1a1a);
-}
-
-/*  When editing: clean up Kirby's defaults so the form actually breathes.
-    Field labels get our dashboard-style treatment. */
-body.gh-project-edit .gh-section.is-editing .k-field > .k-field-header,
-body.gh-project-edit .gh-section.is-editing .k-field > label.k-label {
-  font-size: 0.72rem !important;
-  font-weight: 600 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.06em !important;
-  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55)) !important;
-  margin-bottom: 0.4rem !important;
-}
-
-/*  Location-search (map picker) is an EDIT-only affordance — no static
-    representation makes sense. Hide it in read mode regardless. */
-body.gh-project-edit .gh-section:not(.is-editing) .k-location-search-field {
-  display: none !important;
 }
 
 
@@ -542,28 +347,12 @@ body.gh-project-edit .k-tabs {
 
 
 /* ──────────────────────────────────────────────────────────────────────
- *  3. Edit-button dock
+ *  3. Custom buttons (.gh-btn)
  *
- *  Absolute-positioned at the top-right of the section card itself
- *  (NOT inside Kirby's .k-section-header). The card has padding-top
- *  reserved so the dock never overlaps real content. This approach
- *  sidesteps every fight we kept losing inside the header flex row.
+ *  Used by the read/edit toggle in the Modèle 3D and Détails tab bars.
+ *  Fully custom, using ONLY Kirby's CSS vars so the button adapts cleanly
+ *  to both light and dark panel themes — no hardcoded white/black.
  * ────────────────────────────────────────────────────────────────────── */
-
-body.gh-project-edit .gh-section .gh-section__dock {
-  position: absolute !important;
-  top: 0.75rem !important;
-  right: 0.85rem !important;
-  z-index: 10;
-  display: inline-flex !important;
-  align-items: center;
-  gap: 0.4rem !important;
-  margin: 0 !important;
-}
-
-/*  Edit buttons — fully custom, using ONLY Kirby's CSS vars so the
-    button adapts cleanly to both light and dark panel themes. No
-    hardcoded white/black anywhere. */
 .gh-btn {
   display: inline-flex;
   align-items: center;
@@ -607,71 +396,6 @@ body.gh-project-edit .gh-section .gh-section__dock {
   display: inline;
   white-space: nowrap;
 }
-
-/*  Save variant — primary action. Uses Kirby's positive theme tokens. */
-.gh-btn--save {
-  background: var(--color-positive, var(--color-text));
-  border-color: var(--color-positive, var(--color-text));
-  color: var(--color-positive-light, var(--color-bg));
-}
-.gh-btn--save:hover:not(:disabled) {
-  filter: brightness(1.1);
-  border-color: var(--color-positive, var(--color-text));
-}
-.gh-btn--save.is-loading .gh-btn__icon {
-  animation: gh-btn-spin 0.9s linear infinite;
-}
-@keyframes gh-btn-spin { to { transform: rotate(360deg); } }
-
-/*  Dim dock slightly on read-only sections, full opacity on hover /
-    while editing. */
-body.gh-project-edit .gh-section:not(.is-editing) .gh-section__dock {
-  opacity: 0.8;
-  transition: opacity 0.12s ease;
-}
-body.gh-project-edit .gh-section:not(.is-editing):hover .gh-section__dock,
-body.gh-project-edit .gh-section.is-editing .gh-section__dock {
-  opacity: 1;
-}
-
-
-/* ──────────────────────────────────────────────────────────────────────
- *  4. Legacy share-link field (used by old blueprints — kept theme-safe)
- * ────────────────────────────────────────────────────────────────────── */
-
-.goheritage-share-link {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.625rem;
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 5px;
-}
-.goheritage-share-link__icon { flex-shrink: 0; color: rgba(0, 0, 0, 0.55); }
-.goheritage-share-link input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  outline: none;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 0.85rem;
-  color: #1a1a1a;
-  cursor: text;
-  padding: 0.25rem 0;
-}
-.goheritage-share-link__empty {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  color: rgba(0, 0, 0, 0.55);
-  font-style: italic;
-  margin: 0;
-}
-.goheritage-share-link__empty .k-icon { opacity: 0.7; }
-
 
 /* ──────────────────────────────────────────────────────────────────────
  *  3D viewer preview — top of the Modèle 3D tab (read mode emphasis).
@@ -730,8 +454,10 @@ body.gh-on-model-tab[data-gh-model-mode="edit"] .gh-model-bar__banner {
 }
 
 /* ── 3D tab read/edit mode switching ──────────────────────────────── */
-/* Read mode: show the viewer preview, hide all the technical sections. */
-body.gh-on-model-tab[data-gh-model-mode="read"] .k-page-view .k-section {
+/* Read mode: show the viewer preview, hide all the technical sections.
+   Scoped by the body class (only set while on the model tab); ancestor
+   selector dropped so it works regardless of Kirby's section nesting. */
+body.gh-on-model-tab[data-gh-model-mode="read"] .k-section {
   display: none !important;
 }
 body.gh-on-model-tab[data-gh-model-mode="read"] #gh-model-preview {
@@ -743,7 +469,7 @@ body.gh-on-model-tab[data-gh-model-mode="read"] #gh-model-preview {
 body.gh-on-model-tab[data-gh-model-mode="edit"] #gh-model-preview {
   display: none !important;
 }
-body.gh-on-model-tab[data-gh-model-mode="edit"] .k-page-view .k-section {
+body.gh-on-model-tab[data-gh-model-mode="edit"] .k-section {
   display: block !important;
 }
 .gh-model-preview__frame {
@@ -792,8 +518,11 @@ body.gh-on-details-tab[data-gh-details-mode="edit"] .gh-details-bar__banner {
   display: inline-flex;
 }
 
-/* Read mode: show showcase, hide all the section cards. */
-body.gh-on-details-tab[data-gh-details-mode="read"] .k-page-view .k-section {
+/* Read mode: show showcase, hide all the section cards. Scoped by the
+   body class (only set while on the details tab) so it can't touch any
+   other view; the ancestor selector is intentionally dropped so it works
+   regardless of Kirby's exact section nesting. */
+body.gh-on-details-tab[data-gh-details-mode="read"] .k-section {
   display: none !important;
 }
 body.gh-on-details-tab[data-gh-details-mode="read"] #gh-details-showcase {
@@ -804,7 +533,7 @@ body.gh-on-details-tab[data-gh-details-mode="read"] #gh-details-showcase {
 body.gh-on-details-tab[data-gh-details-mode="edit"] #gh-details-showcase {
   display: none !important;
 }
-body.gh-on-details-tab[data-gh-details-mode="edit"] .k-page-view .k-section {
+body.gh-on-details-tab[data-gh-details-mode="edit"] .k-section {
   display: block !important;
 }
 
@@ -834,16 +563,81 @@ body.gh-on-details-tab[data-gh-details-mode="edit"] .k-page-view .k-section {
   font-style: italic;
 }
 
-.gh-details-showcase__hint {
+.gh-details-showcase__loading {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
+  font-style: italic;
   color: var(--color-text-dimmed);
-  line-height: 1.5;
 }
 
-.gh-details-showcase__hint strong {
-  font-weight: 600;
+/* Cover image at the top of the showcase */
+.gh-details-showcase__cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  object-fit: cover;
+  border-radius: var(--rounded, 4px);
+  background: var(--color-back);
+}
+
+/* Rendered editorial blocks. The site's own CSS (Tailwind) isn't loaded in
+   the panel, so we give the raw block HTML readable defaults here. */
+.gh-details-showcase__content {
+  font-size: 1rem;
+  line-height: 1.65;
   color: var(--color-text);
+}
+.gh-details-showcase__content > :first-child { margin-top: 0; }
+.gh-details-showcase__content > :last-child { margin-bottom: 0; }
+.gh-details-showcase__content h1,
+.gh-details-showcase__content h2,
+.gh-details-showcase__content h3,
+.gh-details-showcase__content h4 {
+  margin: 1.6rem 0 0.6rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-text);
+}
+.gh-details-showcase__content h2 { font-size: 1.3rem; }
+.gh-details-showcase__content h3 { font-size: 1.1rem; }
+.gh-details-showcase__content p { margin: 0 0 1rem; }
+.gh-details-showcase__content a { color: var(--color-link, #4271ae); }
+.gh-details-showcase__content ul,
+.gh-details-showcase__content ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+.gh-details-showcase__content li { margin: 0.2rem 0; }
+.gh-details-showcase__content blockquote {
+  margin: 1.25rem 0;
+  padding: 0.4rem 0 0.4rem 1rem;
+  border-left: 3px solid var(--color-border);
+  color: var(--color-text-dimmed);
+  font-style: italic;
+}
+.gh-details-showcase__content img,
+.gh-details-showcase__content figure img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--rounded, 4px);
+}
+.gh-details-showcase__content figure { margin: 1.25rem 0; }
+.gh-details-showcase__content figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--color-text-dimmed);
+}
+
+/* Gallery thumbnails */
+.gh-details-showcase__gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.gh-details-showcase__thumb {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--rounded, 4px);
+  background: var(--color-back);
 }
 
 
@@ -866,9 +660,7 @@ body.gh-project-edit .k-project-overview-section.gh-section {
   margin: 0 0 1rem !important;
   box-shadow: none !important;
 }
-body.gh-project-edit .k-project-overview-section > .gh-section__title,
-body.gh-project-edit .k-project-overview-section > .gh-section__dock,
-body.gh-project-edit .k-project-overview-section > .gh-section__display {
+body.gh-project-edit .k-project-overview-section > .gh-section__title {
   display: none !important;
 }
 
@@ -909,30 +701,38 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   object-fit: cover;
   display: block;
 }
-/* "Voir la page publique" — custom view button in the page header */
+/* "Voir la page publique" — custom view button in the page header.
+   Matches the visibility pill sitting next to it: same dark fill, no
+   border/outline so the header button group reads as one consistent set. */
 .gh-visit-page-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   height: var(--height-md, 2.25rem);
   padding: 0 0.85rem;
-  border: 1px solid var(--color-border, #444);
+  border: 0;
   border-radius: var(--rounded, 4px);
-  background: transparent;
-  color: var(--color-text);
+  background: var(--gh-elev-0);  /* same fill as .gh-visibility__trigger */
+  color: var(--gh-text);
   font: inherit;
   font-size: 0.875rem;
   font-weight: 500;
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.1s ease, border-color 0.1s ease;
+  transition: background 0.1s ease;
 }
 .gh-visit-page-btn:hover {
-  background: var(--color-hover);
+  background: var(--gh-elev-1);
   text-decoration: none;
 }
-.gh-visit-page-btn .k-icon { width: 1em; height: 1em; }
+.gh-visit-page-btn:focus,
+.gh-visit-page-btn:active,
+.gh-visit-page-btn:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.gh-visit-page-btn .k-icon { width: 1em; height: 1em; color: var(--gh-text); }
 .gh-pov__cover-empty {
   display: flex;
   flex-direction: column;
@@ -1084,38 +884,6 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   color: var(--color-text-dimmed);
 }
 
-/* ── Quick actions row ────────────────────────────────────────────── */
-.gh-pov__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.gh-pov__action {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 0.9rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--rounded, 4px);
-  background: var(--panel-color-back);
-  color: var(--color-text);
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 500;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.1s ease, border-color 0.1s ease;
-}
-.gh-pov__action:hover {
-  background: var(--color-hover);
-  border-color: var(--color-text);
-  text-decoration: none;
-}
-.gh-pov__action .k-icon {
-  width: 1em;
-  height: 1em;
-}
-
 @media (max-width: 40rem) {
   .gh-pov__stats { grid-template-columns: repeat(2, 1fr); }
 }
@@ -1160,11 +928,16 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
 }
 
 /* ── Tags row ─────────────────────────────────────────────────────── */
-.gh-pov__tags-row {
+.gh-pov__tags-row,
+.gh-pov__meta-row {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+/* Characteristics chips take the middle space, like the tags list does. */
+.gh-pov__meta-row .gh-pov__chips {
+  flex: 1 1 auto;
 }
 .gh-pov__section-label {
   flex-shrink: 0;
@@ -1224,6 +997,18 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
 }
 
 /* ── Asset tile grid ──────────────────────────────────────────────── */
+/* Group subheading above each tile grid (Visite publique / Documents). */
+.gh-pov__group-label {
+  margin: 0.75rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-dimmed);
+}
+.gh-pov__group-label + .gh-pov__assets {
+  margin-top: 0.4rem;
+}
 .gh-pov__assets {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -1310,9 +1095,9 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
 
 /* ── Share modal card ── */
 .gh-share-modal {
-  background: #1e1e1e;
-  color: #efefef;
-  border: 1px solid #3a3a3a;
+  background: var(--gh-elev-1);
+  color: var(--gh-text);
+  border: 1px solid var(--gh-line);
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   width: 100%;
@@ -1328,14 +1113,14 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   align-items: center;
   justify-content: space-between;
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #2e2e2e;
+  border-bottom: 1px solid var(--gh-elev-3);
   flex-shrink: 0;
 }
 
 .gh-share-modal__title {
   font-size: 1rem;
   font-weight: 600;
-  color: #efefef;
+  color: var(--gh-text);
   margin: 0;
   display: flex;
   align-items: center;
@@ -1360,8 +1145,8 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   transition: background 0.1s ease, color 0.1s ease;
 }
 .gh-share-modal__close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #efefef;
+  background: var(--gh-hover);
+  color: var(--gh-text);
 }
 
 .gh-share-modal__body {
@@ -1375,7 +1160,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
 
 .gh-share-modal__footer {
   padding: 0.85rem 1.25rem;
-  border-top: 1px solid #2e2e2e;
+  border-top: 1px solid var(--gh-elev-3);
   display: flex;
   justify-content: flex-end;
   flex-shrink: 0;
@@ -1387,14 +1172,14 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   flex-direction: column;
   gap: 1.5rem;
   padding: 0.25rem 0;
-  color: #efefef;
+  color: var(--gh-text);
 }
 
 .gh-share-dialog__section {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  border-bottom: 1px solid #2e2e2e;
+  border-bottom: 1px solid var(--gh-elev-3);
   padding-bottom: 1.25rem;
 }
 
@@ -1409,7 +1194,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #efefef;
+  color: var(--gh-text);
   margin: 0;
 }
 
@@ -1441,7 +1226,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   margin: 0;
   font-size: 0.8rem;
   line-height: 1.4;
-  color: #999;
+  color: var(--gh-text-dim);
 }
 
 /* Private page → links unavailable; gentle pointer back to the pill. */
@@ -1460,7 +1245,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   color: #888;
 }
 .gh-share-dialog__locked p { margin: 0; }
-.gh-share-dialog__locked strong { color: #efefef; }
+.gh-share-dialog__locked strong { color: var(--gh-text); }
 
 .gh-share-dialog__empty {
   display: flex;
@@ -1488,7 +1273,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   flex-direction: column;
   gap: 0.6rem;
   padding: 0.4rem 0;
-  border-top: 1px solid #2e2e2e;
+  border-top: 1px solid var(--gh-elev-3);
 }
 
 .gh-share-dialog__link-item:first-child {
@@ -1511,18 +1296,18 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   gap: 0.4rem;
   height: 2.5rem;
   padding: 0 0.75rem 0 0.6rem;
-  border: 1px solid #3a3a3a;
+  border: 1px solid var(--gh-line);
   border-radius: 6px;
-  background: #252525;
-  color: #999;
+  background: var(--gh-elev-2);
+  color: var(--gh-text-dim);
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.1s, border-color 0.1s, color 0.1s;
 }
 .gh-share-dialog__type-btn:hover {
-  background: #2e2e2e;
+  background: var(--gh-elev-3);
   border-color: #555;
-  color: #efefef;
+  color: var(--gh-text);
 }
 .gh-share-dialog__type-btn-ico {
   flex-shrink: 0;
@@ -1554,13 +1339,13 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   align-items: center;
   height: 2.5rem;
   padding: 0 0.3rem 0 0.65rem;
-  background: #141414;
-  border: 1px solid #2e2e2e;
+  background: var(--gh-inset);
+  border: 1px solid var(--gh-elev-3);
   border-radius: 6px;
   overflow: hidden;
   transition: border-color 0.1s;
 }
-.gh-share-dialog__link-url-box:hover { border-color: #3a3a3a; }
+.gh-share-dialog__link-url-box:hover { border-color: var(--gh-line); }
 .gh-share-dialog__link-url {
   flex: 1;
   min-width: 0;
@@ -1586,7 +1371,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   transition: background 0.1s, color 0.1s;
 }
 .gh-share-dialog__url-copy-btn:hover {
-  background: rgba(255,255,255,0.09);
+  background: var(--gh-hover);
   color: #bbb;
 }
 .gh-share-dialog__url-copy-btn .k-icon { width: 1em; height: 1em; }
@@ -1612,8 +1397,8 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   transition: background 0.1s, color 0.1s;
 }
 .gh-share-dialog__icon-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--gh-hover);
+  color: var(--gh-text);
 }
 .gh-share-dialog__icon-btn--danger:hover {
   background: var(--color-red, #c0392b);
@@ -1635,7 +1420,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   gap: 0.3rem;
   height: 1.75rem;
   padding: 0 0.7rem;
-  border: 1px solid #2e2e2e;
+  border: 1px solid var(--gh-elev-3);
   border-radius: 999px;
   background: transparent;
   color: #555;
@@ -1650,14 +1435,14 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
 }
 .gh-share-dialog__perm-pill:hover:not(:disabled) {
   border-color: #444;
-  color: #999;
+  color: var(--gh-text-dim);
 }
 /* Active: filled, bright text, inset shadow gives a "pressed" feel,
    ::before injects a checkmark so selection is unambiguous */
 .gh-share-dialog__perm-pill.is-active {
-  background: #2e2e2e;
+  background: var(--gh-elev-3);
   border-color: #555;
-  color: #efefef;
+  color: var(--gh-text);
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
 }
 .gh-share-dialog__perm-pill.is-active::before {
@@ -1674,8 +1459,8 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   position: fixed;
   z-index: 999999;
   width: 300px;
-  background: #1e1e1e;
-  border: 1px solid #3a3a3a;
+  background: var(--gh-elev-1);
+  border: 1px solid var(--gh-line);
   border-radius: 8px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
   padding: 0.4rem;
@@ -1699,14 +1484,14 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #efefef;
+  color: var(--gh-text);
   font: inherit;
   text-align: left;
   cursor: pointer;
   width: 100%;
   transition: background 0.1s;
 }
-.gh-share-dialog__type-opt:hover:not(:disabled) { background: rgba(255, 255, 255, 0.07); }
+.gh-share-dialog__type-opt:hover:not(:disabled) { background: var(--gh-hover); }
 .gh-share-dialog__type-opt.is-active { background: rgba(66, 113, 174, 0.2); }
 .gh-share-dialog__type-opt:disabled { opacity: 0.4; cursor: not-allowed; }
 .gh-share-dialog__type-opt-icon {
@@ -1727,7 +1512,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
 .gh-share-dialog__type-opt-text strong {
   font-size: 0.82rem;
   font-weight: 600;
-  color: #efefef;
+  color: var(--gh-text);
 }
 .gh-share-dialog__type-opt-text span {
   font-size: 0.71rem;
@@ -1879,7 +1664,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
 .gh-geo-results li {
   padding: 0.6rem 0.85rem;
   font-size: var(--text-sm, 0.825rem);
-  color: var(--color-text, #efefef);
+  color: var(--color-text, var(--gh-text));
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1926,7 +1711,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
   border: 0 !important;
   border-radius: 6px !important;
   background: transparent !important;
-  color: #efefef !important;
+  color: var(--gh-text) !important;
   font: inherit !important;
   font-size: 0.825rem !important;
   font-weight: 500 !important;
@@ -1938,8 +1723,8 @@ body.gh-project-edit .k-project-overview-section > .gh-section__display {
 
 .gh-visibility__manage-btn:hover,
 .gh-visibility__manage-btn:focus {
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: #ffffff !important;
+  background: var(--gh-hover) !important;
+  color: var(--gh-text) !important;
 }
 
 .gh-visibility__manage-btn .k-icon {
