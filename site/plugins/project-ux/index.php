@@ -52,6 +52,14 @@ if (!function_exists('gh_guard_collaborator_scope')) {
             // No scope recorded → deny all writes rather than allow all.
             throw new \Kirby\Exception\PermissionException('Compte de partage non lié à un projet.');
         }
+
+        // Validate that the collaborator's share token is still active and has editor access
+        $shareToken = $user->share_token()->value();
+        $scopedPage = kirby()->page($scoped);
+        if (!$scopedPage || empty($shareToken) || $scopedPage->shareTokenAccess($shareToken) !== 'editor') {
+            throw new \Kirby\Exception\PermissionException('Ce lien d\'accès a été révoqué.');
+        }
+
         // Resolve the page the write targets (files carry a parent page).
         $page = $model;
         if ($model instanceof \Kirby\Cms\File) {
@@ -102,28 +110,143 @@ Kirby::plugin('goheritage/project-ux', [
                     return $kirby->response()->redirect('/panel/login');
                 }
 
-                $kirby->impersonate('kirby');
-
-                // Unique account per token (not a shared editor@ login).
-                $tokenHash = substr(hash('sha256', (string) $token), 0, 12);
-                $email     = 'share-' . $tokenHash . '@goheritage.invalid';
-
-                $user = $kirby->users()->find($email);
-                if (!$user) {
-                    try {
-                        $user = $kirby->users()->create([
-                            'email'    => $email,
-                            'password' => bin2hex(random_bytes(16)),
-                            'role'     => 'collaborator',
-                            'name'     => 'Collaborateur — ' . $page->title()->value(),
-                        ]);
-                        $user->update(['scoped_page' => $page->id()]);
-                    } catch (\Throwable $e) {
-                        return 'Erreur de création de compte collaborateur: ' . $e->getMessage();
+                // If already logged in to Kirby under a valid role that has access, redirect
+                if ($user = $kirby->user()) {
+                    if ($user->isAdmin() || $user->role()->name() === 'author' || ($user->role()->name() === 'collaborator' && $user->scoped_page()->value() === $page->id() && $user->share_token()->value() === $token)) {
+                        $panelId = str_replace('/', '+', $page->id());
+                        return $kirby->response()->redirect('/panel/pages/' . $panelId . '?tab=overview');
                     }
                 }
 
-                $kirby->session()->set('kirby.userId', $user->id());
+                // Check if a collaborator account already exists for this token
+                $user = $kirby->users()->filterBy('role', 'collaborator')->filterBy('share_token', $token)->first();
+
+                if ($user) {
+                    return snippet('gh-editor-signup', [
+                        'page'      => $page,
+                        'token'     => $token,
+                        'slug'      => $slug,
+                        'errors'    => [],
+                        'form_data' => [],
+                        'status'    => 'used',
+                    ], true);
+                }
+
+                // If not registered, render the signup page
+                return snippet('gh-editor-signup', [
+                    'page'      => $page,
+                    'token'     => $token,
+                    'slug'      => $slug,
+                    'errors'    => [],
+                    'form_data' => [],
+                    'status'    => 'active',
+                ], true);
+            }
+        ],
+
+        [
+            'pattern' => 'gh-share-register',
+            'method'  => 'POST',
+            'action'  => function () {
+                $kirby = kirby();
+                $token = get('token');
+                $slug  = get('slug');
+
+                if (!$token || !$slug) {
+                    return $kirby->response()->redirect('/panel/login');
+                }
+
+                $map  = $kirby->page('map');
+                $page = $map ? $map->children()->find($slug) : null;
+                if (!$page) {
+                    $page = $kirby->page($slug);
+                }
+                if (!$page || $page->intendedTemplate()->name() !== 'project') {
+                    return $kirby->response()->redirect('/panel/login');
+                }
+
+                // Editor access REQUIRED — anything less is refused.
+                if ($page->shareTokenAccess($token) !== 'editor') {
+                    return $kirby->response()->redirect('/panel/login');
+                }
+
+                // Check if user already exists for this token
+                $user = $kirby->users()->filterBy('role', 'collaborator')->filterBy('share_token', $token)->first();
+                if ($user) {
+                    return snippet('gh-editor-signup', [
+                        'page'      => $page,
+                        'token'     => $token,
+                        'slug'      => $slug,
+                        'errors'    => [],
+                        'form_data' => [],
+                        'status'    => 'used',
+                    ], true);
+                }
+
+                $email           = trim((string) get('email'));
+                $name            = trim((string) get('name'));
+                $password        = (string) get('password');
+                $passwordConfirm = (string) get('password_confirm');
+
+                $errors = [];
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $errors[] = 'Adresse email invalide.';
+                }
+                if ($name === '') {
+                    $errors[] = 'Le nom est requis.';
+                }
+                if (strlen($password) < 8) {
+                    $errors[] = 'Le mot de passe doit faire au moins 8 caractères.';
+                }
+                if ($password !== $passwordConfirm) {
+                    $errors[] = 'Les mots de passe ne correspondent pas.';
+                }
+                if (empty($errors) && $kirby->users()->find($email)) {
+                    $errors[] = 'Un compte existe déjà avec cette adresse. Connectez-vous au panneau pour y accéder.';
+                }
+
+                if (!empty($errors)) {
+                    return snippet('gh-editor-signup', [
+                        'page'      => $page,
+                        'token'     => $token,
+                        'slug'      => $slug,
+                        'errors'    => $errors,
+                        'form_data' => ['email' => $email, 'name' => $name],
+                        'status'    => 'active',
+                    ], true);
+                }
+
+                // Create user
+                try {
+                    $kirby->impersonate('kirby');
+                    $user = $kirby->users()->create([
+                        'name'     => $name,
+                        'email'    => $email,
+                        'password' => $password,
+                        'role'     => 'collaborator',
+                        'language' => 'fr',
+                    ]);
+                    $user->update([
+                        'scoped_page' => $page->id(),
+                        'share_token' => $token,
+                    ]);
+                    $kirby->impersonate();
+                } catch (\Throwable $e) {
+                    return snippet('gh-editor-signup', [
+                        'page'      => $page,
+                        'token'     => $token,
+                        'slug'      => $slug,
+                        'errors'    => ['Erreur lors de la création du compte : ' . $e->getMessage()],
+                        'form_data' => ['email' => $email, 'name' => $name],
+                        'status'    => 'active',
+                    ], true);
+                }
+
+                // Auto-login the new user
+                try {
+                    $user->loginPasswordless();
+                } catch (\Throwable $e) {
+                }
 
                 $panelId = str_replace('/', '+', $page->id());
                 return $kirby->response()->redirect('/panel/pages/' . $panelId . '?tab=overview');
@@ -440,6 +563,22 @@ Kirby::plugin('goheritage/project-ux', [
 
     // ── Hooks ──────────────────────────────────────────────────────────────
     'hooks' => [
+
+        'route:before' => function ($route, $path, $method) {
+            $kirby = kirby();
+            $user = $kirby->user();
+            if ($user && $user->role()->name() === 'collaborator') {
+                $scoped = $user->scoped_page()->value();
+                $shareToken = $user->share_token()->value();
+                $scopedPage = $scoped ? $kirby->page($scoped) : null;
+                if (!$scopedPage || empty($shareToken) || $scopedPage->shareTokenAccess($shareToken) !== 'editor') {
+                    $user->logout();
+                    if (str_starts_with($path, 'panel')) {
+                        go('/panel/login');
+                    }
+                }
+            }
+        },
 
         // Generate a per-page share token and default to "link" visibility
         // on creation so it is not publicly exposed by default.

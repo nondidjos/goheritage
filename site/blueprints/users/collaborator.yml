@@ -10,6 +10,8 @@ description: >
 fields:
   scoped_page:
     type: hidden
+  share_token:
+    type: hidden
 
 permissions:
   access:

@@ -120,8 +120,9 @@ return [
             // the write-guard hooks in the project-ux plugin enforce it.
             if ($role === 'collaborator') {
                 $scoped = $user->scoped_page()->value();
+                $shareToken = $user->share_token()->value();
                 $proj   = $scoped ? $kirby->page($scoped) : null;
-                if ($proj) {
+                if ($proj && $shareToken && $proj->shareTokenAccess($shareToken) === 'editor') {
                     $encoded = str_replace('/', '+', $proj->id());
                     $items['project-' . $proj->slug()] = [
                         'icon'    => 'box',
