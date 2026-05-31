@@ -48,25 +48,29 @@ function initPointCloud(container) {
 
   // ── Loading UI ────────────────────────────────────────────────────────
   const progress = document.createElement('div');
-  progress.className = 'pc-progress';
+  progress.className = 'viewer-progress';
   progress.innerHTML =
-    '<div class="pc-progress__bar"><div class="pc-progress__fill"></div></div>' +
-    '<div class="pc-progress__text">Chargement…</div>';
+    '<div class="viewer-progress-bar"><div class="viewer-progress-fill"></div></div>' +
+    '<span class="viewer-progress-text">chargement\u2026</span>';
   container.appendChild(progress);
-  const fill = progress.querySelector('.pc-progress__fill');
-  const ptext = progress.querySelector('.pc-progress__text');
+  const fill = progress.querySelector('.viewer-progress-fill');
+  const ptext = progress.querySelector('.viewer-progress-text');
 
   function onProgress(e) {
     if (e && e.lengthComputable) {
       const pct = Math.round((e.loaded / e.total) * 100);
       fill.style.width = pct + '%';
-      ptext.textContent = 'Chargement… ' + pct + '%';
+      ptext.textContent = 'chargement\u2026 ' + pct + '%';
     }
   }
   function onError(err) {
-    ptext.textContent = 'Impossible de charger le nuage de points.';
+    ptext.textContent = 'impossible de charger le nuage de points.';
     fill.style.background = '#c0392b';
     if (window.console && window.console.error) window.console.error('point cloud load failed', err);
+  }
+  function hideProgress() {
+    progress.style.opacity = '0';
+    setTimeout(() => progress.remove(), 400);
   }
 
   // ── Add a cloud, centre it, and frame the camera ──────────────────────
@@ -108,7 +112,7 @@ function initPointCloud(container) {
     controls.target.set(0, 0, 0);
     controls.update();
 
-    progress.remove();
+    hideProgress();
     document.body.classList.add('viewer-is-ready');
   }
 

@@ -53,11 +53,7 @@ if (!empty(get('pointcloud'))) {
     <style>
       .pc-stage { position: fixed; inset: 0; background: #1a1a1a; }
       .pc-stage iframe, #gh-pointcloud-viewer { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
-      .pc-progress { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 240px; text-align: center; pointer-events: none; }
-      .pc-progress__bar { width: 100%; height: 2px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
-      .pc-progress__fill { width: 0; height: 100%; background: #fff; transition: width 0.2s; }
-      .pc-progress__text { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.6); }
-      .pc-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 2rem; text-align: center; color: rgba(255,255,255,0.75); font-family: sans-serif; font-size: 0.95rem; line-height: 1.5; }
+      .pc-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 2rem; text-align: center; color: rgba(255,255,255,0.75); font-family: var(--font-sans, system-ui, sans-serif); font-size: 0.95rem; line-height: 1.5; }
       .pc-msg strong { color: #fff; }
     </style>
     <div class="pc-stage">
@@ -351,7 +347,7 @@ $defaultMode = $availableModes[0] ?? 'model';
              style="top: 80px; height: calc(100vh - 100px); min-height: 500px;">
 
         <?php if ($showModeChips): ?>
-        <!-- Floating mode chips (top, centered) ─────────────────────── -->
+        <div class="viewer-mode-bar">
         <div class="viewer-mode-chips" role="tablist" aria-label="Mode d'affichage">
             <?php
             $modeIcons = [
@@ -380,8 +376,10 @@ $defaultMode = $availableModes[0] ?? 'model';
             </button>
             <?php endforeach ?>
         </div>
+        </div>
         <?php endif ?>
 
+        <div class="viewer-stage">
         <!-- ── MODEL PANE ─────────────────────────────────────────────── -->
         <div class="viewer-pane viewer-pane--model<?= $defaultMode === 'model' ? ' is-active' : '' ?>"
              id="viewer-pane-model"
@@ -442,7 +440,18 @@ $defaultMode = $availableModes[0] ?? 'model';
         // immediately. Used by the CMS panel's Modèle 3D preview, where the
         // model is the main subject rather than a teaser embed.
         <?php if (get('autoplay')): ?>
-        document.getElementById('embed-play-btn').click();
+        (function () {
+            function run() {
+                var btn = document.getElementById('embed-play-btn');
+                if (!btn) return;
+                btn.click();
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', run);
+            } else {
+                setTimeout(run, 0);
+            }
+        })();
         <?php endif ?>
         </script>
         <?php endif ?>
@@ -499,28 +508,6 @@ $defaultMode = $availableModes[0] ?? 'model';
                  <?php if ($hotspotsIntUrl): ?>data-hotspots-json-interior="<?= $hotspotsIntUrl ?>"<?php endif ?>
                  data-default-side="<?= $defaultSide ?>">
             </div>
-            <style>
-              .viewer-progress {
-                position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                width: 250px; text-align: center; pointer-events: none; z-index: 100;
-                transition: opacity 0.4s;
-              }
-              .viewer-progress-bar {
-                width: 100%; height: 2px;
-                background: rgba(255,255,255,0.2);
-                border-radius: 2px; margin-bottom: 8px; overflow: hidden;
-              }
-              .viewer-progress-fill {
-                width: 0%; height: 100%;
-                background: #fff;
-                transition: width 0.2s;
-              }
-              .viewer-progress-text {
-                font-family: var(--font-mono, monospace);
-                font-size: 11px; text-transform: uppercase;
-                letter-spacing: 0.08em; color: rgba(255,255,255,0.6);
-              }
-            </style>
 
         <?php else: ?>
             <?php if ($posterUrl): ?>
@@ -626,6 +613,7 @@ $defaultMode = $availableModes[0] ?? 'model';
         </div>
         <?php endif ?>
 
+        </div>
 
     </div>
     <!-- End project-panels-wrapper -->
