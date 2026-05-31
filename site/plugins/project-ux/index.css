@@ -45,19 +45,23 @@
   --gh-active: rgba(255, 255, 255, 0.12); /* selected fill     */
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --gh-elev-0: #f1f1f1;
-    --gh-inset:  #ededed;
-    --gh-elev-1: #ffffff;
-    --gh-elev-2: #f4f4f4;
-    --gh-elev-3: #e8e8e8;
-    --gh-line:   #d9d9d9;
-    --gh-text:     #1a1a1a;
-    --gh-text-dim: #5d5d5d;
-    --gh-hover:  rgba(0, 0, 0, 0.06);
-    --gh-active: rgba(0, 0, 0, 0.09);
-  }
+/*  Light override is driven by the panel's ACTUAL theme, not the OS. The
+    injector reads Kirby's resolved text colour and toggles
+    html.gh-theme-light, so these buttons/surfaces follow the panel into
+    dark/light correctly even when the OS preference differs (the old
+    prefers-color-scheme media query made them light on a light OS while the
+    panel was dark). */
+html.gh-theme-light {
+  --gh-elev-0: #f1f1f1;
+  --gh-inset:  #ededed;
+  --gh-elev-1: #ffffff;
+  --gh-elev-2: #f4f4f4;
+  --gh-elev-3: #e8e8e8;
+  --gh-line:   #d9d9d9;
+  --gh-text:     #1a1a1a;
+  --gh-text-dim: #5d5d5d;
+  --gh-hover:  rgba(0, 0, 0, 0.06);
+  --gh-active: rgba(0, 0, 0, 0.09);
 }
 
 .gh-visibility {
@@ -960,19 +964,57 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
 
 
 /* ──────────────────────────────────────────────────────────────────────
- *  Panel chrome — hide built-in Changes / Account / Logout entries in
- *  the sidebar bottom. We inject our own user menu in the top-right
- *  via JS instead. Changes is hidden outright (visitors don't need it
- *  — the per-section edit UX makes change-tracking redundant).
+ *  Panel sidebar chrome
+ *
+ *  • Slightly wider menu (Kirby drives both the menu width and the main
+ *    content offset off --menu-width-open, so overriding it is enough).
+ *  • The "Changes" and "Logout" bottom buttons are removed by the injector
+ *    (it sets [data-gh-hidden] on them at runtime — see ghSetupSidebar);
+ *    logout moves into a popover off the Account button.
+ *  • Icon-less project entries get a touch of inset so the titles line up
+ *    pleasantly under the "Projets" header.
  * ────────────────────────────────────────────────────────────────────── */
-
-/*  Hide just the "Changes" entry in the sidebar bottom — the user
-    doesn't need a global changes view; per-section editing makes
-    change-tracking redundant. Account + Logout stay where Kirby puts
-    them (sidebar bottom). */
-.k-panel-menu-button[data-dialog="changes"] {
+:root {
+  --menu-width-open: 15rem;
+}
+.k-panel-menu-button[data-gh-hidden] {
   display: none !important;
 }
+
+/* Account popover (Compte / Déconnexion), anchored to the Account button. */
+.gh-account-pop {
+  position: fixed;
+  z-index: 1000000;
+  min-width: 11rem;
+  padding: 0.35rem;
+  background: var(--gh-elev-1);
+  border: 1px solid var(--gh-line);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gh-account-pop__item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.6rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--gh-text);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  width: 100%;
+}
+.gh-account-pop__item:hover { background: var(--gh-hover); }
+.gh-account-pop__item .k-icon,
+.gh-account-pop__item svg { width: 1em; height: 1em; flex-shrink: 0; opacity: 0.8; }
+.gh-account-pop__item--danger { color: #e06a5a; }
 
 /* ── Share overlay backdrop ── */
 .gh-share-overlay {

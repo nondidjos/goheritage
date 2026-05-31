@@ -72,7 +72,9 @@ var ProjectOverviewSection = {
           geoSaving: false,
           localGeo: { location: '', lat: '', lng: '' },
 
-          // Tags editing state (fields live inside the Info dialog)
+          // Tags Dialog state — separate dialog so the overview can offer
+          // distinct Caractéristiques and Tags tiles.
+          tagsDialogOpen: false,
           tagsInput: '',
           primaryTagInput: '',
 
@@ -165,30 +167,10 @@ var ProjectOverviewSection = {
             </div>
           </div>
 
-          <!-- ── Documents — supporting files & archives (listed first) ── -->
-          <div class="gh-pov__group-label">Documents</div>
-          <div class="gh-pov__assets">
-            <button class="gh-pov__asset" @click="openTab('documents')">
-              <k-icon type="image" class="gh-pov__asset-ico" />
-              <div class="gh-pov__asset-body">
-                <strong>Plans &amp; relevés</strong>
-                <span>{{ plansCount ? plansCount + ' fichier' + (plansCount > 1 ? 's' : '') : 'Aucun plan' }}</span>
-              </div>
-              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
-            </button>
-
-            <button class="gh-pov__asset" @click="openTab('documents')">
-              <k-icon type="file-document" class="gh-pov__asset-ico" />
-              <div class="gh-pov__asset-body">
-                <strong>Autres documents</strong>
-                <span>{{ docsCount ? docsCount + ' fichier' + (docsCount > 1 ? 's' : '') : 'Aucun document' }}</span>
-              </div>
-              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
-            </button>
-          </div>
-
-          <!-- ── Données principales — the core dataset & editorial content ── -->
-          <div class="gh-pov__group-label">Données principales</div>
+          <!-- ── Données — the raw scan/source material. These exist on
+                 their own merits (research, archive, analysis); the visit is
+                 just one of the things you can do with them. ── -->
+          <div class="gh-pov__group-label">Données</div>
           <div class="gh-pov__assets">
             <button class="gh-pov__asset" @click="openTab('model')">
               <k-icon type="box" class="gh-pov__asset-ico" />
@@ -200,10 +182,55 @@ var ProjectOverviewSection = {
             </button>
 
             <button class="gh-pov__asset" @click="openTab('pointcloud')">
-              <k-icon type="grid" class="gh-pov__asset-ico" />
+              <k-icon type="gh-pointcloud" class="gh-pov__asset-ico" />
               <div class="gh-pov__asset-body">
                 <strong>Nuage de points</strong>
                 <span>Visualiseur &amp; données brutes</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+
+            <!-- Geolocation opens popup editor instead of jumping tab. -->
+            <button class="gh-pov__asset" @click="canUpdate ? openGeoDialog() : openTab('details', 'geo_section')">
+              <k-icon type="map" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Géolocalisation</strong>
+                <span>{{ lat && lng ? lat + ', ' + lng : 'Coordonnées non définies' }}</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+
+            <button class="gh-pov__asset" @click="openTab('documents', 'plans')">
+              <k-icon type="image" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Plans &amp; relevés</strong>
+                <span>{{ plansCount ? plansCount + ' fichier' + (plansCount > 1 ? 's' : '') : 'Aucun plan' }}</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+
+            <button class="gh-pov__asset" @click="openTab('documents', 'docs')">
+              <k-icon type="file-document" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Autres documents</strong>
+                <span>{{ docsCount ? docsCount + ' fichier' + (docsCount > 1 ? 's' : '') : 'Aucun document' }}</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+          </div>
+
+          <!-- ── Visite virtuelle — things curated *for* the public visit:
+                 the editorial story, the curated images, the spec card and
+                 the tag chips. Independent of the raw data above. ── -->
+          <div class="gh-pov__group-label">Visite virtuelle</div>
+          <div class="gh-pov__assets">
+            <!-- Image de couverture — the hero shown on cards & the public
+                 page header. Opens the same dialog as clicking the cover. -->
+            <button class="gh-pov__asset" @click="canUpdate && openCoverDialog()">
+              <k-icon type="image" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Image de couverture</strong>
+                <span>{{ coverUrl ? 'Définie' : 'Aucune image' }}</span>
               </div>
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
@@ -226,23 +253,22 @@ var ProjectOverviewSection = {
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
 
-            <!-- Geolocation opens popup editor instead of jumping tab -->
-            <button class="gh-pov__asset" @click="canUpdate ? openGeoDialog() : openTab('details', 'geo_section')">
-              <k-icon type="map" class="gh-pov__asset-ico" />
+            <!-- Caractéristiques — architect/style/dimensions/protection, opens the Info dialog. -->
+            <button class="gh-pov__asset" @click="canUpdate && openInfoDialog()">
+              <k-icon type="info" class="gh-pov__asset-ico" />
               <div class="gh-pov__asset-body">
-                <strong>Géolocalisation</strong>
-                <span>{{ lat && lng ? lat + ', ' + lng : 'Coordonnées non définies' }}</span>
+                <strong>Caractéristiques</strong>
+                <span>{{ architect || style || 'Architecte, style, protection…' }}</span>
               </div>
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
 
-            <!-- Caractéristiques & tags — moved off the page body into a tile;
-                 opens the Info dialog, which now edits the metadata AND tags. -->
-            <button class="gh-pov__asset" @click="canUpdate && openInfoDialog()">
-              <k-icon type="info" class="gh-pov__asset-ico" />
+            <!-- Tags — its own tile (and its own dialog) so it's a first-class concept. -->
+            <button class="gh-pov__asset" @click="canUpdate && openTagsDialog()">
+              <k-icon type="tag" class="gh-pov__asset-ico" />
               <div class="gh-pov__asset-body">
-                <strong>Caractéristiques &amp; tags</strong>
-                <span>{{ architect || style || 'Architecte, style, protection…' }}{{ tags && tags.length ? ' · ' + tags.length + ' tag' + (tags.length > 1 ? 's' : '') : '' }}</span>
+                <strong>Tags</strong>
+                <span>{{ tags && tags.length ? tags.length + ' tag' + (tags.length > 1 ? 's' : '') + (primaryTag ? ' · ' + primaryTag + ' en avant' : '') : 'Aucun tag' }}</span>
               </div>
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
@@ -489,31 +515,41 @@ var ProjectOverviewSection = {
                   </div>
                 </div>
 
-                <!-- Tags + featured tag — merged in from the old standalone
-                     Tags dialog so a single "Caractéristiques & tags" tile
-                     edits everything in one place. -->
-                <div class="k-field k-textarea-field" style="margin-top:1rem;">
-                  <label class="k-label">Tags (séparés par des virgules)</label>
-                  <textarea
-                    v-model="tagsInput"
-                    class="k-textarea-input"
-                    rows="2"
-                    placeholder="patrimoine, XIXe, gothique, etc."
-                    style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text); font-family:inherit; font-size:inherit;"
-                  ></textarea>
-                </div>
+              </div>
+            </div>
+          </k-dialog>
 
-                <div class="k-field k-text-field" style="margin-top:1rem;">
-                  <label class="k-label">Tag mis en avant</label>
-                  <input
-                    type="text"
-                    v-model="primaryTagInput"
-                    class="k-text-input"
-                    placeholder="ex. gothique"
-                    style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
-                  />
-                  <p style="margin-top:0.4rem; font-size:0.78rem; color:var(--color-text-dimmed);">Doit correspondre exactement à un tag ci-dessus. Affiché en badge sur les cartes.</p>
-                </div>
+          <!-- ── Dialog Tags ── -->
+          <k-dialog
+            v-if="tagsDialogOpen"
+            ref="tagsDialog"
+            :submit-button="{ text: 'Enregistrer', icon: 'check', theme: 'positive' }"
+            :cancel-button="{ text: 'Annuler' }"
+            @submit="saveTags"
+            @cancel="tagsDialogOpen = false"
+            size="medium"
+          >
+            <div class="gh-tags-dialog">
+              <div class="k-field k-textarea-field">
+                <label class="k-label">Tags (séparés par des virgules)</label>
+                <textarea
+                  v-model="tagsInput"
+                  class="k-textarea-input"
+                  rows="3"
+                  placeholder="patrimoine, XIXe, gothique, etc."
+                  style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text); font-family:inherit; font-size:inherit;"
+                ></textarea>
+              </div>
+              <div class="k-field k-text-field" style="margin-top:1rem;">
+                <label class="k-label">Tag mis en avant</label>
+                <input
+                  type="text"
+                  v-model="primaryTagInput"
+                  class="k-text-input"
+                  placeholder="ex. gothique"
+                  style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
+                />
+                <p style="margin-top:0.4rem; font-size:0.78rem; color:var(--color-text-dimmed);">Doit correspondre exactement à un tag ci-dessus. Affiché en badge sur les cartes.</p>
               </div>
             </div>
           </k-dialog>
@@ -528,6 +564,12 @@ var ProjectOverviewSection = {
         protectionLabel() {
           const map = { 'classé': 'Classé MH', 'unesco': 'UNESCO', 'regional': 'Inventaire Régional', 'none': '' };
           return map[this.protectionStatus] || this.protectionStatus;
+        },
+        // Live public URL of this page — same source the header view
+        // button reads from, so the "Aperçu public" tile points at the
+        // real front-end page.
+        previewUrl() {
+          return this.$panel?.view?.props?.model?.previewUrl || '';
         }
       },
 
@@ -556,6 +598,19 @@ var ProjectOverviewSection = {
               if (tries > 40) clearInterval(poll);
             }, 100);
           }
+        },
+
+        // Open the live public page in a new tab.
+        openPublic() {
+          if (this.previewUrl) {
+            window.open(this.previewUrl, '_blank', 'noopener');
+          }
+        },
+        // Surface the header visibility/share pill (reuse its dropdown
+        // rather than duplicating the share-link logic here).
+        openVisibility() {
+          var btn = document.querySelector('.gh-visibility button, .k-visibility-view-button button');
+          if (btn) btn.click();
         },
 
         // Cover Dialog methods
@@ -691,9 +746,8 @@ var ProjectOverviewSection = {
           }
         },
 
-        // Info Dialog methods — edits the project's characteristics AND its
-        // tags (the standalone Tags dialog was folded in here so a single
-        // "Caractéristiques & tags" tile covers both).
+        // Info Dialog methods — edits the project's characteristics (the
+        // Tags dialog is separate so the overview can offer distinct tiles).
         openInfoDialog() {
           this.localInfo = {
             title: this.pageTitle || '',
@@ -706,8 +760,6 @@ var ProjectOverviewSection = {
             dimensions: this.dimensions || '',
             protectionStatus: this.protectionStatusRaw || 'none'
           };
-          this.tagsInput = Array.isArray(this.tags) ? this.tags.join(', ') : '';
-          this.primaryTagInput = this.primaryTag || '';
           this.infoDialogOpen = true;
           this.$nextTick(() => {
             if (this.$refs.infoDialog) {
@@ -717,7 +769,6 @@ var ProjectOverviewSection = {
         },
         async saveInfo() {
           const pageId = this.pageId.replace(/\//g, '+');
-          const tagsArr = this.tagsInput.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
           try {
             await this.$panel.api.patch('pages/' + pageId, {
               title: this.localInfo.title,
@@ -728,15 +779,38 @@ var ProjectOverviewSection = {
               architect: this.localInfo.architect,
               style: this.localInfo.style,
               dimensions: this.localInfo.dimensions,
-              protection_status: this.localInfo.protectionStatus,
-              tags: tagsArr.join(','),
-              primary_tag: this.primaryTagInput.trim()
+              protection_status: this.localInfo.protectionStatus
             });
             this.$panel.notification.success('Informations enregistrées');
             this.infoDialogOpen = false;
             await this.$panel.view.reload();
           } catch (e) {
             this.$panel.notification.error('Erreur lors de la sauvegarde : ' + e.message);
+          }
+        },
+
+        // Tags Dialog methods — standalone so the overview has a Tags tile.
+        openTagsDialog() {
+          this.tagsInput = Array.isArray(this.tags) ? this.tags.join(', ') : '';
+          this.primaryTagInput = this.primaryTag || '';
+          this.tagsDialogOpen = true;
+          this.$nextTick(() => {
+            if (this.$refs.tagsDialog) this.$refs.tagsDialog.open();
+          });
+        },
+        async saveTags() {
+          const pageId = this.pageId.replace(/\//g, '+');
+          const tagsArr = this.tagsInput.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+          try {
+            await this.$panel.api.patch('pages/' + pageId, {
+              tags: tagsArr.join(','),
+              primary_tag: this.primaryTagInput.trim()
+            });
+            this.$panel.notification.success('Tags enregistrés');
+            this.tagsDialogOpen = false;
+            await this.$panel.view.reload();
+          } catch (e) {
+            this.$panel.notification.error('Erreur : ' + (e.message || 'Erreur inconnue'));
           }
         }
       },
@@ -745,6 +819,30 @@ var ProjectOverviewSection = {
 // Plugin registration — `sections` key handles the k-{type}-section
 // name internally; no need to also register under `components`.
 panel.plugin('goheritage/project-ux', {
+
+  // ── Custom panel icons ──────────────────────────────────────────────
+  // A radial dot cluster that reads as a "nuage de points": a big dot in
+  // the centre with a ring of smaller dots around it, like points
+  // converging on a scanned object. Kirby fills icon shapes with
+  // currentColor (.k-icon { fill: currentColor }), so the circles need no
+  // explicit fill. Used by the Nuage de points tab (blueprint
+  // `icon: gh-pointcloud`) and its overview tile.
+  icons: {
+    // Centre dot is the largest; eight satellites sit on a circle of
+    // radius 7 around (12,12) at 45° steps, forming a round cluster.
+    'gh-pointcloud':
+      // Centre (biggest)
+      '<circle cx="12" cy="12" r="2.6"/>' +
+      // Ring of 8, clockwise from top
+      '<circle cx="12"   cy="5"    r="1.3"/>' +
+      '<circle cx="16.95" cy="7.05" r="1.3"/>' +
+      '<circle cx="19"   cy="12"   r="1.3"/>' +
+      '<circle cx="16.95" cy="16.95" r="1.3"/>' +
+      '<circle cx="12"   cy="19"   r="1.3"/>' +
+      '<circle cx="7.05" cy="16.95" r="1.3"/>' +
+      '<circle cx="5"    cy="12"   r="1.3"/>' +
+      '<circle cx="7.05" cy="7.05" r="1.3"/>',
+  },
 
   sections: {
     'project-overview': ProjectOverviewSection,
@@ -1984,11 +2082,126 @@ panel.plugin('goheritage/project-ux', {
     setTimeout(scan, 50);
   };
 
+  // ── Global panel chrome (runs on EVERY view, not just project pages) ────
+  //  1. Theme — mirror Kirby's *resolved* theme onto html.gh-theme-light so
+  //     our custom UI follows the panel (not the OS) into light/dark.
+  //  2. Sidebar — drop the Changes + Logout bottom buttons and move logout
+  //     into a small popover off the Account button.
+
+  function ghParseColor(str) {
+    if (!str) return null;
+    str = String(str).trim();
+    var m = str.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (m) {
+      var h = m[1];
+      if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+    }
+    m = str.match(/rgba?\(\s*([0-9.]+)[\s,]+([0-9.]+)[\s,]+([0-9.]+)/i);
+    if (m) return [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])];
+    return null;
+  }
+
+  function ghDetectTheme() {
+    try {
+      // Use the element's RESOLVED text colour (always an rgb), not the
+      // --color-text custom prop, which Kirby sets via light-dark() and can
+      // come back unresolved from getComputedStyle.
+      var probe = document.querySelector('.k-panel') || document.body;
+      if (!probe) return;
+      var rgb = ghParseColor(getComputedStyle(probe).color);
+      if (!rgb) return;
+      var lum = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
+      // Light text ⇒ dark panel; dark text ⇒ light panel.
+      document.documentElement.classList.toggle('gh-theme-light', lum < 0.5);
+    } catch (_) {}
+  }
+
+  function ghAccountKey(e) { if (e.key === 'Escape') ghCloseAccountPop(); }
+  function ghAccountOutside(e) {
+    var p = document.getElementById('gh-account-pop');
+    if (p && !p.contains(e.target) && !(e.target.closest && e.target.closest('[data-gh-account]'))) {
+      ghCloseAccountPop();
+    }
+  }
+  function ghCloseAccountPop() {
+    var p = document.getElementById('gh-account-pop');
+    if (p) p.remove();
+    document.removeEventListener('click', ghAccountOutside, true);
+    document.removeEventListener('keydown', ghAccountKey, true);
+  }
+  function ghOpenAccountPop(anchor, accountHref, logoutBtn) {
+    if (document.getElementById('gh-account-pop')) { ghCloseAccountPop(); return; }
+    var userSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    var outSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
+    var pop = document.createElement('div');
+    pop.id = 'gh-account-pop';
+    pop.className = 'gh-account-pop';
+    pop.innerHTML =
+      '<a class="gh-account-pop__item" href="' + accountHref + '">' + userSvg + '<span>Mon compte</span></a>' +
+      '<button type="button" class="gh-account-pop__item gh-account-pop__item--danger" data-gh-logout>' + outSvg + '<span>Déconnexion</span></button>';
+    document.body.appendChild(pop);
+
+    var rect = anchor.getBoundingClientRect();
+    var top = rect.top - pop.offsetHeight - 6;
+    if (top < 8) top = rect.bottom + 6;            // flip below if no room above
+    pop.style.top = top + 'px';
+    pop.style.left = Math.max(8, rect.left) + 'px';
+
+    pop.querySelector('[data-gh-logout]').addEventListener('click', function () {
+      ghCloseAccountPop();
+      if (logoutBtn) logoutBtn.click();            // reuse Kirby's own logout action
+      else window.location.href = '/panel/logout';
+    });
+    setTimeout(function () {
+      document.addEventListener('click', ghAccountOutside, true);
+      document.addEventListener('keydown', ghAccountKey, true);
+    }, 0);
+  }
+
+  function ghSetupSidebar() {
+    var menu = document.querySelector('.k-panel-menu');
+    if (!menu) return;
+    var accountBtn = null, logoutBtn = null;
+    menu.querySelectorAll('.k-panel-menu-button').forEach(function (b) {
+      var href = (b.getAttribute('href') || '').replace(/\/+$/, '');
+      var txt = (b.textContent || '').trim().toLowerCase();
+      if (/\/logout$/.test(href) || txt === 'logout' || txt === 'déconnexion' || txt === 'se déconnecter') {
+        logoutBtn = b;
+      } else if (/\/account$/.test(href) || txt === 'account' || txt === 'compte' || txt === 'mon compte') {
+        accountBtn = b;
+      } else if (txt.indexOf('modif') === 0 || txt === 'changes' || txt.indexOf('changement') === 0) {
+        b.setAttribute('data-gh-hidden', '');        // hide "Changes" / "Modifications"
+      }
+    });
+
+    // Only move logout into the Account popover when we actually found the
+    // Account button — otherwise we'd hide the sole logout path. Safety first.
+    if (accountBtn) {
+      if (!accountBtn.dataset.ghAccount) {
+        accountBtn.dataset.ghAccount = '1';
+        var accountHref = accountBtn.getAttribute('href') || '/panel/account';
+        accountBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          ghOpenAccountPop(accountBtn, accountHref, logoutBtn);
+        }, true);
+      }
+      if (logoutBtn) logoutBtn.setAttribute('data-gh-hidden', '');
+    }
+  }
+
+  function ghGlobalChrome() {
+    ghDetectTheme();
+    ghSetupSidebar();
+  }
+
   // Run once on load, then watch for SPA-style navigation.
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', rescan);
+    document.addEventListener('DOMContentLoaded', function () { rescan(); ghGlobalChrome(); });
   } else {
     rescan();
+    ghGlobalChrome();
   }
 
   // The panel mutates document.body and the view root on navigation. A
@@ -2005,6 +2218,7 @@ panel.plugin('goheritage/project-ux', {
       _scanScheduled = false;
       rescan();
       measureHeader();
+      ghGlobalChrome();
     });
   });
   mo.observe(document.body, { childList: true, subtree: true });
@@ -2029,7 +2243,7 @@ panel.plugin('goheritage/project-ux', {
       ev.on('view.update', function () { setTimeout(rescan, 50); });
     } catch (_) {}
   }
-  setInterval(function () { hookPanelEvents(); rescan(); }, 1000);
+  setInterval(function () { hookPanelEvents(); rescan(); ghGlobalChrome(); }, 1000);
 
   // Expose a tiny diagnostic so the user can verify the plugin is
   // actually running by checking `window.GH_PROJECT_UX` in DevTools.

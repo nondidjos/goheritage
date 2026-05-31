@@ -137,6 +137,7 @@ tabs:
             columns: 2
             options:
               model:       Modèle 3D
+              pointcloud:  Nuage de points
               info:        Fiche technique
               gallery:     Galerie d'images
               plans:       Plans & documents
@@ -325,7 +326,7 @@ tabs:
   # ─────────────────────────────────────────────────────────────────────
   pointcloud:
     label: Nuage de points
-    icon: grid
+    icon: gh-pointcloud
     sections:
 
       pointcloud_settings:
