@@ -20,12 +20,24 @@ cd "$ROOT"
 
 # Load .env if present (so secrets stay out of shell history)
 if [[ -f .env ]]; then
+    _pre_lightsail_host="${LIGHTSAIL_HOST-}"
+    _pre_lightsail_key="${LIGHTSAIL_KEY-}"
+    _pre_lightsail_remote_dir="${LIGHTSAIL_REMOTE_DIR-}"
+    _pre_skip_build="${SKIP_BUILD-}"
     set -a; . .env; set +a
+    [[ -n "${_pre_lightsail_host}" ]] && LIGHTSAIL_HOST="${_pre_lightsail_host}"
+    [[ -n "${_pre_lightsail_key}" ]] && LIGHTSAIL_KEY="${_pre_lightsail_key}"
+    [[ -n "${_pre_lightsail_remote_dir}" ]] && LIGHTSAIL_REMOTE_DIR="${_pre_lightsail_remote_dir}"
+    [[ -n "${_pre_skip_build}" ]] && SKIP_BUILD="${_pre_skip_build}"
 fi
 
 : "${LIGHTSAIL_HOST:?Set LIGHTSAIL_HOST=bitnami@<ip-or-domain>}"
 : "${LIGHTSAIL_KEY:?Set LIGHTSAIL_KEY=/path/to/lightsail-key.pem}"
 REMOTE_DIR="${LIGHTSAIL_REMOTE_DIR:-/opt/bitnami/apache/htdocs}"
+if [[ ! -f "$LIGHTSAIL_KEY" ]]; then
+    echo "ERROR: LIGHTSAIL_KEY does not exist: $LIGHTSAIL_KEY" >&2
+    exit 2
+fi
 SSH_OPTS=(-i "$LIGHTSAIL_KEY" -o StrictHostKeyChecking=accept-new)
 
 # ── 1. Build production CSS ─────────────────────────────────────────────────
@@ -67,7 +79,7 @@ ssh "${SSH_OPTS[@]}" "$LIGHTSAIL_HOST" "
     cd '$REMOTE_DIR'
     sudo chown -R bitnami:daemon .
     # Kirby needs to write inside these
-    for d in content media site/accounts site/sessions site/cache site/logs; do
+    for d in content media site/accounts site/sessions site/cache site/logs site/.private; do
         if [[ -d \"\$d\" ]]; then
             sudo find \"\$d\" -type d -exec chmod 2775 {} \;
             sudo find \"\$d\" -type f -exec chmod 0664 {} \;
