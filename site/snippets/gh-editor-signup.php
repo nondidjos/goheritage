@@ -31,9 +31,7 @@ $siteTitle = site()->title()->or('GoHéritage')->html();
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Créer un compte éditeur — <?= $siteTitle ?></title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="<?= url('assets/css/app.css') ?>?v=1">
-  <link rel="stylesheet" href="<?= url('assets/css/custom.css') ?>?v=1">
-  <link rel="stylesheet" href="<?= url('assets/css/invite-public.css') ?>?v=1">
+  <link rel="stylesheet" href="<?= url('assets/css/invite-public.css') ?>?v=2">
 </head>
 <body>
 
