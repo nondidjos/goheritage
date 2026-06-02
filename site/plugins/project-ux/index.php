@@ -44,12 +44,19 @@ if (!function_exists('gh_guard_collaborator_scope')) {
     function gh_guard_collaborator_scope($model): void
     {
         $user = kirby()->user();
-        if (!$user || $user->role()->name() !== 'collaborator') {
-            return;
+        if (!$user) return;
+
+        $role = $user->role()->name();
+
+        // Viewers are fully read-only — block every write unconditionally.
+        if ($role === 'viewer') {
+            throw new \Kirby\Exception\PermissionException('Accès lecture seule.');
         }
+
+        if ($role !== 'collaborator') return;
+
         $scoped = $user->scoped_page()->value();
         if (empty($scoped)) {
-            // No scope recorded → deny all writes rather than allow all.
             throw new \Kirby\Exception\PermissionException('Compte de partage non lié à un projet.');
         }
 
@@ -80,12 +87,17 @@ Kirby::plugin('goheritage/project-ux', [
     // ── Custom frontend sharing routes ───────────────────────────────────
     'routes' => [
 
-        // EDITOR share login. Only an editor-level token grants this — a
-        // visit/dossier token cannot escalate by hitting this path. Each
-        // distinct token gets its OWN scoped `collaborator` account that is
-        // restricted (via role permissions + write-guard hooks + a scoped
-        // panel menu) to the single shared project. Revoking the share link
-        // immediately invalidates that account's access.
+        // SHARE LOGIN — handles both editor and viewer tokens.
+        //
+        // Editor  → named account signup (the existing collaborator flow):
+        //           the recipient creates a password-protected account and
+        //           gets full edit access scoped to the one project.
+        //
+        // Viewer  → auto-created, auto-login, no signup form:
+        //           a minimal `viewer` account is created silently (random
+        //           internal email, random password the user never sees).
+        //           Each subsequent visit auto-logs them in via the token.
+        //           Revoking the share link immediately kills their access.
         [
             'pattern' => 'gh-share-login/(:any)',
             'action'  => function (string $slug) {
@@ -105,23 +117,81 @@ Kirby::plugin('goheritage/project-ux', [
                     return $kirby->response()->redirect('/panel/login');
                 }
 
-                // Editor access REQUIRED — anything less is refused.
-                if ($page->shareTokenAccess($token) !== 'editor') {
+                $access   = $page->shareTokenAccess($token);
+                $panelId  = str_replace('/', '+', $page->id());
+                $redirect = '/panel/pages/' . $panelId . '?tab=overview';
+
+                // Only editor and viewer tokens are allowed here.
+                if ($access !== 'editor' && $access !== 'viewer') {
                     return $kirby->response()->redirect('/panel/login');
                 }
 
-                // If already logged in to Kirby under a valid role that has access, redirect
+                // ── Viewer — auto-create once, then auto-login every time ──
+                if ($access === 'viewer') {
+                    // Handle already-logged-in users before creating a viewer session.
+                    if ($existing = $kirby->user()) {
+                        // Already the right viewer — nothing to do.
+                        if ($existing->role()->name() === 'viewer'
+                            && $existing->scoped_page()->value() === $page->id()
+                            && $existing->share_token()->value() === $token) {
+                            return $kirby->response()->redirect($redirect);
+                        }
+                        // Admin/author already has full panel access — send them
+                        // straight to the project without touching their session.
+                        if ($existing->isAdmin() || $existing->role()->name() === 'author') {
+                            return $kirby->response()->redirect($redirect);
+                        }
+                        // Another scoped user (wrong viewer / collaborator) —
+                        // log them out so the correct viewer session can start.
+                        $existing->logout();
+                    }
+
+                    // The token has already been verified above — that IS the
+                    // authentication. We don't need a password. loginPasswordless()
+                    // with explicit cookie options creates a panel session directly,
+                    // exactly as Kirby's own Auth::login() does internally.
+                    $viewerEmail = 'viewer-' . substr(hash('sha256', $token), 0, 12) . '@gh.internal';
+
+                    $viewer = $kirby->users()->filterBy('role', 'viewer')
+                        ->filterBy('share_token', $token)->first();
+
+                    if (!$viewer) {
+                        $kirby->impersonate('kirby');
+                        $viewer = $kirby->users()->create([
+                            'name'     => 'Lecteur',
+                            'email'    => $viewerEmail,
+                            'password' => bin2hex(random_bytes(24)), // random, never used
+                            'role'     => 'viewer',
+                            'language' => 'fr',
+                        ]);
+                        $viewer->update([
+                            'scoped_page' => $page->id(),
+                            'share_token' => $token,
+                        ]);
+                        $kirby->impersonate();
+                    }
+
+                    // Create a cookie-based panel session directly on the user.
+                    // No password check — token validity above is sufficient.
+                    $viewer->loginPasswordless(['createMode' => 'cookie', 'long' => false]);
+
+                    return $kirby->response()->redirect($redirect);
+                }
+
+                // ── Editor — existing named-account signup flow ──────────
                 if ($user = $kirby->user()) {
-                    if ($user->isAdmin() || $user->role()->name() === 'author' || ($user->role()->name() === 'collaborator' && $user->scoped_page()->value() === $page->id() && $user->share_token()->value() === $token)) {
-                        $panelId = str_replace('/', '+', $page->id());
-                        return $kirby->response()->redirect('/panel/pages/' . $panelId . '?tab=overview');
+                    if ($user->isAdmin() || $user->role()->name() === 'author'
+                        || ($user->role()->name() === 'collaborator'
+                            && $user->scoped_page()->value() === $page->id()
+                            && $user->share_token()->value() === $token)) {
+                        return $kirby->response()->redirect($redirect);
                     }
                 }
 
-                // Check if a collaborator account already exists for this token
-                $user = $kirby->users()->filterBy('role', 'collaborator')->filterBy('share_token', $token)->first();
+                $existing = $kirby->users()->filterBy('role', 'collaborator')
+                    ->filterBy('share_token', $token)->first();
 
-                if ($user) {
+                if ($existing) {
                     return snippet('gh-editor-signup', [
                         'page'      => $page,
                         'token'     => $token,
@@ -132,7 +202,6 @@ Kirby::plugin('goheritage/project-ux', [
                     ], true);
                 }
 
-                // If not registered, render the signup page
                 return snippet('gh-editor-signup', [
                     'page'      => $page,
                     'token'     => $token,
@@ -253,44 +322,158 @@ Kirby::plugin('goheritage/project-ux', [
             }
         ],
 
-        // READ-ONLY DOSSIER. A login-free, session-free page that presents the
-        // project's full content + a downloadable file list. Requires a
-        // dossier- or editor-level token (or a logged-in panel user). Scoped
-        // to exactly one project — there is no navigation to other pages and
-        // no Kirby panel exposure, so it is safe to send to anyone.
+        // STRUCTURED ZIP DOWNLOAD. Packages all project files into a ZIP with
+        // category subfolders and project-slug-prefixed filenames so the
+        // recipient gets a self-describing archive instead of Kirby's flat
+        // file directory. Requires a logged-in panel user OR a viewer/editor
+        // share token — visit-only tokens are denied (they have no file access).
         [
-            'pattern' => 'dossier/(:any)',
-            'action'  => function (string $slug) {
-                $kirby = kirby();
+            'pattern' => 'gh/download/(:any)',
+            'method'  => 'GET',
+            'action'  => function (string $encodedId) {
+                $kirby  = kirby();
+                $pageId = str_replace('+', '/', $encodedId);
+                $page   = $kirby->page($pageId);
 
-                $map  = $kirby->page('map');
-                $page = $map ? $map->children()->find($slug) : null;
-                if (!$page) {
-                    $page = $kirby->page($slug);
-                }
                 if (!$page || $page->intendedTemplate()->name() !== 'project') {
                     $kirby->response()->code(404);
                     return $kirby->site()->errorPage()->render();
                 }
 
+                // Auth: panel user (scoped roles limited to their project) OR a
+                // viewer/editor share token for THIS page.
                 $user = $kirby->user();
                 if (!$user) {
                     $access = $page->shareTokenAccess(get('key'));
-                    if ($access !== 'dossier' && $access !== 'editor') {
-                        // 404 (not 403) so private pages don't leak existence.
-                        $kirby->response()->code(404);
-                        return $kirby->site()->errorPage()->render();
+                    if ($access !== 'viewer' && $access !== 'editor') {
+                        $kirby->response()->code(403);
+                        return 'Accès refusé.';
+                    }
+                } elseif (in_array($user->role()->name(), ['collaborator', 'viewer'], true)) {
+                    // Scoped account: confirm this is the project they were granted.
+                    // Without this, a viewer scoped to project A could download
+                    // project B's full file archive.
+                    $scoped = $user->scoped_page()->value();
+                    if ($scoped !== $page->id() && !str_starts_with($page->id(), $scoped . '/')) {
+                        $kirby->response()->code(403);
+                        return 'Accès refusé.';
                     }
                 }
 
-                // Set the page as the current request context so snippets
-                // (header/footer) and helpers resolve correctly.
-                $kirby->site()->visit($page);
+                if (!class_exists('ZipArchive')) {
+                    header('HTTP/1.1 500 Internal Server Error');
+                    echo 'ZipArchive non disponible sur ce serveur.';
+                    exit;
+                }
 
-                return snippet('dossier', [
-                    'page'     => $page,
-                    'shareKey' => get('key'),
-                ], true);
+                // Extension → subfolder mapping (mirrors fileKind() in JS).
+                // Zip is excluded from archives since the output itself is a zip.
+                $folderMap = [
+                    'jpg'  => 'photos',          'jpeg' => 'photos',
+                    'png'  => 'photos',           'webp' => 'photos',
+                    'gif'  => 'photos',           'svg'  => 'photos',
+                    'tif'  => 'photos',           'tiff' => 'photos',
+                    'bmp'  => 'photos',           'avif' => 'photos',
+                    'obj'  => 'modeles-3d',       'glb'  => 'modeles-3d',
+                    'gltf' => 'modeles-3d',       'fbx'  => 'modeles-3d',
+                    'stl'  => 'modeles-3d',       'mtl'  => 'modeles-3d',
+                    'dae'  => 'modeles-3d',       '3ds'  => 'modeles-3d',
+                    'ply'  => 'nuage-de-points',  'las'  => 'nuage-de-points',
+                    'laz'  => 'nuage-de-points',  'e57'  => 'nuage-de-points',
+                    'pts'  => 'nuage-de-points',  'pcd'  => 'nuage-de-points',
+                    'xyz'  => 'nuage-de-points',
+                    'pdf'  => 'documents',        'doc'  => 'documents',
+                    'docx' => 'documents',        'odt'  => 'documents',
+                    'rtf'  => 'documents',        'txt'  => 'documents',
+                    'md'   => 'documents',
+                    'json' => 'donnees',          'csv'  => 'donnees',
+                    'xml'  => 'donnees',          'yml'  => 'donnees',
+                    'yaml' => 'donnees',
+                    'rar'  => 'archives',         '7z'   => 'archives',
+                    'tar'  => 'archives',         'gz'   => 'archives',
+                    'mp4'  => 'videos',           'mov'  => 'videos',
+                    'webm' => 'videos',           'avi'  => 'videos',
+                    'mkv'  => 'videos',
+                ];
+
+                $slug = $page->slug();
+                $tmp  = tempnam(sys_get_temp_dir(), 'gh_pkg_');
+                $zip  = new \ZipArchive();
+
+                if ($zip->open($tmp, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+                    header('HTTP/1.1 500 Internal Server Error');
+                    echo 'Impossible de créer l\'archive.';
+                    exit;
+                }
+
+                // Root-level README with basic project metadata.
+                $readmeLines = [
+                    (string) $page->title(),
+                    str_repeat('=', mb_strlen((string) $page->title())),
+                    '',
+                    'Exporté depuis GoHéritage le ' . date('d/m/Y à H:i'),
+                ];
+                if ($page->location()->isNotEmpty()) {
+                    $readmeLines[] = 'Localisation : ' . $page->location();
+                }
+                if ($page->date()->isNotEmpty()) {
+                    $readmeLines[] = 'Date de numérisation : ' . $page->date();
+                }
+                if ($page->architect()->isNotEmpty()) {
+                    $readmeLines[] = 'Architecte : ' . $page->architect();
+                }
+                $zip->addFromString($slug . '/README.txt', implode("\n", $readmeLines) . "\n");
+
+                // Give PHP enough time for large archives (point clouds etc.).
+                @set_time_limit(300);
+
+                // Track used names to avoid collisions if two files share a stem.
+                $usedNames = [];
+
+                foreach ($page->files() as $file) {
+                    $absPath = $file->root();
+                    if (!is_readable($absPath)) continue;
+
+                    $ext    = strtolower($file->extension());
+                    $folder = $folderMap[$ext] ?? 'autres';
+
+                    // Use the file's title if the editor filled it in and it
+                    // differs from the raw filename, otherwise fall back to the
+                    // filename stem. Slugify either way so the path stays clean.
+                    $titleField = trim($file->title()->value());
+                    $rawStem    = pathinfo($file->filename(), PATHINFO_FILENAME);
+                    $stem       = \Kirby\Toolkit\Str::slug(
+                        ($titleField && $titleField !== $file->filename()) ? $titleField : $rawStem
+                    );
+
+                    // Build the in-archive path; deduplicate with a counter if needed.
+                    $base    = $slug . '_' . $stem . '.' . $ext;
+                    $zipPath = $slug . '/' . $folder . '/' . $base;
+                    if (isset($usedNames[$zipPath])) {
+                        $usedNames[$zipPath]++;
+                        $zipPath = $slug . '/' . $folder . '/' . $slug . '_' . $stem . '-' . $usedNames[$zipPath] . '.' . $ext;
+                    } else {
+                        $usedNames[$zipPath] = 1;
+                    }
+
+                    $zip->addFile($absPath, $zipPath);
+                }
+
+                $zip->close();
+
+                $downloadName = $slug . '_dossier.zip';
+                $size         = filesize($tmp);
+
+                header('Content-Type: application/zip');
+                header('Content-Disposition: attachment; filename="' . $downloadName . '"');
+                header('Content-Length: ' . $size);
+                header('Cache-Control: no-cache, no-store, must-revalidate');
+                header('Pragma: no-cache');
+                header('Expires: 0');
+
+                readfile($tmp);
+                @unlink($tmp);
+                exit;
             }
         ],
     ],
@@ -312,7 +495,6 @@ Kirby::plugin('goheritage/project-ux', [
                 'method'  => 'PATCH',
                 'action'  => function (string $encodedId) {
                     $kirby  = kirby();
-                    $kirby->impersonate('kirby');
 
                     // Decode the panel-style ID (+ → /)
                     $pageId = str_replace('+', '/', $encodedId);
@@ -321,6 +503,28 @@ Kirby::plugin('goheritage/project-ux', [
                     if (!$page) {
                         return ['status' => 'error', 'message' => 'Page not found: ' . $pageId];
                     }
+
+                    // AUTHORIZATION — must be checked BEFORE impersonating kirby.
+                    // The impersonation below bypasses Kirby's permission system
+                    // entirely, so without this gate any logged-in user (incl. a
+                    // read-only viewer or a collaborator scoped to another project)
+                    // could change any page's visibility. Require that the real
+                    // current user actually holds update rights on THIS page.
+                    $actor = $kirby->user();
+                    if (!$actor || $page->permissions()->cannot('update')) {
+                        $kirby->response()->code(403);
+                        return ['status' => 'error', 'message' => 'Accès refusé.'];
+                    }
+                    // Scoped collaborator: confirm this is their granted project.
+                    if ($actor->role()->name() === 'collaborator') {
+                        $scoped = $actor->scoped_page()->value();
+                        if ($scoped !== $page->id() && !str_starts_with($page->id(), $scoped . '/')) {
+                            $kirby->response()->code(403);
+                            return ['status' => 'error', 'message' => 'Accès refusé.'];
+                        }
+                    }
+
+                    $kirby->impersonate('kirby');
 
                     $body       = $kirby->request()->body();
                     $visibility = $body->get('visibility');
@@ -387,15 +591,9 @@ Kirby::plugin('goheritage/project-ux', [
                         $blocksHtml = '';
                     }
 
-                    // Gallery thumbnails (fall back to page images, like the
-                    // public template, so something shows even before the
-                    // gallery field is curated).
-                    $gallery = $page->gallery()->toFiles();
-                    if ($gallery->count() === 0) {
-                        $gallery = $page->images()
-                            ->filterBy('extension', 'in', ['jpg', 'jpeg', 'png', 'webp'])
-                            ->sortBy('sort');
-                    }
+                    // Gallery thumbnails — shared galleryPhotos() so model
+                    // assets (textures/normals) never show in the preview.
+                    $gallery = $page->galleryPhotos();
                     $thumbs = [];
                     foreach ($gallery as $img) {
                         try { $thumbs[] = $img->crop(400, 300)->url(); }
@@ -439,8 +637,12 @@ Kirby::plugin('goheritage/project-ux', [
                     }
                 },
                 'pageImages' => function () {
+                    // Cover picker — only real photos, never model assets
+                    // (textures/normals), so the texture maps can't be chosen
+                    // as a cover or clutter the picker.
                     $images = [];
                     foreach ($this->model()->images() as $file) {
+                        if ($file->isModelAsset()) continue;
                         $images[] = [
                             'name'  => $file->filename(),
                             'url'   => $file->url(),
@@ -533,7 +735,10 @@ Kirby::plugin('goheritage/project-ux', [
                 },
 
                 'galleryCount' => function () {
-                    return $this->model()->gallery()->toFiles()->count();
+                    // Reflect what the public gallery actually shows (curated
+                    // field or filtered fallback), so the overview tile count
+                    // matches reality instead of only the explicit field.
+                    return $this->model()->galleryPhotos()->count();
                 },
                 'plansCount' => function () {
                     if (method_exists($this->model(), 'plans')) {
@@ -566,16 +771,25 @@ Kirby::plugin('goheritage/project-ux', [
 
         'route:before' => function ($route, $path, $method) {
             $kirby = kirby();
-            $user = $kirby->user();
-            if ($user && $user->role()->name() === 'collaborator') {
-                $scoped = $user->scoped_page()->value();
-                $shareToken = $user->share_token()->value();
-                $scopedPage = $scoped ? $kirby->page($scoped) : null;
-                if (!$scopedPage || empty($shareToken) || $scopedPage->shareTokenAccess($shareToken) !== 'editor') {
-                    $user->logout();
-                    if (str_starts_with($path, 'panel')) {
-                        go('/panel/login');
-                    }
+            $user  = $kirby->user();
+            if (!$user) return;
+
+            $role = $user->role()->name();
+            // Only scoped roles need token validation on every request.
+            if ($role !== 'collaborator' && $role !== 'viewer') return;
+
+            $scoped     = $user->scoped_page()->value();
+            $shareToken = $user->share_token()->value();
+            $scopedPage = $scoped ? $kirby->page($scoped) : null;
+
+            // The expected access level differs by role.
+            $expectedAccess = ($role === 'collaborator') ? 'editor' : 'viewer';
+
+            if (!$scopedPage || empty($shareToken)
+                || $scopedPage->shareTokenAccess($shareToken) !== $expectedAccess) {
+                $user->logout();
+                if (str_starts_with($path, 'panel')) {
+                    go('/panel/login');
                 }
             }
         },
@@ -657,8 +871,78 @@ Kirby::plugin('goheritage/project-ux', [
         },
     ],
 
+    // ── File methods ───────────────────────────────────────────────────────
+    'fileMethods' => [
+        // True when a file is an asset *for* the 3D model (geometry, material,
+        // texture/PBR map, point cloud, hotspots) rather than a presentation
+        // photo. Used to keep these out of the gallery, cover picker and every
+        // other public surface — they should only ever show in the Fichiers
+        // explorer. Centralised here so the rule lives in exactly one place.
+        'isModelAsset' => function () {
+            $ext = strtolower($this->extension());
+
+            // 3D geometry, material and point-cloud formats.
+            $modelExt = [
+                'obj', 'glb', 'gltf', 'mtl', 'fbx', 'stl', 'dae', '3ds', 'drc',
+                'ply', 'las', 'laz', 'e57', 'pcd', 'xyz', 'pts',
+            ];
+            if (in_array($ext, $modelExt, true)) {
+                return true;
+            }
+
+            // Hotspot annotation data travels as JSON alongside the model.
+            if ($ext === 'json') {
+                return true;
+            }
+
+            // Image files that are PBR/material maps for the model — matched by
+            // the naming tokens our converter (and typical DCC exports) use.
+            $name = strtolower($this->filename());
+            $tokens = [
+                'texture', 'diffuse', 'albedo', 'basecolor', 'base-color', 'base_color',
+                'normal', 'roughness', 'metallic', 'metalness', 'specular',
+                'glossiness', 'displacement', 'emissive', 'emission', 'occlusion',
+            ];
+            foreach ($tokens as $t) {
+                if (str_contains($name, $t)) {
+                    return true;
+                }
+            }
+            return false;
+        },
+    ],
+
     // ── Page methods for templates and controllers ─────────────────────────
     'pageMethods' => [
+
+        // Curated photos for the public gallery. Uses the explicit `gallery`
+        // field when the editor has set it; otherwise falls back to the page's
+        // images MINUS any 3D-model assets (textures, normals, previews, etc.)
+        // and the cover, so raw model material never leaks into the gallery.
+        // Single source of truth — template, dossier and the panel overview
+        // all call this instead of re-implementing the filter.
+        'galleryPhotos' => function () {
+            $gallery = $this->gallery()->toFiles();
+            if ($gallery->count() > 0) {
+                return $gallery;
+            }
+            $coverId = ($cover = $this->cover()->toFile()) ? $cover->id() : null;
+            return $this->images()
+                ->filterBy('extension', 'in', ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'])
+                ->filter(fn ($f) => !$f->isModelAsset())
+                ->filter(fn ($f) => $f->id() !== $coverId)
+                ->sortBy('sort', 'asc');
+        },
+
+        // Photos that may be PICKED into the gallery field (blueprint query).
+        // Any real photo regardless of template, minus 3D-model assets — the
+        // old `page.images.template('image')` query actually matched textures
+        // (template "image") and missed real photos (template "blocks/image").
+        'galleryPickable' => function () {
+            return $this->images()
+                ->filterBy('extension', 'in', ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'])
+                ->filter(fn ($f) => !$f->isModelAsset());
+        },
 
         // Effective visibility with backward-compat fallback for pages that
         // pre-date this plugin: listed → public, otherwise → private.
@@ -704,7 +988,10 @@ Kirby::plugin('goheritage/project-ux', [
             $link = $this->shareLinkByToken($token);
             if ($link) {
                 $access = $link->access()->or('visit')->value();
-                return in_array($access, ['visit', 'dossier', 'editor'], true) ? $access : 'visit';
+                // 'dossier' is the legacy name for viewer — map it transparently
+                // so old share links continue to work without a data migration.
+                if ($access === 'dossier') $access = 'viewer';
+                return in_array($access, ['visit', 'viewer', 'editor'], true) ? $access : 'visit';
             }
             // Legacy page-wide token predates per-link access → visit only.
             if ($this->share_token()->isNotEmpty() && hash_equals($this->share_token()->value(), (string) $token)) {
