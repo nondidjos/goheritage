@@ -1,3 +1,4 @@
+# Updated naming from pulpit to chaire
 <?php
 
 /**
@@ -116,13 +117,14 @@ return [
 
             // Scoped collaborator (editor share link): only ever sees the one
             // project they were granted — no global project list, no admin
-            // areas. This is the visible half of the editor-share lockdown;
-            // the write-guard hooks in the project-ux plugin enforce it.
-            if ($role === 'collaborator') {
-                $scoped = $user->scoped_page()->value();
+            // Collaborator (editor share) and viewer (read-only share):
+            // only ever see the one project they were granted.
+            if ($role === 'collaborator' || $role === 'viewer') {
+                $scoped     = $user->scoped_page()->value();
                 $shareToken = $user->share_token()->value();
-                $proj   = $scoped ? $kirby->page($scoped) : null;
-                if ($proj && $shareToken && $proj->shareTokenAccess($shareToken) === 'editor') {
+                $proj       = $scoped ? $kirby->page($scoped) : null;
+                $expected   = ($role === 'collaborator') ? 'editor' : 'viewer';
+                if ($proj && $shareToken && $proj->shareTokenAccess($shareToken) === $expected) {
                     $encoded = str_replace('/', '+', $proj->id());
                     $items['project-' . $proj->slug()] = [
                         'icon'    => 'box',
