@@ -1277,18 +1277,33 @@ function escHtml(str) {
 
 // ── Auto-init ────────────────────────────────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', function () {
+function ghBootViewer() {
   var container = document.getElementById('viewer-3d');
-  if (container) {
-    if (container.dataset.deferLoad === 'true') {
-      container.addEventListener('goheritage:load', function() {
-        initViewer(container);
-      }, { once: true });
-    } else {
+  if (!container) return;
+  if (container.dataset.deferLoad === 'true') {
+    // Subscribe to goheritage:load NOW (at module execution) rather than
+    // inside a DOMContentLoaded callback. The embed splash's autoplay=1 click
+    // is itself a DOMContentLoaded handler registered earlier (during body
+    // parse), so if we only subscribed on DOMContentLoaded the Play click
+    // would fire — and dispatch goheritage:load — before we were listening,
+    // and the model would never load (grey viewer). Subscribing immediately
+    // closes that race.
+    container.addEventListener('goheritage:load', function () {
       initViewer(container);
-      // Non-embedded: viewer starts loading immediately, reveal the fold toggle
-      // right away (the model being loaded shows via the progress bar).
-      document.body.classList.add('viewer-is-ready');
-    }
+    }, { once: true });
+  } else {
+    initViewer(container);
+    // Non-embedded: viewer starts loading immediately, reveal the fold toggle
+    // right away (the model being loaded shows via the progress bar).
+    document.body.classList.add('viewer-is-ready');
   }
-});
+}
+
+// ES modules are deferred, so this runs after the document is parsed
+// (readyState 'interactive'); the #viewer-3d element already exists. Guard
+// with a DOMContentLoaded fallback only for the unlikely 'loading' case.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', ghBootViewer);
+} else {
+  ghBootViewer();
+}
