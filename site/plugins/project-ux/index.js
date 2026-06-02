@@ -78,6 +78,9 @@ var ProjectOverviewSection = {
           tagsInput: '',
           primaryTagInput: '',
 
+          // Embed Dialog state
+          embedDialogOpen: false,
+
           // General Info Dialog state
           dateRaw: '',
           protectionStatusRaw: '',
@@ -274,6 +277,43 @@ var ProjectOverviewSection = {
             </button>
           </div>
 
+          <!-- ── Diffusion — how the project reaches the outside world ── -->
+          <div class="gh-pov__group-label">Diffusion</div>
+          <div class="gh-pov__assets">
+            <!-- Visibility + share — surfaces the header pill dropdown so the
+                 user can manage access without having to find the header button.
+                 Edit-only: hidden for read-only viewers. -->
+            <button v-if="canUpdate" class="gh-pov__asset" @click="openVisibility()">
+              <k-icon type="share" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Visibilité &amp; partage</strong>
+                <span>Gérer l'accès et les liens de partage</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+
+            <!-- Embed — iframe snippet to drop the 3D viewer into another site. -->
+            <button class="gh-pov__asset" @click="openEmbedDialog()">
+              <k-icon type="code" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Intégrer</strong>
+                <span>Code iframe pour un autre site</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+
+            <!-- Structured ZIP download — renames files to project-slug prefix
+                 and organises them by category into subfolders. -->
+            <button class="gh-pov__asset" @click="downloadPackage()">
+              <k-icon type="download" class="gh-pov__asset-ico" />
+              <div class="gh-pov__asset-body">
+                <strong>Télécharger le dossier</strong>
+                <span>Archive ZIP structurée et renommée</span>
+              </div>
+              <k-icon type="angle-right" class="gh-pov__asset-arrow" />
+            </button>
+          </div>
+
           <!-- ── Dialog Cover image ── -->
           <k-dialog
             v-if="coverDialogOpen"
@@ -286,7 +326,7 @@ var ProjectOverviewSection = {
           >
             <div class="gh-cover-dialog">
               <k-text class="mb-4">Choisissez une image de couverture ou déposez-en une nouvelle :</k-text>
-              
+
               <div class="gh-cover-grid">
                 <div
                   v-for="img in pageImages"
@@ -320,7 +360,7 @@ var ProjectOverviewSection = {
                   style="display:none"
                   @change="uploadCoverFile"
                 />
-                
+
                 <k-button
                   v-if="coverUrl"
                   icon="trash"
@@ -358,7 +398,7 @@ var ProjectOverviewSection = {
                       style="flex:1; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
                     />
                     <k-icon v-if="geoSearching || geoSaving" type="loader" style="opacity:0.5;" />
-                    
+
                     <ul v-if="geoResults.length" class="gh-geo-results">
                       <li
                         v-for="(r, i) in geoResults"
@@ -553,6 +593,32 @@ var ProjectOverviewSection = {
               </div>
             </div>
           </k-dialog>
+
+          <!-- ── Dialog Embed ── -->
+          <k-dialog
+            v-if="embedDialogOpen"
+            ref="embedDialog"
+            :cancel-button="{ text: 'Fermer' }"
+            :submit-button="{ text: 'Copier le code', icon: 'copy', theme: 'positive' }"
+            @submit="copyEmbedCode"
+            @cancel="embedDialogOpen = false"
+            size="medium"
+          >
+            <div class="gh-embed-dialog">
+              <k-text class="mb-4">Collez ce code sur un autre site pour y intégrer la visite 3D :</k-text>
+              <textarea
+                ref="embedCode"
+                readonly
+                rows="4"
+                class="k-textarea-input"
+                style="width:100%; padding:0.6rem 0.75rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text); font-family:var(--font-mono, monospace); font-size:0.8rem; line-height:1.5;"
+                @focus="$event.target.select()"
+              >{{ embedCode }}</textarea>
+              <p style="margin-top:0.6rem; font-size:0.78rem; color:var(--color-text-dimmed);">
+                La visite s'affiche en lecture seule. Pour un projet privé ou « avec un lien », générez d'abord un lien de partage « Visite 3D » et ajoutez son paramètre <code>?key=…</code> à l'URL.
+              </p>
+            </div>
+          </k-dialog>
         </section>
       `,
 
@@ -570,6 +636,14 @@ var ProjectOverviewSection = {
         // real front-end page.
         previewUrl() {
           return this.$panel?.view?.props?.model?.previewUrl || '';
+        },
+        // Ready-to-paste iframe snippet embedding the 3D viewer.
+        embedCode() {
+          var base = this.previewUrl;
+          if (!base) return '';
+          var url = base.split('?')[0].split('#')[0] + '?embed=1';
+          return '<iframe src="' + url + '" width="100%" height="600" ' +
+            'style="border:0" allow="xr-spatial-tracking; fullscreen" allowfullscreen></iframe>';
         }
       },
 
@@ -606,11 +680,37 @@ var ProjectOverviewSection = {
             window.open(this.previewUrl, '_blank', 'noopener');
           }
         },
-        // Surface the header visibility/share pill (reuse its dropdown
-        // rather than duplicating the share-link logic here).
+        // Dispatch a custom event that the viewButton component listens for.
+        // Direct programmatic .click() on the trigger button doesn't work
+        // because the viewButton's document outside-click handler fires in
+        // the same tick and immediately closes the dropdown again.
         openVisibility() {
-          var btn = document.querySelector('.gh-visibility button, .k-visibility-view-button button');
-          if (btn) btn.click();
+          document.dispatchEvent(new CustomEvent('gh:open-share-dialog'));
+        },
+        // Trigger a structured ZIP download for this project. The route
+        // streams the archive directly — no panel API involved — so a plain
+        // window.location redirect is enough.
+        downloadPackage() {
+          var encoded = this.pageId.replace(/\//g, '+');
+          window.location = '/gh/download/' + encoded;
+        },
+
+        // Embed dialog — shows the iframe snippet to paste elsewhere.
+        openEmbedDialog() {
+          this.embedDialogOpen = true;
+          this.$nextTick(() => {
+            if (this.$refs.embedDialog) this.$refs.embedDialog.open();
+          });
+        },
+        copyEmbedCode() {
+          var code = this.embedCode;
+          if (code && navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).then(
+              () => this.$panel.notification.success('Code d\'intégration copié !'),
+              () => this.$panel.notification.error('Copie impossible — sélectionnez le texte manuellement.')
+            );
+          }
+          this.embedDialogOpen = false;
         },
 
         // Cover Dialog methods
@@ -644,7 +744,7 @@ var ProjectOverviewSection = {
             if (!resp.ok) throw new Error('Erreur de téléversement');
             const res = await resp.json();
             this.$panel.notification.success('Image téléversée : ' + res.filename);
-            
+
             const sectionData = await this.load();
             Object.assign(this.$data, sectionData);
             this.selectedCoverUuid = res.id;
@@ -662,7 +762,8 @@ var ProjectOverviewSection = {
             await this.$panel.api.patch('pages/' + pageId, { cover: value });
             this.$panel.notification.success('Image de couverture enregistrée');
             this.coverDialogOpen = false;
-            await this.$panel.view.reload();
+            const sectionData = await this.load();
+            Object.assign(this.$data, sectionData);
           } catch (err) {
             this.$panel.notification.error('Erreur lors de la sauvegarde : ' + err.message);
           }
@@ -673,7 +774,8 @@ var ProjectOverviewSection = {
             await this.$panel.api.patch('pages/' + pageId, { cover: [] });
             this.$panel.notification.success('Image de couverture supprimée');
             this.coverDialogOpen = false;
-            await this.$panel.view.reload();
+            const sectionData = await this.load();
+            Object.assign(this.$data, sectionData);
           } catch (err) {
             this.$panel.notification.error('Erreur : ' + err.message);
           }
@@ -1058,15 +1160,16 @@ panel.plugin('goheritage/project-ux', {
           typePopoverPos: { top: 0, left: 0 },
           sectionOptions: [
             { value: 'model',       label: '3D' },
+            { value: 'pointcloud',  label: 'Nuage' },
             { value: 'info',        label: 'Fiche' },
             { value: 'gallery',     label: 'Galerie' },
             { value: 'plans',       label: 'Plans' },
             { value: 'annotations', label: 'Annotations' }
           ],
           accessLevels: [
-            { value: 'visit',   icon: 'box', label: 'Visite 3D',      help: 'Page publique de présentation (visite type Matterport). Lecture seule, sans fichiers.' },
-            { value: 'dossier', icon: 'archive', label: 'Dossier complet', help: 'Page de consultation hors panel : tout le contenu + les fichiers téléchargeables. Aucun accès au CMS.' },
-            { value: 'editor',  icon: 'edit',  label: 'Éditeur',        help: 'Connexion au panel limitée à ce seul projet, avec droits de modification. Réservé aux personnes de confiance.' },
+            { value: 'visit',  icon: 'box',  label: 'Visite 3D',     help: 'Page publique de présentation. Lecture seule, sans accès aux fichiers.' },
+            { value: 'viewer', icon: 'url',  label: 'Lecture seule', help: 'Accès lecture au panel, limité à ce projet. Fichiers consultables et téléchargeables. Connexion automatique à la première ouverture du lien.' },
+            { value: 'editor', icon: 'edit', label: 'Éditeur',       help: 'Accès en modification au panel, limité à ce projet. Réservé aux personnes de confiance.' },
           ],
           options: [
             { value: 'brouillon', label: 'Privé',         icon: 'lock',  help: 'Page non publiée — vous et les administrateurs uniquement.', status: 'draft',  visibility: 'private' },
@@ -1111,7 +1214,7 @@ panel.plugin('goheritage/project-ux', {
             for (let line of lines) {
               let trimmed = line.trim();
               if (!trimmed) continue;
-              
+
               // Check if it's a new list item
               let isNewItem = false;
               if (trimmed === '-') {
@@ -1121,18 +1224,18 @@ panel.plugin('goheritage/project-ux', {
                 isNewItem = true;
                 trimmed = trimmed.substring(2).trim();
               }
-              
+
               if (isNewItem) {
                 if (currentItem) items.push(currentItem);
                 currentItem = {};
               }
-              
+
               if (trimmed) {
                 const idx = trimmed.indexOf(':');
                 if (idx > 0) {
                   let key = trimmed.substring(0, idx).trim();
                   let val = trimmed.substring(idx + 1).trim();
-                  
+
                   // Strip surrounding quotes
                   if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"'))) {
                     val = val.substring(1, val.length - 1);
@@ -1178,6 +1281,12 @@ panel.plugin('goheritage/project-ux', {
       },
 
       mounted() {
+        // Listen for the overview tile's open-share-dialog event.
+        // CustomEvent is more reliable than DOM property assignment across
+        // Vue re-renders and panel SPA navigation.
+        this._ghShareEvt = () => this.openShareDialog();
+        document.addEventListener('gh:open-share-dialog', this._ghShareEvt);
+
         this._docHandler = (e) => {
           const inTrigger = this.$el && this.$el.contains(e.target);
           // Close the visibility dropdown when clicking outside
@@ -1207,8 +1316,9 @@ panel.plugin('goheritage/project-ux', {
       },
 
       beforeDestroy() {
-        if (this._docHandler) document.removeEventListener('click', this._docHandler);
-        if (this._escHandler) document.removeEventListener('keydown', this._escHandler);
+        if (this._docHandler)  document.removeEventListener('click',   this._docHandler);
+        if (this._escHandler)  document.removeEventListener('keydown', this._escHandler);
+        if (this._ghShareEvt)  document.removeEventListener('gh:open-share-dialog', this._ghShareEvt);
       },
 
       methods: {
@@ -1307,14 +1417,21 @@ panel.plugin('goheritage/project-ux', {
         },
 
         createShareLink() {
-          var token = '';
-          var chars = '0123456789abcdef';
-          for (var i = 0; i < 16; i++) token += chars[Math.floor(Math.random() * 16)];
+          // 32 bytes from the CSPRNG → 64 hex chars, 256 bits of entropy.
+          // Math.random() was used before — it's a predictable PRNG, not
+          // suitable for security tokens.
+          var tokenBytes = new Uint8Array(32);
+          var idBytes    = new Uint8Array(8);
+          crypto.getRandomValues(tokenBytes);
+          crypto.getRandomValues(idBytes);
+          var toHex = function(buf) {
+            return Array.from(buf).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+          };
           const newLink = {
-            id: 'link_' + Date.now() + '_' + Math.floor(Math.random() * 100),
-            token: token,
-            label: '',
-            access: 'visit',
+            id:               'lnk_' + toHex(idBytes),
+            token:            toHex(tokenBytes),
+            label:            '',
+            access:           'visit',
             visible_sections: ['model', 'info', 'gallery', 'plans', 'annotations']
           };
           this.localShareLinks.push(newLink);
@@ -1413,20 +1530,21 @@ panel.plugin('goheritage/project-ux', {
           if (!base) return '';
           return base.split('?')[0].split('#')[0] + '?key=' + token;
         },
-        getDossierUrl(token) {
+        getViewerUrl(token) {
           const slug = this.model.id.split('/').pop();
-          return window.location.origin + '/dossier/' + slug + '?key=' + token;
+          return window.location.origin + '/gh-share-login/' + slug + '?key=' + token;
         },
         getEditorUrl(token) {
           const slug = this.model.id.split('/').pop();
-          return window.location.origin + '/gh-share-login/' + slug + '?key=' + token + '&role=editor';
+          return window.location.origin + '/gh-share-login/' + slug + '?key=' + token;
         },
 
         // The single URL appropriate to a link's chosen access level.
         getLinkUrl(link) {
           const access = (link && link.access) || 'visit';
           if (access === 'editor')  return this.getEditorUrl(link.token);
-          if (access === 'dossier') return this.getDossierUrl(link.token);
+          if (access === 'viewer')  return this.getViewerUrl(link.token);
+          if (access === 'dossier') return this.getViewerUrl(link.token); // legacy
           return this.getVisitUrl(link.token);
         },
 
@@ -1520,6 +1638,21 @@ panel.plugin('goheritage/project-ux', {
       if (/\/panel\/pages\/(map\+|[a-z+]+map\+)/i.test(path)) return true;
     } catch (_) {}
     return false;
+  }
+
+  // True when the current user may edit this page. Read-only viewers (share
+  // link "Lecture seule") get `permissions.update === false`, so we use this
+  // to suppress every edit affordance we inject (toggles, edit bars). This is
+  // UX only — the server enforces the real lockdown via the viewer role + the
+  // write-guard hook; this just stops dead "Modifier" buttons from showing.
+  function ghCanUpdate() {
+    try {
+      var p = window.panel?.view?.props?.permissions;
+      // Default to TRUE when permissions aren't populated yet, so admins/
+      // editors never get a flicker of hidden controls during boot.
+      if (p && typeof p.update === 'boolean') return p.update;
+    } catch (_) {}
+    return true;
   }
 
   function tag(section) {
@@ -1669,7 +1802,12 @@ panel.plugin('goheritage/project-ux', {
     }
 
     document.body.classList.add(cfg.bodyClass);
-    if (!document.body.getAttribute(cfg.modeAttr)) {
+    var readOnly = !ghCanUpdate();
+    // Read-only users never leave the viewer — pin to read mode regardless of
+    // any stale attribute and don't render the edit toggle below.
+    if (readOnly) {
+      document.body.setAttribute(cfg.modeAttr, 'read');
+    } else if (!document.body.getAttribute(cfg.modeAttr)) {
       document.body.setAttribute(cfg.modeAttr, 'read');
     }
 
@@ -1700,7 +1838,8 @@ panel.plugin('goheritage/project-ux', {
     head.className = 'gh-viewer-head';
     head.innerHTML =
       '<span class="gh-viewer-head__title">' + cfg.title + '</span>' +
-      '<button type="button" class="gh-btn gh-btn--sm" data-gh-toggle="' + cfg.modeAttr + '"></button>';
+      (readOnly ? '' :
+        '<button type="button" class="gh-btn gh-btn--sm" data-gh-toggle="' + cfg.modeAttr + '"></button>');
     host.insertBefore(head, firstSection);
 
     var wrap = document.createElement('div');
@@ -1836,6 +1975,57 @@ panel.plugin('goheritage/project-ux', {
     });
   }
 
+  // ── Tab-bar download button ────────────────────────────────────────
+  // Injects a compact icon button just before the "Fichiers" tab so the
+  // user can trigger the structured ZIP download from anywhere in the
+  // project without switching to Vue d'ensemble first. The button gets
+  // margin-left:auto (via CSS) which pushes the [download][files] pair
+  // to the far right of the flex tab bar — the files tab loses its own
+  // auto-margin and sits directly after it.
+  // Small download-arrow SVG (15×15, stroke-based, fits comfortably inside
+  // the tab button alongside the text label).
+  var GH_DOWNLOAD_SVG =
+    '<svg width="13" height="13" viewBox="0 0 15 15" fill="none" stroke="currentColor"' +
+    ' stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M7.5 1v8.5"/>' +
+    '<path d="M4 7l3.5 3.5L11 7"/>' +
+    '<path d="M2 13h11"/>' +
+    '</svg>';
+
+  function ensureDownloadBtn() {
+    if (document.getElementById('gh-download-btn')) return;
+
+    var tabs = document.querySelector('.k-tabs');
+    if (!tabs) return;
+
+    // Page ID from panel state (same source as the overview component).
+    var pageId;
+    try { pageId = window.panel?.view?.props?.model?.id; } catch (_) {}
+    if (!pageId) return;
+
+    var encoded = pageId.replace(/\//g, '+');
+
+    var btn = document.createElement('button');
+    btn.id        = 'gh-download-btn';
+    btn.type      = 'button';
+    btn.title     = 'Télécharger le dossier en ZIP structuré';
+    btn.setAttribute('aria-label', 'Télécharger le dossier');
+    btn.innerHTML = GH_DOWNLOAD_SVG + '<span>Télécharger</span>';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.location = '/gh/download/' + encoded;
+    });
+
+    // Insert AFTER the "Fichiers" tab → [Fichiers][Télécharger] right cluster.
+    var filesBtn = tabs.querySelector('.k-tabs-button[href*="tab=files"], .k-tabs-button[data-tab="files"]');
+    if (filesBtn && filesBtn.nextSibling) {
+      tabs.insertBefore(btn, filesBtn.nextSibling);
+    } else {
+      tabs.appendChild(btn);
+    }
+  }
+
   function ensureDetailsToggle() {
     var params = new URLSearchParams(window.location.search);
     var tab = params.get('tab');
@@ -1852,15 +2042,18 @@ panel.plugin('goheritage/project-ux', {
     }
 
     document.body.classList.add('gh-on-details-tab');
-    // Default to read mode on first visit.
-    if (!document.body.getAttribute('data-gh-details-mode')) {
+    var readOnly = !ghCanUpdate();
+    // Read-only users are pinned to the read showcase, no edit toggle.
+    if (readOnly) {
+      document.body.setAttribute('data-gh-details-mode', 'read');
+    } else if (!document.body.getAttribute('data-gh-details-mode')) {
       document.body.setAttribute('data-gh-details-mode', 'read');
     }
 
     // Dedup: if exactly one bar + one showcase already exist, nothing to do.
     var existingBars  = document.querySelectorAll('#gh-details-bar');
     var existingShows = document.querySelectorAll('#gh-details-showcase');
-    if (existingBars.length === 1 && existingShows.length === 1) return;
+    if (existingShows.length === 1 && (readOnly || existingBars.length === 1)) return;
     existingBars.forEach(function(e) { e.remove(); });
     existingShows.forEach(function(e) { e.remove(); });
 
@@ -1868,17 +2061,21 @@ panel.plugin('goheritage/project-ux', {
     var host = firstSection && firstSection.parentNode;
     if (!host) return;
 
-    // Persistent toolbar at the top of the tab.
-    var bar = document.createElement('div');
-    bar.id = 'gh-details-bar';
-    bar.className = 'gh-details-bar';
-    bar.innerHTML =
-      '<span class="gh-details-bar__banner">' +
-        '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>' +
-        ' Mode édition — modifiez le contenu et la galerie.' +
-      '</span>' +
-      '<button type="button" class="gh-btn" data-gh-toggle="data-gh-details-mode"></button>';
-    host.insertBefore(bar, firstSection);
+    // Persistent toolbar at the top of the tab — edit affordance only, so it's
+    // omitted entirely for read-only users (just the showcase remains).
+    if (!readOnly) {
+      var bar = document.createElement('div');
+      bar.id = 'gh-details-bar';
+      bar.className = 'gh-details-bar';
+      bar.innerHTML =
+        '<span class="gh-details-bar__banner">' +
+          '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>' +
+          ' Mode édition — modifiez le contenu et la galerie.' +
+        '</span>' +
+        '<button type="button" class="gh-btn" data-gh-toggle="data-gh-details-mode"></button>';
+      host.insertBefore(bar, firstSection);
+      paintToggleBtn(bar.querySelector('[data-gh-toggle]'), 'data-gh-details-mode');
+    }
 
     // Showcase: pretty read-only card shown when not editing.
     var showcase = document.createElement('div');
@@ -1886,18 +2083,16 @@ panel.plugin('goheritage/project-ux', {
     showcase.className = 'gh-details-showcase';
     buildDetailsShowcase(showcase);
     host.insertBefore(showcase, firstSection);
-
-    // Click handling is delegated at the document level; paint initial state.
-    paintToggleBtn(bar.querySelector('[data-gh-toggle]'), 'data-gh-details-mode');
   }
 
   function scan() {
     if (!isProjectPage()) {
       document.body.classList.remove(BODY_FLAG);
+      document.body.classList.remove('gh-readonly');
       document.body.style.removeProperty('--gh-header-height');
       // Tear down every bit of tab chrome we may have injected + its flags.
       ['gh-model-head', 'gh-model-preview', 'gh-pointcloud-head', 'gh-pointcloud-preview',
-       'gh-details-bar', 'gh-details-showcase'].forEach(function (id) {
+       'gh-details-bar', 'gh-details-showcase', 'gh-download-btn'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.remove();
       });
@@ -1910,7 +2105,11 @@ panel.plugin('goheritage/project-ux', {
       return;
     }
     document.body.classList.add(BODY_FLAG);
+    // Read-only flag drives the CSS that hides any residual edit affordances
+    // (per-section "Modifier" docks, the visibility pill's edit actions, etc.).
+    document.body.classList.toggle('gh-readonly', !ghCanUpdate());
     measureHeader();
+    ensureDownloadBtn();
     ensureModelPreview();
     ensurePointcloudPreview();
     ensureDetailsToggle();
@@ -1982,7 +2181,7 @@ panel.plugin('goheritage/project-ux', {
       var textEl = item.querySelector('.k-button-text');
       if (!textEl) return;
       var text = textEl.textContent.trim().toLowerCase();
-      
+
       var iconEl = item.querySelector('.k-icon');
       var iconType = '';
       if (iconEl) {
@@ -1992,7 +2191,7 @@ panel.plugin('goheritage/project-ux', {
           }
         });
       }
-      
+
       var shouldRemove = false;
       if (text.includes('statut') || text.includes('status') || iconType === 'status' || iconType === 'preview') {
         shouldRemove = true;
@@ -2047,11 +2246,30 @@ panel.plugin('goheritage/project-ux', {
     }
   }
 
+  var _ghSettingsRaf = 0;
+  var _ghSettingsTries = 0;
+  function scheduleSettingsRework() {
+    if (_ghSettingsRaf) return;
+    _ghSettingsTries = 0;
+    var tick = function () {
+      _ghSettingsTries++;
+      if (document.querySelector('.k-dropdown-content')) {
+        _ghSettingsRaf = 0;
+        reworkSettingsDropdown();
+        return;
+      }
+      if (_ghSettingsTries > 20) {
+        _ghSettingsRaf = 0;
+        return;
+      }
+      _ghSettingsRaf = requestAnimationFrame(tick);
+    };
+    _ghSettingsRaf = requestAnimationFrame(tick);
+  }
+
   document.addEventListener('click', function(e) {
     if (e.target.closest('.k-settings-view-button')) {
-      setTimeout(reworkSettingsDropdown, 30);
-      setTimeout(reworkSettingsDropdown, 100);
-      setTimeout(reworkSettingsDropdown, 250);
+      scheduleSettingsRework();
     }
   }, { passive: true });
 
