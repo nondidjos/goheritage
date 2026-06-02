@@ -1,16 +1,57 @@
-title: Viewer
-description: Accès en lecture seule au panel d'administration.
+title: Lecteur
+description: >
+  Accès en lecture seule au panel, limité à un seul projet partagé (créé
+  automatiquement par un lien « Lecture seule »). Ne peut rien modifier,
+  créer ni supprimer. Toutes les écritures sont bloquées côté serveur.
+
+# Hidden fields — mirror of collaborator.yml. Set by the gh-share-login
+# route; read by the menu closure (config.php) and the write-guard.
+fields:
+  scoped_page:
+    type: hidden
+  share_token:
+    type: hidden
+
 permissions:
   access:
-    panel: true
-    site: true
-    settings: false
-    users: false
+    panel:     true
+    site:      true
+    settings:  false
+    users:     false
     languages: false
-    system: false
+    system:    false
+    account:   false
+
   pages:
+    create:       false
+    read:         true
+    update:       false
+    delete:       false
+    changeStatus: false
+    duplicate:    false
+    move:         false
+    sort:         false
+    preview:      true
+
+  files:
+    create:  false
+    read:    true
+    update:  false
+    delete:  false
+    replace: false
+
+  user:
+    create:         false
+    read:           false
+    update:         false
+    delete:         false
+    changeEmail:    false
+    changeName:     false
+    changePassword: false
+    changeRole:     false
+
+  users:
     create: false
-    read: true
+    read:   false
     update: false
     delete: false
-    changeStatus: false
