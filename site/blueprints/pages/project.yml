@@ -1,3 +1,4 @@
+# Updated naming from pulpit to chaire
 title: Projet Patrimonial
 icon: box
 
@@ -66,13 +67,16 @@ tabs:
       project_overview:
         type: project-overview
 
-  # ── Détails — single-column, collapsible cards. Edit the project's
-  #    description, content blocks, gallery, characteristics, tags, geo
-  #    and sharing here. The Aperçu tab links you in for the quick edits;
-  #    this is the full surface. ────────────────────────────────────
+  # ── Visite virtuelle — single-column, collapsible cards. All the curated,
+  #    public-facing material that makes up the virtual visit: description,
+  #    content blocks, gallery, characteristics, tags, geo. The Vue d'ensemble
+  #    tab links you in for quick edits; this is the full surface.
+  #    NOTE: the tab KEY stays `details` — it's referenced throughout the
+  #    project-ux DOM injector (openTab('details'), ensureDetailsToggle,
+  #    body.gh-on-details-tab). Only the visible label/icon changed. ──────
   details:
-    label: Détails
-    icon: settings
+    label: Visite virtuelle
+    icon: preview
     sections:
 
       # Hidden fields backing the visibility header dropdown.
@@ -112,7 +116,7 @@ tabs:
             size: medium
             help: Images affichées dans la grille de droite de la page projet.
             uploads: image
-            query: page.images.template('image')
+            query: page.galleryPickable
 
       # Sharing — only renders when visibility ≠ private.
       sharing_section:
@@ -410,7 +414,7 @@ tabs:
   # ─────────────────────────────────────────────────────────────────────
   files:
     label: Fichiers
-    icon: folder-structure
+    icon: folder
     sections:
 
       all_files:
