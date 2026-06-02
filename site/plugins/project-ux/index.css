@@ -26,6 +26,14 @@
   z-index: 1000 !important;
 }
 
+/*  Pad Kirby's native header buttons (settings, preview, etc.) to match
+    the height of our custom visibility + voir-la-page buttons. */
+body.gh-project-edit .k-header .k-button {
+  height:         var(--height-md, 2.25rem) !important;
+  padding-left:   0.85rem !important;
+  padding-right:  0.85rem !important;
+}
+
 /*  GoHéritage custom-UI palette — drives the visibility pill, its dropdown,
     the share modal/popover and the "Voir la page publique" header button.
     Defined on :root so every one of those (which live in different parts of
@@ -43,6 +51,7 @@
   --gh-text-dim: #999;    /* secondary / helper text         */
   --gh-hover:  rgba(255, 255, 255, 0.08); /* subtle hover fill */
   --gh-active: rgba(255, 255, 255, 0.12); /* selected fill     */
+  --gh-btn-back: #121212; /* panel button bg — dark mode (matches native header buttons) */
 }
 
 /*  Light override is driven by the panel's ACTUAL theme, not the OS. The
@@ -62,6 +71,19 @@ html.gh-theme-light {
   --gh-text-dim: #5d5d5d;
   --gh-hover:  rgba(0, 0, 0, 0.06);
   --gh-active: rgba(0, 0, 0, 0.09);
+  --gh-btn-back: #e0e0e0; /* panel button bg — light mode    */
+}
+
+/* ── Read-only mode (share-link "Lecture seule" viewers) ──────────────────
+   Hide every edit affordance we inject. This is UX hardening on top of the
+   server-side viewer-role lockdown — viewers should see a clean, browse-only
+   panel with no dead "Modifier" buttons or visibility/share controls. */
+body.gh-readonly .gh-visibility,                 /* visibility + share-link manager */
+body.gh-readonly [data-gh-toggle],               /* any read/edit toggle button     */
+body.gh-readonly .gh-details-bar,                /* details "Mode édition" bar      */
+body.gh-readonly .k-section .k-button-group,     /* native per-section action docks */
+body.gh-readonly .gh-pov__asset--edit {          /* overview edit-only tiles        */
+  display: none !important;
 }
 
 .gh-visibility {
@@ -69,44 +91,46 @@ html.gh-theme-light {
   display: inline-flex;
 }
 
-/*  Custom trigger button styled to match Kirby's header buttons
-    (settings / preview / etc.) but with an explicit chevron so the user
-    can SEE there are multiple options to choose from. */
+/*  Shared base for all custom header buttons (visibility trigger +
+    "Voir la page publique"). Same height/font/bg as Kirby's native ones. */
+.gh-visit-page-btn,
 .gh-visibility__trigger {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
   height: var(--height-md, 2.25rem);
   padding: 0 0.85rem;
-  border: 1px solid var(--color-border, #444);
   border-radius: var(--rounded, 4px);
-  background: var(--gh-elev-0);
-  color: var(--gh-text);
+  background: var(--gh-btn-back);
+  color: var(--color-text);
   font: inherit;
   font-size: 0.875rem;
   font-weight: 500;
-  letter-spacing: 0;
-  line-height: 1;
-  cursor: pointer;
   white-space: nowrap;
-}
-.gh-visibility__trigger:focus,
-.gh-visibility__trigger:active,
-.gh-visibility__trigger:focus-visible {
+  cursor: pointer;
   outline: none !important;
   box-shadow: none !important;
+}
+.gh-visit-page-btn:hover,
+.gh-visibility__trigger:hover { filter: brightness(0.92); }
+
+/* Visibility trigger: has a border + explicit gap/line-height */
+.gh-visibility__trigger {
+  gap: 0.45rem;
+  border: 1px solid var(--color-border);
+  letter-spacing: 0;
+  line-height: 1;
 }
 
 .gh-visibility__icon {
   flex-shrink: 0;
   width: 1em;
   height: 1em;
-  color: var(--gh-text);
+  color: currentColor;
 }
 
 .gh-visibility__label {
   font-weight: 500;
-  color: var(--gh-text);
+  color: currentColor;
 }
 
 /*  Chevron — rotates 180° when the dropdown is open as a clear visual
@@ -115,7 +139,7 @@ html.gh-theme-light {
   flex-shrink: 0;
   width: 0.85em;
   height: 0.85em;
-  color: var(--gh-text-dim);
+  color: var(--color-text-dimmed, currentColor);
   margin-left: 0.1em;
   transition: transform 0.15s ease;
 }
@@ -350,10 +374,8 @@ body.gh-project-edit .k-tabs {
 }
 
 /*  The "Fichiers" tab is a "see everything" file-inventory utility, not a
-    content tab. It's defined last in the blueprint and pushed to the far
-    right of the bar here (margin-left:auto on the last flex item) with a
-    faint divider, so it reads as separate from the content tabs. The icon
-    is nudged a touch dimmer to reinforce the utility role. */
+    content tab. Pushed to the far right via margin-left:auto. The injected
+    Télécharger button sits directly after it with no separator. */
 body.gh-project-edit .k-tabs-button[href*="tab=files"],
 body.gh-project-edit .k-tabs-button[data-tab="files"] {
   margin-left: auto !important;
@@ -362,6 +384,38 @@ body.gh-project-edit .k-tabs-button[data-tab="files"] {
 body.gh-project-edit .k-tabs-button[href*="tab=files"]:not([aria-current]):not(.k-tabs-button--current),
 body.gh-project-edit .k-tabs-button[data-tab="files"]:not([aria-current]):not(.k-tabs-button--current) {
   opacity: 0.8;
+}
+
+/*  Download button — injected AFTER Fichiers so the pair reads as
+    [Fichiers][Télécharger] at the far right. Styled as a compact ghost
+    button (transparent bg, visible border, rounded) so it's clearly
+    clickable without looking like a tab. Hover is a neutral rgba tint —
+    no color inversion, works identically in light and dark mode. */
+body.gh-project-edit #gh-download-btn {
+  display:       inline-flex;
+  align-items:   center;
+  align-self:    center;
+  gap:           0.3rem;
+  flex-shrink:   0;
+  height:        1.75rem;
+  padding:       0 0.6rem;
+  margin-left:   0.5rem;
+  background:    var(--gh-btn-back);
+  border:        1px solid var(--color-border);
+  border-radius: var(--rounded, 4px);
+  color:         var(--color-text);
+  font-size:     var(--text-sm, 0.8125rem);
+  font-family:   inherit;
+  white-space:   nowrap;
+  cursor:        pointer;
+  transition:    background 0.12s;
+}
+body.gh-project-edit #gh-download-btn:hover {
+  filter: brightness(0.92);
+}
+body.gh-project-edit #gh-download-btn svg {
+  flex-shrink:   0;
+  pointer-events: none;
 }
 
 
@@ -706,38 +760,25 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   object-fit: cover;
   display: block;
 }
-/* "Voir la page publique" — custom view button in the page header.
-   Matches the visibility pill sitting next to it: same dark fill, no
-   border/outline so the header button group reads as one consistent set. */
+/* "Voir la page publique" specifics — no border, separator line after */
 .gh-visit-page-btn {
-  display: inline-flex;
-  align-items: center;
   gap: 0.4rem;
-  height: var(--height-md, 2.25rem);
-  padding: 0 0.85rem;
-  border: 0;
-  border-radius: var(--rounded, 4px);
-  background: var(--gh-elev-0);  /* same fill as .gh-visibility__trigger */
-  color: var(--gh-text);
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
+  border: none;
   text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 0.1s ease;
+  position: relative;
+  margin-right: 0.95rem;
 }
-.gh-visit-page-btn:hover {
-  background: var(--gh-elev-1);
-  text-decoration: none;
+.gh-visit-page-btn:hover { text-decoration: none; }
+.gh-visit-page-btn::after {
+  content: '';
+  position: absolute;
+  top: 20%; right: -0.5rem;
+  width: 1px; height: 60%;
+  background: var(--color-border, rgba(0, 0, 0, 0.12));
+  pointer-events: none;
+  opacity: 0.8;
 }
-.gh-visit-page-btn:focus,
-.gh-visit-page-btn:active,
-.gh-visit-page-btn:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
-}
-.gh-visit-page-btn .k-icon { width: 1em; height: 1em; color: var(--gh-text); }
+.gh-visit-page-btn .k-icon { width: 1em; height: 1em; color: currentColor; }
 .gh-pov__cover-empty {
   display: flex;
   flex-direction: column;
@@ -1286,7 +1327,8 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   min-width: 0;
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 0.72rem;
-  color: #c0c0c0;
+  color: var(--gh-text);
+  opacity: 0.92;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1301,13 +1343,13 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   border: 0;
   border-radius: 5px;
   background: transparent;
-  color: #555;
+  color: var(--gh-text-dim);
   cursor: pointer;
   transition: background 0.1s, color 0.1s;
 }
 .gh-share-dialog__url-copy-btn:hover {
   background: var(--gh-hover);
-  color: #bbb;
+  color: var(--gh-text);
 }
 .gh-share-dialog__url-copy-btn .k-icon { width: 1em; height: 1em; }
 
@@ -1355,10 +1397,10 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   gap: 0.3rem;
   height: 1.75rem;
   padding: 0 0.7rem;
-  border: 1px solid var(--gh-elev-3);
+  border: 1px solid var(--gh-line);
   border-radius: 999px;
   background: transparent;
-  color: #555;
+  color: var(--gh-text-dim);
   font: inherit;
   font-size: 0.72rem;
   font-weight: 500;
@@ -1369,16 +1411,16 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s;
 }
 .gh-share-dialog__perm-pill:hover:not(:disabled) {
-  border-color: #444;
-  color: var(--gh-text-dim);
+  border-color: var(--gh-text-dim);
+  color: var(--gh-text);
 }
 /* Active: filled, bright text, inset shadow gives a "pressed" feel,
    ::before injects a checkmark so selection is unambiguous */
 .gh-share-dialog__perm-pill.is-active {
-  background: var(--gh-elev-3);
-  border-color: #555;
+  background: var(--gh-active);
+  border-color: var(--gh-text-dim);
   color: var(--gh-text);
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);
+  box-shadow: none;
 }
 .gh-share-dialog__perm-pill.is-active::before {
   content: '✓';
@@ -1667,5 +1709,4 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   height: 1em !important;
   opacity: 0.75 !important;
 }
-
 
