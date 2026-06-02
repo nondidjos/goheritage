@@ -1,10 +1,16 @@
 /**
  * viewer-modes.js
  *
- * Floating chip swapper for the project viewer (3D / Galerie / Plans).
- * Active chip + pane share the .is-active class. Switching panes
- * dispatches a `viewer:mode-change` event so viewer.js / plan-viewer.js
- * can lazy-load resources on first activation.
+ * Data-type switcher for the project viewer. A single dropdown (NOT a
+ * segmented pill row) lets the visitor swap between the available data types
+ * — Modèle 3D / Galerie / Plans / Nuage de points. Kept visually distinct
+ * from the in-canvas Extérieur/Intérieur toggle so the two never read as
+ * competing controls.
+ *
+ * Switching a pane dispatches a `viewer:mode-change` event so viewer.js /
+ * plan-viewer.js can lazy-load resources on first activation. The point-cloud
+ * pane is itself a lazy iframe into ?pointcloud=1, created on first open so we
+ * don't boot a second WebGL context unless it's actually viewed.
  *
  * Loaded as an external file (not inline) so it can never be rendered as
  * literal text by an upstream HTML-parsing hiccup in the template.
@@ -14,42 +20,96 @@
     var container = document.getElementById('viewer-container');
     if (!container) return;
 
-    var chips = container.querySelectorAll('.viewer-mode-chip');
+    var sw = document.getElementById('viewer-switch');
     var panes = container.querySelectorAll('[data-mode-pane]');
-    if (!chips.length) return;
+    if (!sw) return;
+
+    var trigger   = sw.querySelector('.viewer-switch__trigger');
+    var menu      = sw.querySelector('.viewer-switch__menu');
+    var opts      = sw.querySelectorAll('.viewer-switch__opt');
+    var labelEl   = sw.querySelector('[data-switch-label]');
+    var icoEl     = sw.querySelector('[data-switch-ico]');
+
+    function closeMenu() {
+      sw.classList.remove('is-open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+    function openMenu() {
+      sw.classList.add('is-open');
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+
+    // Create the point-cloud iframe the first time that pane is shown.
+    function ensurePointcloudIframe() {
+      var pane = container.querySelector('[data-mode-pane="pointcloud"]');
+      if (!pane) return;
+      if (pane.querySelector('iframe')) return;
+      var src = pane.getAttribute('data-pc-src');
+      if (!src) return;
+      var ifr = document.createElement('iframe');
+      ifr.src = src;
+      ifr.className = 'viewer-pane__frame';
+      ifr.setAttribute('allow', 'xr-spatial-tracking; fullscreen');
+      ifr.setAttribute('allowfullscreen', '');
+      pane.appendChild(ifr);
+    }
 
     function setMode(target) {
-      chips.forEach(function (c) {
-        var match = c.getAttribute('data-mode-target') === target;
-        c.classList.toggle('is-active', match);
-        c.setAttribute('aria-selected', match ? 'true' : 'false');
+      // Reflect selection in the dropdown trigger.
+      opts.forEach(function (o) {
+        var match = o.getAttribute('data-mode-target') === target;
+        o.classList.toggle('is-active', match);
+        o.setAttribute('aria-selected', match ? 'true' : 'false');
+        if (match) {
+          var ico = o.querySelector('.viewer-switch__opt-ico');
+          var txt = o.querySelector('span:not(.viewer-switch__opt-ico)');
+          if (ico && icoEl)  icoEl.innerHTML = ico.innerHTML;
+          if (txt && labelEl) labelEl.textContent = txt.textContent;
+        }
       });
+
+      if (target === 'pointcloud') ensurePointcloudIframe();
+
       panes.forEach(function (p) {
-        var match = p.getAttribute('data-mode-pane') === target;
-        p.classList.toggle('is-active', match);
+        p.classList.toggle('is-active', p.getAttribute('data-mode-pane') === target);
       });
-      // viewer.js appends its WebGL canvas + CSS2D label overlay DIRECTLY
-      // to #viewer-container (not inside the model pane), so they'd stay
-      // visible + capture the mouse in gallery/plans mode — making the
-      // 3D model shift around behind the gallery. Tag the container with
-      // the active mode so CSS can hide those stray elements off-model.
+
+      // viewer.js appends its WebGL canvas + CSS2D label overlay DIRECTLY to
+      // #viewer-container (not inside the model pane), so they'd stay visible
+      // and capture the mouse off-model. Tag the container with the active
+      // mode so CSS can hide those stray elements.
       container.setAttribute('data-active-mode', target);
       container.dispatchEvent(
         new CustomEvent('viewer:mode-change', { detail: { mode: target } })
       );
     }
 
-    // Initialise the attribute to whichever pane starts active.
+    // Initialise data-active-mode from whichever pane starts active.
     var initial = 'model';
     panes.forEach(function (p) {
       if (p.classList.contains('is-active')) initial = p.getAttribute('data-mode-pane');
     });
     container.setAttribute('data-active-mode', initial);
+    if (initial === 'pointcloud') ensurePointcloudIframe();
 
-    chips.forEach(function (c) {
-      c.addEventListener('click', function () {
-        setMode(c.getAttribute('data-mode-target'));
+    trigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (sw.classList.contains('is-open')) closeMenu(); else openMenu();
+    });
+
+    opts.forEach(function (o) {
+      o.addEventListener('click', function () {
+        setMode(o.getAttribute('data-mode-target'));
+        closeMenu();
       });
+    });
+
+    // Dismiss on outside click / Escape.
+    document.addEventListener('click', function (e) {
+      if (!sw.contains(e.target)) closeMenu();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeMenu();
     });
   }
 
