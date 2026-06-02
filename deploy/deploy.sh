@@ -77,10 +77,11 @@ echo "==> Fixing ownership and permissions"
 ssh "${SSH_OPTS[@]}" "$LIGHTSAIL_HOST" "
     set -e
     cd '$REMOTE_DIR'
-    sudo chown -R bitnami:daemon .
-    # Kirby needs to write inside these
+    # Avoid chown -R on the whole docroot (slow if node_modules exists).
+    # Only Kirby's writable dirs need ownership guarantees.
     for d in content media site/accounts site/sessions site/cache site/logs site/.private; do
         if [[ -d \"\$d\" ]]; then
+            sudo chown -R bitnami:daemon \"\$d\"
             sudo find \"\$d\" -type d -exec chmod 2775 {} \;
             sudo find \"\$d\" -type f -exec chmod 0664 {} \;
         fi
