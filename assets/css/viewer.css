@@ -754,74 +754,153 @@
     flex-direction: column;
 }
 
+/* ── Data-type switcher (dropdown) ──────────────────────────────────────
+   A single dropdown in the top-left of the viewer bar — deliberately NOT a
+   segmented pill row, so it never reads as a second toggle next to the
+   in-canvas Extérieur/Intérieur control. */
 .viewer-mode-bar {
     flex-shrink: 0;
     display: flex;
-    justify-content: center;
-    padding: 12px 12px 8px;
+    justify-content: flex-start;
+    padding: 12px;
     pointer-events: none;
 }
 
-.viewer-mode-chips {
+.viewer-switch {
     position: relative;
-    z-index: 10;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px;
-    background: rgba(20, 20, 22, 0.55);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 999px;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+    z-index: 20;
     pointer-events: auto;
 }
 
-.viewer-mode-chip {
+.viewer-switch__trigger {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: transparent;
-    border: 0;
-    border-radius: 999px;
-    color: rgba(255, 255, 255, 0.78);
+    gap: 8px;
+    padding: 7px 11px 7px 8px;
+    background: rgba(20, 20, 22, 0.6);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+    color: #fff;
     font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease;
     white-space: nowrap;
 }
-
-.viewer-mode-chip:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.08);
+.viewer-switch__trigger:hover {
+    background: rgba(36, 36, 40, 0.72);
+    border-color: rgba(255, 255, 255, 0.28);
 }
-
-.viewer-mode-chip:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.5);
+.viewer-switch__trigger:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.55);
     outline-offset: 1px;
 }
 
-.viewer-mode-chip.is-active {
-    background: #fff;
-    color: #111;
-}
-
-.viewer-mode-chip svg {
-    width: 14px;
-    height: 14px;
+.viewer-switch__ico {
+    display: inline-flex;
     flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.9);
+}
+.viewer-switch__ico svg { display: block; }
+
+.viewer-switch__label { color: #fff; }
+
+/* Count badge — hints that other data types are available. */
+.viewer-switch__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    color: #fff;
 }
 
-/* On narrow viewports collapse to icon-only to save horizontal space */
+.viewer-switch__chevron {
+    flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.7);
+    transition: transform 0.18s ease;
+}
+.viewer-switch.is-open .viewer-switch__chevron { transform: rotate(180deg); }
+
+/* Menu */
+.viewer-switch__menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 200px;
+    margin: 0;
+    padding: 5px;
+    list-style: none;
+    background: rgba(24, 24, 27, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 0.14s ease, transform 0.14s ease;
+}
+.viewer-switch.is-open .viewer-switch__menu {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.viewer-switch__opt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.82);
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+.viewer-switch__opt:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.viewer-switch__opt.is-active { color: #fff; }
+.viewer-switch__opt-ico {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.75);
+}
+.viewer-switch__opt-ico svg { display: block; }
+.viewer-switch__opt > span:not(.viewer-switch__opt-ico) { flex: 1; }
+
+.viewer-switch__check {
+    flex-shrink: 0;
+    opacity: 0;
+    color: #fff;
+}
+.viewer-switch__opt.is-active .viewer-switch__check { opacity: 1; }
+
+/* Point-cloud pane iframe fills the stage. */
+.viewer-pane__frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
+
 @media (max-width: 32rem) {
-    .viewer-mode-chip span { display: none; }
-    .viewer-mode-chip      { padding: 8px; }
+    .viewer-switch__label { display: none; }
 }
 
 /* ── Panes ────────────────────────────────────────────────────────── */
