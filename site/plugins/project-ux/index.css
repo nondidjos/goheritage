@@ -1135,20 +1135,24 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
 .k-panel-main {
   display: flex !important;
   flex-direction: column !important;
+  min-height: 100dvh !important;          /* guarantees free space for the footer's margin-top:auto */
 }
 
 /* ── Footer ──────────────────────────────────────────────────────────────
-   Lives inside .k-panel-main, which has inline + bottom padding. Negative
-   margins cancel those so the dark band spans edge-to-edge and reaches the
-   viewport bottom; the same inline padding is re-applied inside so the
-   footer content lines up with the page content above it. */
+   The full-bleed inline margins + matching inline padding (and the
+   bottom-flush margin) are set INLINE by JS — positionPanelFooter() — from
+   .k-panel-main's *computed* padding. The CSS var --main-padding-inline uses
+   container-query units (5cqw) that resolve to a different width inside the
+   footer than in .k-panel-main's own padding, so a pure-CSS negative margin
+   left side gaps. The calc()s below are only a pre-JS fallback. */
 .gh-panel-footer {
-  margin-top: auto;                       /* push to viewport bottom on short views */
-  /* Cancel .k-panel-main's inline + bottom padding so the dark band reaches
-     the panel edges and the very bottom — then re-apply inline padding inside. */
-  margin-inline: calc(-1 * var(--main-padding-inline, 2rem));
-  margin-bottom: calc(-1 * var(--spacing-24, 6rem));
-  padding: 3rem var(--main-padding-inline, 2rem) 2.5rem;
+  margin-top: auto;                       /* drop to the viewport bottom on short views */
+  margin-inline: calc(-1 * var(--main-padding-inline, 2rem));  /* JS overrides with exact px */
+  margin-bottom: calc(-1 * var(--spacing-24, 6rem));           /* JS overrides */
+  padding: 2.75rem var(--main-padding-inline, 2rem) 2.5rem;    /* JS overrides L/R */
+  /* A band of panel background above the dark footer = a real gap that's
+     present even when margin-top:auto collapses to 0 on tall pages. */
+  border-top: 2.25rem solid var(--color-background, #fff);
   background: #1A1916;
   color: #fff;
   box-sizing: border-box;

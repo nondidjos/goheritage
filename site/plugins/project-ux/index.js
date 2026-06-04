@@ -2523,6 +2523,33 @@ panel.plugin('goheritage/project-ux', {
     if (footer.innerHTML !== html) footer.innerHTML = html;
     // Always keep it the LAST child so it sits below the view content.
     if (main.lastElementChild !== footer) main.appendChild(footer);
+    positionPanelFooter(footer, main);
+  }
+
+  // Full-bleed the footer using .k-panel-main's COMPUTED padding (the CSS var
+  // can't be matched from inside the footer because of container-query units).
+  // Cancel the inline + bottom padding with negative margins, then re-apply
+  // the inline padding inside so the footer content lines up with the page.
+  function positionPanelFooter(footer, main) {
+    if (!footer || !main) return;
+    var cs = window.getComputedStyle(main);
+    footer.style.marginLeft   = '-' + cs.paddingLeft;
+    footer.style.marginRight  = '-' + cs.paddingRight;
+    footer.style.marginBottom = '-' + cs.paddingBottom;
+    footer.style.paddingLeft  = cs.paddingLeft;
+    footer.style.paddingRight = cs.paddingRight;
+  }
+
+  // The padding is container-query based, so it changes with panel width —
+  // re-measure on resize. Registered once.
+  if (!window.__ghFooterResizeHooked) {
+    window.__ghFooterResizeHooked = true;
+    window.addEventListener('resize', function () {
+      positionPanelFooter(
+        document.getElementById('gh-panel-footer'),
+        document.querySelector('.k-panel-main')
+      );
+    }, { passive: true });
   }
 
   // Resolve footer data, trying the panel API first and falling back to a raw
