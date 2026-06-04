@@ -39,15 +39,71 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ── Project page: mobile content drawer ──
+    // ── Project page: mobile content drawer (drag up/down or tap) ──
     var projectDrawerHandle = document.getElementById('project-drawer-handle');
     var projectContent = document.getElementById('project-content');
     if (projectDrawerHandle && projectContent) {
-        projectDrawerHandle.addEventListener('click', function () {
-            projectContent.classList.toggle('is-expanded');
-            // Prevent body scroll when drawer is open
-            document.body.style.overflow = projectContent.classList.contains('is-expanded') ? 'hidden' : '';
-        });
+        var DRAWER_PEEK = 56;            // px of the drawer left peeking when collapsed
+        var dragging = false, moved = false;
+        var startY = 0, startTranslate = 0;
+
+        // Distance the drawer is pushed down when collapsed (height − peek).
+        function collapsedTranslate() {
+            return Math.max(0, projectContent.getBoundingClientRect().height - DRAWER_PEEK);
+        }
+        function currentTranslate() {
+            return projectContent.classList.contains('is-expanded') ? 0 : collapsedTranslate();
+        }
+        function setExpanded(on) {
+            projectContent.classList.toggle('is-expanded', on);
+            document.body.style.overflow = on ? 'hidden' : '';
+        }
+
+        function onDown(e) {
+            dragging = true;
+            moved = false;
+            startY = e.clientY;
+            startTranslate = currentTranslate();
+            projectContent.classList.add('is-dragging');
+            projectDrawerHandle.classList.add('is-dragging');
+            // Capture so the whole drag streams to the handle even when the
+            // finger leaves it — without this, mobile browsers steal the
+            // gesture for scrolling and fire pointercancel (no drag at all).
+            try { projectDrawerHandle.setPointerCapture(e.pointerId); } catch (_) {}
+        }
+        function onMove(e) {
+            if (!dragging) return;
+            var dy = e.clientY - startY;
+            if (Math.abs(dy) > 4) moved = true;
+            var t = Math.max(0, Math.min(collapsedTranslate(), startTranslate + dy));
+            projectContent.style.transform = 'translateY(' + t + 'px)';
+        }
+        function onUp(e) {
+            if (!dragging) return;
+            dragging = false;
+            projectDrawerHandle.classList.remove('is-dragging');
+
+            var dy = (e.clientY || startY) - startY;
+            var willExpand;
+            if (!moved) {
+                // Treat as a tap → toggle.
+                willExpand = !projectContent.classList.contains('is-expanded');
+            } else {
+                var threshold = collapsedTranslate() * 0.3;
+                willExpand = projectContent.classList.contains('is-expanded')
+                    ? !(dy > threshold)      // was open: close only if dragged far down
+                    : (-dy > threshold);     // was closed: open only if dragged far up
+            }
+            // Restore CSS transition, set final state, hand transform back to CSS.
+            projectContent.classList.remove('is-dragging');
+            projectContent.style.transform = '';
+            setExpanded(willExpand);
+        }
+
+        projectDrawerHandle.addEventListener('pointerdown', onDown);
+        document.addEventListener('pointermove', onMove, { passive: true });
+        document.addEventListener('pointerup', onUp);
+        document.addEventListener('pointercancel', onUp);
 
         // Tapping the viewer area collapses the drawer
         var viewerContainer = document.getElementById('viewer-container');
@@ -56,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Don't collapse if clicking a label or control inside the viewer
                 if (e.target.closest('.viewer-label, .viewer-toggle')) return;
                 if (projectContent.classList.contains('is-expanded')) {
-                    projectContent.classList.remove('is-expanded');
+                    setExpanded(false);
                 }
             });
         }

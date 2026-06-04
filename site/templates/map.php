@@ -12,8 +12,10 @@ $embedSuffix = $isEmbedded ? '?embed=1' : '';
   <?php /* left panel */ ?>
   <aside class="col-2 map-panel" id="map-panel">
 
-    <!-- mobile drag handle (hidden on desktop via CSS) -->
-    <div class="map-panel__handle" id="map-panel-handle" aria-hidden="true"></div>
+    <!-- mobile drag handle (hidden on desktop via CSS) — draggable up/down -->
+    <div class="map-panel__handle" id="map-panel-handle" aria-hidden="true">
+      <span class="map-panel__bar"></span>
+    </div>
 
     <!-- search & filter bar -->
     <div class="map-panel__search" id="map-panel-search">

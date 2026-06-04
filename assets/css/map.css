@@ -462,23 +462,32 @@ main#map-main {
         transform: translateY(0);
     }
 
-    /* Drag handle bar above search */
+    /* Drag handle bar above search — draggable up/down */
     .map-panel__handle {
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
-        height: 20px;
+        gap: 3px;
+        padding: 8px 0 2px;
         flex-shrink: 0;
-        cursor: pointer;
+        cursor: grab;
+        touch-action: none; /* we own the vertical drag */
+        user-select: none;
     }
+    .map-panel__handle.is-dragging { cursor: grabbing; }
 
-    .map-panel__handle::before {
-        content: '';
+    .map-panel__bar {
         display: block;
         width: 36px;
         height: 4px;
         background: rgba(26, 25, 22, 0.18);
         border-radius: 2px;
+    }
+
+    /* Suspend the transition while the finger is dragging (JS sets transform) */
+    .map-panel.is-dragging {
+        transition: none !important;
     }
 
     /* Search bar becomes the visible handle — cursor indicates it toggles */

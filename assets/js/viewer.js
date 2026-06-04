@@ -89,7 +89,9 @@ function initViewer(container) {
   controls.dampingFactor = 0.08;
   controls.screenSpacePanning = true;
   controls.maxDistance = 5000;
-  controls.enableZoom = false; // handled manually below so we can call preventDefault
+  // Pinch-to-zoom handled natively by OrbitControls on touch devices.
+  // Wheel zoom on desktop is overridden below to call preventDefault.
+  controls.enableZoom = true;
 
   // ── Zoom ─────────────────────────────────────────────────────────────────
   // preventDefault() must be instant; heavy zoom math is deferred to the
@@ -107,9 +109,14 @@ function initViewer(container) {
   }, { passive: false });
 
 
+  // Single-finger orbit/pan: block page scroll so it doesn't fight OrbitControls.
+  // Two-finger pinch: let it propagate so OrbitControls handles zoom natively.
+  // Do NOT use capture:true — that would intercept before OrbitControls gets it.
   container.addEventListener('touchmove', function (e) {
-    e.preventDefault();
-  }, { passive: false, capture: true });
+    if (e.touches.length === 1) {
+      e.preventDefault();
+    }
+  }, { passive: false });
 
   // ── Progress overlay ─────────────────────────────────────────────────────
   const progress = document.createElement('div');
@@ -1183,20 +1190,27 @@ function initViewer(container) {
     renderer.setSize(w, h);
     labelRenderer.setSize(w, h);
 
-    // How much of the viewer is hidden behind the sidebar right now?
+    // How much of the viewer is obscured by the LEFT sidebar on desktop?
+    //
+    // The horizontal view-offset trick is ONLY correct for a desktop left
+    // sidebar — a vertical column anchored to the left that leaves a strip of
+    // viewer visible to its right. The mobile bottom drawer spans the FULL
+    // width (covers from the bottom, nothing to its right), and applying the
+    // offset to it throws the model far off to one side. So the test is:
+    // the panel must be anchored to the left AND leave a meaningful strip of
+    // viewer uncovered on its right. A full-width bottom drawer fails this
+    // and is correctly ignored.
     var sidebarOverlay = 0;
     var sidebar = document.getElementById('project-content');
     var contRect = container.getBoundingClientRect();
     if (sidebar) {
       var sbRect = sidebar.getBoundingClientRect();
-      var visibleRight = Math.min(sbRect.right, contRect.right);
-      var overlapLeft  = Math.max(sbRect.left, contRect.left);
-      var overlap      = Math.max(0, visibleRight - overlapLeft);
-      // Only count the sidebar as covering the viewer when it's actually
-      // on-screen (mobile drawer collapsed, desktop sidebar slid out via
-      // translateX both report an off-screen rect via getBoundingClientRect).
-      if (sbRect.right > contRect.left + 1 && sbRect.left < contRect.right - 1) {
-        sidebarOverlay = overlap;
+      var anchoredLeft       = sbRect.left <= contRect.left + 2;
+      var viewerVisibleRight = contRect.right - sbRect.right; // strip uncovered to the right
+      var verticallyPresent  = sbRect.bottom > contRect.top + 2 && sbRect.top < contRect.bottom - 2;
+      if (anchoredLeft && verticallyPresent && viewerVisibleRight > 60) {
+        // Width of the left portion the sidebar covers.
+        sidebarOverlay = Math.max(0, Math.min(sbRect.right, contRect.right) - contRect.left);
       }
     }
 

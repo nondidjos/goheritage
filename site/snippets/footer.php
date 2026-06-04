@@ -38,6 +38,9 @@ if ($isMapPage) {
               class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline"><?= $item->title()->esc() ?></a>
           </li>
         <?php endforeach ?>
+        <li><a href="https://www.govr.eu/blog" target="_blank" rel="noopener"
+            class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline">Blog GOVR ↗</a>
+        </li>
       </ul>
     </div>
 
@@ -85,7 +88,14 @@ if ($isMapPage) {
 <?php if ($page->template()->name() === 'project'): ?>
   <?= js('assets/js/lightbox.js') ?>
 <?php endif ?>
-<?= js($jsFiles) ?>
+<?php
+// Versioned manually so mobile browsers actually re-fetch after a deploy —
+// Kirby's js() helper adds no cache-busting, and phones cache JS hard. Bump
+// GH_ASSET_VER on any change to index.js / map.js.
+$ghAssetVer = '3';
+foreach ($jsFiles as $ghJs): ?>
+  <script src="<?= url($ghJs) ?>?v=<?= $ghAssetVer ?>"></script>
+<?php endforeach ?>
 
 </body>
 

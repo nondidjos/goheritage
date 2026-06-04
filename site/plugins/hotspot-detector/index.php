@@ -78,7 +78,7 @@ function detectAndSaveHotspots($page) {
     if (empty($exteriorHotspots) && empty($interiorHotspots)) {
         return [
             'status'  => 'ok', 'count' => 0, 'added' => 0, 'skipped' => 0,
-            'message' => 'Veuillez d\'abord ajouter un GLB ou un Hotspots JSON.',
+            'message' => 'Veuillez d\'abord ajouter un GLB ou un fichier JSON de hotspots.',
             'hotspots' => [],
         ];
     }

@@ -121,13 +121,13 @@ Kirby::plugin('goheritage/model-converter', [
                     // where you want to spot what was just uploaded.
                     foreach ($this->model()->files()->sortBy('modified', 'desc') as $f) {
                         $rows[] = [
-                            'filename'  => $f->filename(),
-                            'url'       => $f->url(),
-                            'size'      => $f->niceSize(),
-                            'extension' => strtoupper($f->extension()),
-                            // Two date formats: machine-readable for sorting,
-                            // human-readable for display.
-                            'modified'  => $f->modified('d.m.Y'),
+                            'filename'    => $f->filename(),
+                            'url'         => $f->url(),
+                            'size'        => $f->niceSize(),
+                            'sizeRaw'     => $f->size(),   // bytes — used for correct numeric sort
+                            'extension'   => strtoupper($f->extension()),
+                            'category'    => $f->fileCategory(),
+                            'modified'    => $f->modified('d/m/Y H:i'),
                             'modifiedIso' => $f->modified('c'),
                         ];
                     }

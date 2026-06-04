@@ -74,6 +74,47 @@ html.gh-theme-light {
   --gh-btn-back: #e0e0e0; /* panel button bg — light mode    */
 }
 
+/* ── Shared primitives ─────────────────────────────────────────────────
+   Grouped bases for patterns that recur across the file. display/flex are
+   NOT inheritable properties, so a wrapper <div> can't pass them down to
+   children — a shared selector list is the correct way to dedupe these.
+   Each individual rule further down only carries its own *differences*
+   (size, position, shadow). */
+
+/* Icon-only buttons: square, borderless, transparent, neutral hover. */
+.gh-share-modal__close,
+.gh-share-dialog__url-copy-btn,
+.gh-share-dialog__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--gh-text-dim);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.gh-share-modal__close:hover,
+.gh-share-dialog__url-copy-btn:hover,
+.gh-share-dialog__icon-btn:hover {
+  background: var(--gh-hover);
+  color: var(--gh-text);
+}
+
+/* Elevated surfaces: dropdown panel, account popover, type popover. */
+.gh-visibility__panel,
+.gh-account-pop,
+.gh-share-dialog__type-popover {
+  background: var(--gh-elev-1);
+  border: 1px solid var(--gh-line);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 /* ── Read-only mode (share-link "Lecture seule" viewers) ──────────────────
    Hide every edit affordance we inject. This is UX hardening on top of the
    server-side viewer-role lockdown — viewers should see a clean, browse-only
@@ -160,15 +201,9 @@ body.gh-readonly .gh-pov__asset--edit {          /* overview edit-only tiles    
   z-index: 9999;
   min-width: 19rem;
   max-width: 24rem;
-  background: var(--gh-elev-1);
   color: var(--gh-text);
-  border: 1px solid var(--gh-line);
-  border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 12px 28px rgba(0, 0, 0, 0.5);
   padding: 0.4rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
   font-size: 0.875rem;
 }
 
@@ -247,16 +282,19 @@ body.gh-readonly .gh-pov__asset--edit {          /* overview edit-only tiles    
 /* ──────────────────────────────────────────────────────────────────────
  *  2. Section cards — replace Kirby's stock chrome on project pages
  *
- *  Scoped under `body.gh-project-edit` and the `.gh-section` class the
- *  JS injector adds. Cards inherit the panel's background colour so
- *  they don't stand out as bright white boxes against light or dark
- *  themes — only the 1px border + rounded corners delineate them.
+ *  IMPORTANT: these rules target Kirby's OWN `.k-section` class, NOT the
+ *  JS-injected `.gh-section`. Kirby 5 re-renders fields-sections async
+ *  (they have an isLoading state + lazy field loading), and on each Vue
+ *  patch it overwrites the element's class attribute — wiping any class
+ *  our injector added. Scoping the card chrome to `.k-section` means the
+ *  styling survives every re-render; only the injected TITLE + fold
+ *  chevron (which are extra DOM nodes) still rely on `.gh-section`.
+ *
+ *  The custom Aperçu overview section owns its own layout, so it's
+ *  excluded via :not(.k-project-overview-section).
  * ────────────────────────────────────────────────────────────────────── */
 
-/*  Card itself — transparent fill, border only. No hover effect.
-    Extra top padding reserves space for the absolute-positioned edit
-    dock at top-right so it never overlaps content. */
-body.gh-project-edit .k-section.gh-section {
+body.gh-project-edit .k-section:not(.k-project-overview-section) {
   position: relative;
   background: transparent !important;
   border: 0 !important;
@@ -265,53 +303,50 @@ body.gh-project-edit .k-section.gh-section {
   margin: 0 !important;
   box-shadow: none !important;
 }
-body.gh-project-edit .k-section.gh-section + .k-section.gh-section {
+body.gh-project-edit .k-section:not(.k-project-overview-section)
+  + .k-section:not(.k-project-overview-section) {
   border-top: 1px solid var(--color-border) !important;
 }
 
-/* Hide Kirby's stock section header — we inject our own h2 instead so
-   there's just ONE title per section instead of two. */
-body.gh-project-edit .gh-section > .k-section-header,
-body.gh-project-edit .gh-section > header.k-section-header {
+/* Hide Kirby's stock section header — fields-sections don't render one
+   anyway, but files-sections do; we inject our own h2 for consistency. */
+body.gh-project-edit .k-section:not(.k-project-overview-section) > .k-section-header,
+body.gh-project-edit .k-section:not(.k-project-overview-section) > header.k-section-header {
   display: none !important;
 }
 
-/*  Tighter spacing for Kirby's k-info / k-help / k-field-counter
-    elements inside our cards — by default they get inherited margins
-    that leave them floating away from the field they belong to. Pull
-    them visually closer so help text reads as "attached" to its field. */
-body.gh-project-edit .gh-section .k-info {
+/*  Tighter spacing for Kirby's k-info / k-help / k-field-counter so help
+    text reads as "attached" to its field. */
+body.gh-project-edit .k-section:not(.k-project-overview-section) .k-info {
   margin: 0.25rem 0 0.5rem !important;
   padding: 0.6rem 0.75rem !important;
   line-height: 1.4 !important;
 }
-body.gh-project-edit .gh-section .k-help {
+body.gh-project-edit .k-section:not(.k-project-overview-section) .k-help {
   margin-top: 0.3rem !important;
   font-size: 0.78rem !important;
   line-height: 1.4 !important;
   color: var(--color-text-dimmed) !important;
 }
-body.gh-project-edit .gh-section .k-field-counter {
+body.gh-project-edit .k-section:not(.k-project-overview-section) .k-field-counter {
   margin-top: 0.3rem !important;
   font-size: 0.72rem !important;
 }
 
-/*  Tighten the gap between Kirby's .k-fields container and our title.
-    Kirby's default .k-fields-section__fields adds a top-margin that
-    makes the title look detached. */
-body.gh-project-edit .gh-section > .k-fields,
-body.gh-project-edit .gh-section > .k-fields-section__fields,
-body.gh-project-edit .gh-section > .k-section-body,
-body.gh-project-edit .gh-section > div.k-fields {
+/*  Tighten the gap between Kirby's .k-fields container and our title. */
+body.gh-project-edit .k-section:not(.k-project-overview-section) > .k-fields,
+body.gh-project-edit .k-section:not(.k-project-overview-section) > .k-fields-section__fields,
+body.gh-project-edit .k-section:not(.k-project-overview-section) > .k-section-body,
+body.gh-project-edit .k-section:not(.k-project-overview-section) > div.k-fields {
   margin-top: 0 !important;
   padding-top: 0 !important;
 }
 
-/*  Section TITLE — our injected h2.gh-section__title. Visually
-    attached to the card content below (no border-bottom, just a tight
-    margin) so it doesn't read as a separate strip floating above the
-    fields. */
-body.gh-project-edit .gh-section > .gh-section__title {
+/*  Section TITLE — our injected h2.gh-section__title. Targeted directly
+    (not `.gh-section > …`) so it stays styled even in the instant after a
+    Vue re-render strips the `.gh-section` class but before the rescan
+    re-adds it. */
+body.gh-project-edit .gh-section__title {
   font-family: inherit !important;
   font-size: 1.05rem !important;
   font-weight: 600 !important;
@@ -327,7 +362,7 @@ body.gh-project-edit .gh-section > .gh-section__title {
 
 /*  Collapsible title — clickable, with a chevron that rotates when the
     section is collapsed. */
-body.gh-project-edit .gh-section > .gh-section__title--toggle {
+body.gh-project-edit .gh-section__title--toggle {
   display: flex !important;
   align-items: center !important;
   gap: 0.4rem !important;
@@ -409,14 +444,49 @@ body.gh-project-edit #gh-download-btn {
   white-space:   nowrap;
   cursor:        pointer;
   transition:    background 0.12s;
+  outline:       none;
 }
 body.gh-project-edit #gh-download-btn:hover {
   filter: brightness(0.92);
+}
+body.gh-project-edit #gh-download-btn:focus,
+body.gh-project-edit #gh-download-btn:active,
+body.gh-project-edit #gh-download-btn:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 body.gh-project-edit #gh-download-btn svg {
   flex-shrink:   0;
   pointer-events: none;
 }
+
+/* ── Download-in-progress feedback ─────────────────────────────────────
+   Shared by the tab-bar #gh-download-btn and the Aperçu tile .gh-pov__asset
+   while the server builds the ZIP. The leading/trailing icon is swapped for
+   a spinning ring; cursor turns to "progress" and the button is dimmed. */
+.gh-dl-loading { cursor: progress !important; opacity: 0.9; }
+
+/* Hide the static icon that the spinner replaces. */
+body.gh-project-edit #gh-download-btn.gh-dl-loading svg,
+.gh-pov__asset.gh-dl-loading .gh-pov__asset-arrow {
+  display: none !important;
+}
+
+/* Spinner: #gh-download-btn shows it where the leading arrow was (::before);
+   the big tile shows it where the trailing chevron was (::after). */
+body.gh-project-edit #gh-download-btn.gh-dl-loading::before,
+.gh-pov__asset.gh-dl-loading::after {
+  content: '';
+  flex-shrink: 0;
+  width: 0.9em;
+  height: 0.9em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  opacity: 0.7;
+  animation: gh-dl-spin 0.6s linear infinite;
+}
+@keyframes gh-dl-spin { to { transform: rotate(360deg); } }
 
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -594,6 +664,40 @@ body.gh-on-details-tab[data-gh-details-mode="edit"] #gh-details-showcase {
 }
 body.gh-on-details-tab[data-gh-details-mode="edit"] .k-section {
   display: block !important;
+}
+
+/* ── Details-tab edit mode: section chrome safety net ──────────────────
+   The JS scan() tags sections with .gh-section when they enter the DOM.
+   But sections are hidden (display:none) during read mode, so scan() may
+   run while they're invisible and the tagging either misses them or the
+   styles don't apply yet. These rules duplicate the .gh-section card
+   treatment directly on [data-gh-details-mode=edit] .k-section so the
+   sections always look correct regardless of JS timing.
+
+   The second rule fixes a specificity war: the "show all sections"
+   display:block !important above would win over the .gh-collapsed hide
+   rule, causing collapsed sections to refuse to fold. We re-apply the
+   hide with a more specific selector that beats both. */
+body.gh-project-edit.gh-on-details-tab[data-gh-details-mode="edit"] .k-section {
+  position: relative;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 1.5rem 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+body.gh-project-edit.gh-on-details-tab[data-gh-details-mode="edit"] .k-section + .k-section {
+  border-top: 1px solid var(--color-border) !important;
+}
+body.gh-project-edit.gh-on-details-tab[data-gh-details-mode="edit"] .k-section > .k-section-header,
+body.gh-project-edit.gh-on-details-tab[data-gh-details-mode="edit"] .k-section > header.k-section-header {
+  display: none !important;
+}
+/* Collapsed sections must stay hidden even though display:block !important
+   is set above — win the specificity battle with a more specific rule. */
+body.gh-project-edit.gh-on-details-tab[data-gh-details-mode="edit"] .k-section.gh-collapsed > *:not(.gh-section__title) {
+  display: none !important;
 }
 
 /* Showcase card — pretty document view shown in read mode. */
@@ -1005,6 +1109,163 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
 
 
 /* ──────────────────────────────────────────────────────────────────────
+ *  Panel footer — always dark, mirrors the public site footer exactly.
+ *  No light-mode variant. Fonts loaded from the same /assets/fonts/ path.
+ * ────────────────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: 'DM Sans';
+  src: url('/assets/fonts/DMSans-Medium.woff') format('woff');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/assets/fonts/IBMPlexMono-Medium.woff') format('woff');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+
+/* ── Sticky-footer layout ───────────────────────────────────────────────
+   .k-panel-main has min-height:100vh but renders its view content as direct
+   children (.k-header + sections), with NO single .k-view wrapper to flex.
+   So we make .k-panel-main a flex column and give the footer margin-top:auto
+   — on short views the auto margin eats the leftover height and drops the
+   footer to the bottom; on tall views it collapses to 0 and the footer just
+   follows the content. This is the classic flexbox sticky footer and needs
+   no wrapper element. */
+.k-panel-main {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────
+   Lives inside .k-panel-main, which has inline + bottom padding. Negative
+   margins cancel those so the dark band spans edge-to-edge and reaches the
+   viewport bottom; the same inline padding is re-applied inside so the
+   footer content lines up with the page content above it. */
+.gh-panel-footer {
+  margin-top: auto;                       /* push to viewport bottom on short views */
+  /* Cancel .k-panel-main's inline + bottom padding so the dark band reaches
+     the panel edges and the very bottom — then re-apply inline padding inside. */
+  margin-inline: calc(-1 * var(--main-padding-inline, 2rem));
+  margin-bottom: calc(-1 * var(--spacing-24, 6rem));
+  padding: 3rem var(--main-padding-inline, 2rem) 2.5rem;
+  background: #1A1916;
+  color: #fff;
+  box-sizing: border-box;
+}
+
+/* ── Top: brand on the left, link columns pushed to the right ── */
+.gh-pf__top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2.5rem 4rem;
+  margin-bottom: 3.5rem;
+}
+
+.gh-pf__brand {
+  flex: 1 1 18rem;
+  max-width: 30rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;                /* stop the SVG stretching to full width */
+  gap: 1rem;
+}
+
+.gh-pf__logo {
+  height: 3.5rem;
+  width: auto;
+  opacity: 0.5;
+  display: block;
+}
+
+.gh-pf__tagline {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.875rem;
+  color: #9A9894;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.gh-pf__email {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  color: #fff;
+  text-decoration: none;
+}
+.gh-pf__email:hover { text-decoration: underline; }
+
+/* Link columns — equal fixed width so Naviguer and Nous suivre line up
+   evenly regardless of how long the link labels are. */
+.gh-pf__cols {
+  display: flex;
+  gap: 3rem;
+  flex-wrap: wrap;
+}
+.gh-pf__col {
+  flex: 0 0 9rem;
+}
+.gh-pf__col-title {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #6B6965;
+  margin: 0 0 1rem;
+  font-weight: 600;
+}
+.gh-pf__links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.gh-pf__link {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.875rem;
+  color: #9A9894;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.gh-pf__link:hover { color: #fff; }
+
+/* ── Legal bar ── */
+.gh-pf__legal {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 2rem;
+}
+.gh-pf__copy {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-right: auto;                     /* pushes the legal links to the right */
+}
+.gh-pf__legal-link {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.gh-pf__legal-link:hover { color: #fff; }
+
+@media (max-width: 40rem) {
+  .gh-pf__top { flex-direction: column; }
+  .gh-pf__cols { gap: 2.5rem; }
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────
  *  Panel sidebar chrome
  *
  *  • Slightly wider menu (Kirby drives both the menu width and the main
@@ -1028,13 +1289,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   z-index: 1000000;
   min-width: 11rem;
   padding: 0.35rem;
-  background: var(--gh-elev-1);
-  border: 1px solid var(--gh-line);
-  border-radius: 8px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
 .gh-account-pop__item {
   display: flex;
@@ -1107,23 +1362,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   color: #aaa;
 }
 
-.gh-share-modal__close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: #aaa;
-  cursor: pointer;
-  transition: background 0.1s ease, color 0.1s ease;
-}
-.gh-share-modal__close:hover {
-  background: var(--gh-hover);
-  color: var(--gh-text);
-}
+.gh-share-modal__close { width: 2rem; height: 2rem; }
 
 .gh-share-modal__body {
   flex: 1;
@@ -1333,24 +1572,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.gh-share-dialog__url-copy-btn {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.1rem;
-  height: 2.1rem;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--gh-text-dim);
-  cursor: pointer;
-  transition: background 0.1s, color 0.1s;
-}
-.gh-share-dialog__url-copy-btn:hover {
-  background: var(--gh-hover);
-  color: var(--gh-text);
-}
+.gh-share-dialog__url-copy-btn { width: 2.1rem; height: 2.1rem; }
 .gh-share-dialog__url-copy-btn .k-icon { width: 1em; height: 1em; }
 
 .gh-share-dialog__link-row-actions {
@@ -1359,24 +1581,7 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   gap: 0.15rem;
   flex-shrink: 0;
 }
-.gh-share-dialog__icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  padding: 0;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: #b0b0b0;
-  cursor: pointer;
-  transition: background 0.1s, color 0.1s;
-}
-.gh-share-dialog__icon-btn:hover {
-  background: var(--gh-hover);
-  color: var(--gh-text);
-}
+.gh-share-dialog__icon-btn { width: 2.5rem; height: 2.5rem; padding: 0; }
 .gh-share-dialog__icon-btn--danger:hover {
   background: var(--color-red, #c0392b);
   color: #fff;
@@ -1422,13 +1627,6 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   color: var(--gh-text);
   box-shadow: none;
 }
-.gh-share-dialog__perm-pill.is-active::before {
-  content: '✓';
-  font-size: 0.8em;
-  font-weight: 700;
-  color: #7fcf7f;
-  line-height: 1;
-}
 .gh-share-dialog__perm-pill:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ── Access-level popover (position:fixed — escapes modal overflow) ── */
@@ -1436,14 +1634,8 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   position: fixed;
   z-index: 999999;
   width: 300px;
-  background: var(--gh-elev-1);
-  border: 1px solid var(--gh-line);
-  border-radius: 8px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
   padding: 0.4rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
 .gh-share-dialog__type-popover-title {
   font-size: 0.68rem;
@@ -1520,6 +1712,79 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   width: 0.85em;
   height: 0.85em;
   margin-top: 0.1em;
+}
+
+/* ── Info / Characteristics dialog ─────────────────────────────────────
+   Replaces the scattered inline styles that were on every form element in
+   the dialog. All inputs (text, date, textarea, select) share one base
+   class; the select gets a custom chevron via a wrapper div. */
+.gh-info-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.gh-info-dialog__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 480px) {
+  .gh-info-dialog__row { grid-template-columns: 1fr; }
+}
+.gh-info-dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.gh-info-dialog__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-dimmed);
+}
+.gh-info-dialog__input {
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--rounded, 4px);
+  background: var(--color-back, var(--color-bg));
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  transition: border-color 0.12s;
+  box-sizing: border-box;
+  outline: none;
+}
+.gh-info-dialog__input:focus {
+  border-color: var(--color-text);
+}
+.gh-info-dialog__textarea {
+  resize: vertical;
+  min-height: 4.5rem;
+}
+/* Select: wrapper provides the custom chevron; the <select> itself fills it */
+.gh-info-dialog__select-wrap {
+  position: relative;
+}
+.gh-info-dialog__select-wrap::after {
+  content: '';
+  position: absolute;
+  top: 50%; right: 0.65rem;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--color-text-dimmed);
+  pointer-events: none;
+}
+.gh-info-dialog__select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2rem; /* room for the chevron */
+  cursor: pointer;
 }
 
 /* ── Cover Image Selector Dialog ── */

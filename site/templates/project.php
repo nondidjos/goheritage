@@ -53,7 +53,7 @@ if (!empty(get('pointcloud'))) {
     <style>
       .pc-stage { position: fixed; inset: 0; background: #1a1a1a; }
       .pc-stage iframe, #gh-pointcloud-viewer { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
-      .pc-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 2rem; text-align: center; color: rgba(255,255,255,0.75); font-family: var(--font-sans, system-ui, sans-serif); font-size: 0.95rem; line-height: 1.5; }
+      .pc-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 2rem; text-align: center; color: rgba(255,255,255,0.6); font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.7; }
       .pc-msg strong { color: #fff; }
     </style>
     <div class="pc-stage">
@@ -189,16 +189,27 @@ if ($gallery->count() === 0) {
 $plansList      = $page->plans();
 $hasGalleryPane = $canSee('gallery') && $gallery->count() > 0;
 $hasPlansPane   = $canSee('plans')   && $plansList && $plansList->count() > 0;
+// Point cloud — an external Potree/web viewer URL or an uploaded PLY/PCD.
+// Rendered as a 4th switcher pane (lazy iframe into ?pointcloud=1) so visitors
+// can reach it without leaving the page.
+$pcExternal     = $page->pointcloud_url()->isNotEmpty() ? $page->pointcloud_url()->value() : null;
+$pcInline       = $page->files()->filterBy('extension', 'in', ['ply', 'pcd'])->sortBy('modified', 'desc')->first();
+$hasPointcloudPane = $canSee('pointcloud') && ($pcExternal !== null || $pcInline !== null);
 // The model pane is always present — even when there's nothing to show it
 // falls back to the cover image / "Vue 3D prochainement" placeholder, which
 // is the page's intended hero. So we don't gate it on $hasModel.
 $hasModelPane   = true;
 
 $availableModes = [];
-if ($hasModelPane)   $availableModes[] = 'model';
-if ($hasGalleryPane) $availableModes[] = 'gallery';
-if ($hasPlansPane)   $availableModes[] = 'plans';
-$showModeChips  = count($availableModes) > 1;
+if ($hasModelPane)      $availableModes[] = 'model';
+if ($hasGalleryPane)    $availableModes[] = 'gallery';
+if ($hasPlansPane)      $availableModes[] = 'plans';
+if ($hasPointcloudPane) $availableModes[] = 'pointcloud';
+// The data-type switcher belongs to the VISITOR-facing site (and external
+// embeds) only — NOT the CMS panel preview (viewer=only), which already has
+// its own per-type editing tabs (Modèle 3D / Nuage de points). Showing it
+// there would be a redundant control inside the panel's own viewer.
+$showModeChips  = count($availableModes) > 1 && !$isViewerOnly;
 // Default mode = first available. Model is always first, so this
 // effectively means "3D when possible, else gallery, else plans".
 $defaultMode = $availableModes[0] ?? 'model';
@@ -224,7 +235,7 @@ $defaultMode = $availableModes[0] ?? 'model';
         <!-- ── Left: Content & Specs (2 cols) — becomes bottom drawer on mobile ── -->
         <div class="flex flex-col gap-8 pb-10 project-content" id="project-content">
 
-            <!-- mobile drawer handle (hidden on desktop) -->
+            <!-- mobile drawer handle (hidden on desktop) — draggable up/down -->
             <div class="project-drawer__handle" id="project-drawer-handle">
                 <div class="project-drawer__bar"></div>
                 <span class="project-drawer__label">Informations</span>
@@ -346,35 +357,44 @@ $defaultMode = $availableModes[0] ?? 'model';
              data-default-mode="<?= esc($defaultMode) ?>"
              style="top: 80px; height: calc(100vh - 100px); min-height: 500px;">
 
+        <?php
+        // Icons + labels shared by the dropdown trigger and its options.
+        $modeIcons = [
+            'model'      => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+            'gallery'    => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+            'plans'      => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',
+            'pointcloud' => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="1.8"/><circle cx="5" cy="7" r="1.4"/><circle cx="19" cy="6" r="1.4"/><circle cx="6" cy="17" r="1.4"/><circle cx="18" cy="18" r="1.4"/><circle cx="12" cy="4" r="1.2"/><circle cx="4" cy="13" r="1.2"/><circle cx="20" cy="13" r="1.2"/></svg>',
+        ];
+        $modeLabels = [
+            'model'      => 'Modèle 3D',
+            'gallery'    => 'Galerie',
+            'plans'      => 'Plans',
+            'pointcloud' => 'Nuage de points',
+        ];
+        ?>
         <?php if ($showModeChips): ?>
         <div class="viewer-mode-bar">
-        <div class="viewer-mode-chips" role="tablist" aria-label="Mode d'affichage">
-            <?php
-            $modeIcons = [
-                'model'   => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
-                'gallery' => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
-                'plans'   => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',
-            ];
-            $modeLabels = [
-                'model'   => 'Modèle 3D',
-                'gallery' => 'Galerie',
-                'plans'   => 'Plans',
-            ];
-            foreach ($availableModes as $mode):
-                $isDefault = ($mode === $defaultMode);
-            ?>
-            <button
-                type="button"
-                class="viewer-mode-chip<?= $isDefault ? ' is-active' : '' ?>"
-                data-mode-target="<?= esc($mode) ?>"
-                role="tab"
-                aria-selected="<?= $isDefault ? 'true' : 'false' ?>"
-                aria-controls="viewer-pane-<?= esc($mode) ?>"
-            >
-                <?= $modeIcons[$mode] ?>
-                <span><?= esc($modeLabels[$mode]) ?></span>
+        <div class="viewer-switch" id="viewer-switch">
+            <button type="button" class="viewer-switch__trigger" aria-haspopup="listbox" aria-expanded="false">
+                <span class="viewer-switch__count"><?= count($availableModes) ?></span>
+                <span class="viewer-switch__ico" data-switch-ico><?= $modeIcons[$defaultMode] ?></span>
+                <span class="viewer-switch__label" data-switch-label><?= esc($modeLabels[$defaultMode]) ?></span>
+                <svg class="viewer-switch__chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <?php endforeach ?>
+            <ul class="viewer-switch__menu" role="listbox" aria-label="Mode d'affichage">
+                <?php foreach ($availableModes as $mode):
+                    $isDefault = ($mode === $defaultMode);
+                ?>
+                <li class="viewer-switch__opt<?= $isDefault ? ' is-active' : '' ?>"
+                    role="option"
+                    data-mode-target="<?= esc($mode) ?>"
+                    aria-selected="<?= $isDefault ? 'true' : 'false' ?>">
+                    <span class="viewer-switch__opt-ico"><?= $modeIcons[$mode] ?></span>
+                    <span><?= esc($modeLabels[$mode]) ?></span>
+                    <svg class="viewer-switch__check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </li>
+                <?php endforeach ?>
+            </ul>
         </div>
         </div>
         <?php endif ?>
@@ -611,6 +631,18 @@ $defaultMode = $availableModes[0] ?? 'model';
                 <?php endforeach ?>
             </div>
         </div>
+        <?php endif ?>
+
+        <!-- ── POINT CLOUD PANE ───────────────────────────────────────────
+             Lazy iframe: viewer-modes.js injects it from data-pc-src on first
+             activation, so we don't boot a second WebGL context unless the
+             visitor actually opens it. -->
+        <?php if ($hasPointcloudPane): ?>
+        <div class="viewer-pane viewer-pane--pointcloud<?= $defaultMode === 'pointcloud' ? ' is-active' : '' ?>"
+             id="viewer-pane-pointcloud"
+             data-mode-pane="pointcloud"
+             data-pc-src="<?= esc($page->url()) ?>?embed=1&pointcloud=1<?= get('key') ? '&key=' . urlencode(get('key')) : '' ?>"
+             role="tabpanel"></div>
         <?php endif ?>
 
         </div>

@@ -366,34 +366,40 @@ Kirby::plugin('goheritage/project-ux', [
                     exit;
                 }
 
-                // Extension → subfolder mapping (mirrors fileKind() in JS).
-                // Zip is excluded from archives since the output itself is a zip.
-                $folderMap = [
-                    'jpg'  => 'photos',          'jpeg' => 'photos',
-                    'png'  => 'photos',           'webp' => 'photos',
-                    'gif'  => 'photos',           'svg'  => 'photos',
-                    'tif'  => 'photos',           'tiff' => 'photos',
-                    'bmp'  => 'photos',           'avif' => 'photos',
-                    'obj'  => 'modeles-3d',       'glb'  => 'modeles-3d',
-                    'gltf' => 'modeles-3d',       'fbx'  => 'modeles-3d',
-                    'stl'  => 'modeles-3d',       'mtl'  => 'modeles-3d',
-                    'dae'  => 'modeles-3d',       '3ds'  => 'modeles-3d',
-                    'ply'  => 'nuage-de-points',  'las'  => 'nuage-de-points',
-                    'laz'  => 'nuage-de-points',  'e57'  => 'nuage-de-points',
-                    'pts'  => 'nuage-de-points',  'pcd'  => 'nuage-de-points',
-                    'xyz'  => 'nuage-de-points',
-                    'pdf'  => 'documents',        'doc'  => 'documents',
-                    'docx' => 'documents',        'odt'  => 'documents',
-                    'rtf'  => 'documents',        'txt'  => 'documents',
-                    'md'   => 'documents',
-                    'json' => 'donnees',          'csv'  => 'donnees',
-                    'xml'  => 'donnees',          'yml'  => 'donnees',
-                    'yaml' => 'donnees',
-                    'rar'  => 'archives',         '7z'   => 'archives',
-                    'tar'  => 'archives',         'gz'   => 'archives',
-                    'mp4'  => 'videos',           'mov'  => 'videos',
-                    'webm' => 'videos',           'avi'  => 'videos',
-                    'mkv'  => 'videos',
+                // Map the shared fileCategory() key → archive subfolder. The
+                // classification logic itself lives on the File object (see the
+                // fileMethods block) so the download and the Fichiers browser
+                // stay in lockstep.
+                $keyFolder = [
+                    'model-source'   => 'modele-3d/source',
+                    'model-web'      => 'modele-3d/web',
+                    'texture-source' => 'modele-3d/textures/source',
+                    'texture-web'    => 'modele-3d/textures/web',
+                    'hotspot'        => 'modele-3d/hotspots',
+                    'cloud'          => 'nuage-de-points',
+                    'photo'          => 'photos',
+                    'doc'            => 'documents',
+                    'data'           => 'donnees',
+                    'video'          => 'videos',
+                    'archive'        => 'archives',
+                    'other'          => 'autres',
+                ];
+
+                // Ordered folder → human description for the README legend.
+                // Only folders that actually receive a file are listed.
+                $folderInfo = [
+                    'modele-3d/source'          => "Fichiers 3D bruts tels qu'importés (OBJ, MTL, FBX…).",
+                    'modele-3d/web'             => 'Modèle optimisé pour le web (GLB compressé Draco).',
+                    'modele-3d/textures/source' => "Textures haute résolution d'origine (PNG, TIFF…).",
+                    'modele-3d/textures/web'    => 'Textures compressées (WebP) et aperçus.',
+                    'modele-3d/hotspots'        => "Données des points d'intérêt (JSON).",
+                    'nuage-de-points'           => 'Nuages de points bruts (LAS, LAZ, E57, PLY…).',
+                    'photos'                    => 'Photographies de présentation.',
+                    'documents'                 => 'Documents (PDF, Word…).',
+                    'donnees'                   => 'Données structurées (CSV, XML…).',
+                    'videos'                    => 'Vidéos.',
+                    'archives'                  => 'Archives compressées.',
+                    'autres'                    => 'Fichiers non classés.',
                 ];
 
                 $slug = $page->slug();
@@ -406,36 +412,20 @@ Kirby::plugin('goheritage/project-ux', [
                     exit;
                 }
 
-                // Root-level README with basic project metadata.
-                $readmeLines = [
-                    (string) $page->title(),
-                    str_repeat('=', mb_strlen((string) $page->title())),
-                    '',
-                    'Exporté depuis GoHéritage le ' . date('d/m/Y à H:i'),
-                ];
-                if ($page->location()->isNotEmpty()) {
-                    $readmeLines[] = 'Localisation : ' . $page->location();
-                }
-                if ($page->date()->isNotEmpty()) {
-                    $readmeLines[] = 'Date de numérisation : ' . $page->date();
-                }
-                if ($page->architect()->isNotEmpty()) {
-                    $readmeLines[] = 'Architecte : ' . $page->architect();
-                }
-                $zip->addFromString($slug . '/README.txt', implode("\n", $readmeLines) . "\n");
-
                 // Give PHP enough time for large archives (point clouds etc.).
                 @set_time_limit(300);
 
-                // Track used names to avoid collisions if two files share a stem.
-                $usedNames = [];
+                $usedNames   = [];  // collision guard for identical stems
+                $usedFolders = [];  // subfolders that actually received a file
+                                    // → README lists only these
 
                 foreach ($page->files() as $file) {
                     $absPath = $file->root();
                     if (!is_readable($absPath)) continue;
 
                     $ext    = strtolower($file->extension());
-                    $folder = $folderMap[$ext] ?? 'autres';
+                    $folder = $keyFolder[$file->fileCategory()] ?? 'autres';
+                    $usedFolders[$folder] = true;
 
                     // Use the file's title if the editor filled it in and it
                     // differs from the raw filename, otherwise fall back to the
@@ -459,10 +449,59 @@ Kirby::plugin('goheritage/project-ux', [
                     $zip->addFile($absPath, $zipPath);
                 }
 
+                // README built last so it can describe exactly the folders that
+                // ended up with files — a legend for the archive's layout, not
+                // a random metadata dump.
+                $title  = (string) $page->title();
+                $readme = [
+                    $title,
+                    str_repeat('=', max(3, mb_strlen($title))),
+                    '',
+                    'Dossier exporté depuis GoHéritage le ' . date('d/m/Y à H:i') . '.',
+                    '',
+                ];
+
+                $infos = [];
+                if ($page->location()->isNotEmpty())  $infos[] = 'Localisation        : ' . $page->location();
+                if ($page->date()->isNotEmpty())      $infos[] = 'Date de numérisation : ' . $page->date();
+                if ($page->architect()->isNotEmpty()) $infos[] = 'Architecte          : ' . $page->architect();
+                if ($infos) {
+                    $readme[] = 'INFORMATIONS';
+                    $readme[] = '------------';
+                    $readme   = array_merge($readme, $infos);
+                    $readme[] = '';
+                }
+
+                $readme[] = 'STRUCTURE DU DOSSIER';
+                $readme[] = '--------------------';
+                foreach ($folderInfo as $folder => $desc) {
+                    if (!empty($usedFolders[$folder])) {
+                        $readme[] = str_pad($folder . '/', 30) . $desc;
+                    }
+                }
+                $readme[] = '';
+                $readme[] = "Les fichiers sont préfixés par l'identifiant du projet (« " . $slug . "_ »).";
+
+                $zip->addFromString($slug . '/README.txt', implode("\n", $readme) . "\n");
+
                 $zip->close();
 
                 $downloadName = $slug . '_dossier.zip';
                 $size         = filesize($tmp);
+
+                // Tell the panel's download button that compression is finished
+                // and the byte stream is about to start — it polls for this
+                // cookie to drop its "Compression…" spinner. Keyed to the token
+                // the browser passed in ?dl= so a stale download can't clear the
+                // spinner of a newer one. Not HttpOnly: the JS must read it.
+                if ($dlToken = get('dl')) {
+                    setcookie('gh_dl_done', preg_replace('/[^A-Za-z0-9]/', '', (string) $dlToken), [
+                        'expires'  => time() + 300,
+                        'path'     => '/',
+                        'samesite' => 'Lax',
+                        'httponly' => false,
+                    ]);
+                }
 
                 header('Content-Type: application/zip');
                 header('Content-Disposition: attachment; filename="' . $downloadName . '"');
@@ -605,6 +644,55 @@ Kirby::plugin('goheritage/project-ux', [
                         'coverUrl'   => $coverUrl,
                         'blocksHtml' => $blocksHtml,
                         'gallery'    => $thumbs,
+                    ];
+                },
+            ],
+
+            // Everything the panel footer needs in one authenticated request:
+            // site tagline, contact email, social links, and the top-level
+            // public navigation pages. Requires a logged-in panel session (the
+            // API route handler is called with the current user's auth context).
+            [
+                'pattern' => 'gh/footer-data',
+                'method'  => 'GET',
+                'action'  => function () {
+                    $kirby = kirby();
+                    // Impersonate kirby so the route can read site data
+                    // regardless of whether the current panel user is a
+                    // scoped collaborator/viewer with limited page access.
+                    $kirby->impersonate('kirby');
+                    $site = $kirby->site();
+
+                    $nav = [];
+                    try {
+                        foreach ($site->children()->listed() as $p) {
+                            $nav[] = [
+                                'title' => (string) $p->title(),
+                                'url'   => $p->url(),
+                            ];
+                        }
+                    } catch (\Throwable $e) {}
+                    // Mirror the public footer's external GOVR blog link.
+                    $nav[] = ['title' => 'Blog GOVR ↗', 'url' => 'https://www.govr.eu/blog'];
+
+                    $social = [];
+                    try {
+                        foreach ($site->social()->toStructure() as $s) {
+                            if ($s->url()->isNotEmpty()) {
+                                $social[] = [
+                                    'platform' => (string) $s->platform(),
+                                    'url'      => (string) $s->url(),
+                                ];
+                            }
+                        }
+                    } catch (\Throwable $e) {}
+
+                    return [
+                        'status'  => 'ok',
+                        'tagline' => (string) $site->footer_tagline(),
+                        'email'   => (string) $site->footer_email(),
+                        'nav'     => $nav,
+                        'social'  => $social,
                     ];
                 },
             ],
@@ -909,6 +997,44 @@ Kirby::plugin('goheritage/project-ux', [
                 }
             }
             return false;
+        },
+
+        // Single classification key for a file, shared by the ZIP download
+        // (key → folder) and the Fichiers browser (key → section). Keeping it
+        // here means the two can never drift apart. Distinguishes raw geometry
+        // from web-optimised, texture maps from real photos, and raw textures
+        // from their compressed counterparts.
+        'fileCategory' => function () {
+            $ext  = strtolower($this->extension());
+            $name = strtolower($this->filename());
+
+            $rawGeo   = ['obj', 'mtl', 'fbx', 'stl', 'dae', '3ds'];
+            $webGeo   = ['glb', 'gltf', 'drc'];
+            $points   = ['ply', 'las', 'laz', 'e57', 'pcd', 'xyz', 'pts'];
+            $images   = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif',
+                         'tif', 'tiff', 'bmp', 'svg', 'tga', 'exr'];
+            $docs     = ['pdf', 'doc', 'docx', 'odt', 'rtf', 'txt', 'md'];
+            $data     = ['csv', 'xml', 'yml', 'yaml'];
+            $videos   = ['mp4', 'mov', 'webm', 'avi', 'mkv'];
+            $archives = ['rar', '7z', 'tar', 'gz', 'zip'];
+
+            if (in_array($ext, $rawGeo, true)) return 'model-source';
+            if (in_array($ext, $webGeo, true)) return 'model-web';
+            if (in_array($ext, $points, true)) return 'cloud';
+
+            if (in_array($ext, $images, true)) {
+                if (!$this->isModelAsset()) return 'photo';
+                $isWeb = $ext === 'webp'
+                      || (in_array($ext, ['jpg', 'jpeg'], true) && str_contains($name, '-preview'));
+                return $isWeb ? 'texture-web' : 'texture-source';
+            }
+
+            if ($ext === 'json') return $this->isModelAsset() ? 'hotspot' : 'data';
+            if (in_array($ext, $docs, true))     return 'doc';
+            if (in_array($ext, $data, true))     return 'data';
+            if (in_array($ext, $videos, true))   return 'video';
+            if (in_array($ext, $archives, true)) return 'archive';
+            return 'other';
         },
     ],
 

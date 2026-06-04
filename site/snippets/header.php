@@ -7,6 +7,9 @@ $cssFiles      = ['assets/css/app.css', 'assets/css/custom.css'];
 if ($isMapPage) {
     $cssFiles[] = 'assets/css/map.css';
 }
+// Bump on any CSS/JS asset change so mobile browsers re-fetch (Kirby's
+// css()/js() helpers add no cache-busting and phones cache hard).
+$ghAssetVer = '3';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -48,7 +51,9 @@ if ($isMapPage) {
     }
   </style>
   <?php endif ?>
-  <?= css($cssFiles) ?>
+  <?php foreach ($cssFiles as $ghCss): ?>
+  <link rel="stylesheet" href="<?= url($ghCss) ?>?v=<?= $ghAssetVer ?>">
+  <?php endforeach ?>
   <?php if ($isMapPage): ?>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.16.0/dist/maplibre-gl.css">
   <?php endif ?>
@@ -63,7 +68,7 @@ if ($isMapPage) {
   $needsThreeJs = $isProjectPage && ($isPointcloud || $page->viewer_url()->isEmpty());
   if ($isProjectPage): ?>
   <?= css('assets/css/lightbox.css') ?>
-  <?= css('assets/css/viewer.css') ?>
+  <link rel="stylesheet" href="<?= url('assets/css/viewer.css') ?>?v=<?= $ghAssetVer ?>">
   <?php endif ?>
   <?php if ($needsThreeJs): ?>
   <?php
@@ -93,9 +98,9 @@ if ($isMapPage) {
   }
   </script>
   <?php if ($isPointcloud): ?>
-  <script type="module" src="<?= url('assets/js/pointcloud-viewer.js') ?>?v=2"></script>
+  <script type="module" src="<?= url('assets/js/pointcloud-viewer.js') ?>?v=3"></script>
   <?php else: ?>
-  <script type="module" src="<?= url('assets/js/viewer.js') ?>?v=2"></script>
+  <script type="module" src="<?= url('assets/js/viewer.js') ?>?v=3"></script>
   <?php endif ?>
   <?php endif ?>
   <link rel="shortcut icon" type="image/x-icon" href="<?= url('favicon.ico') ?>">

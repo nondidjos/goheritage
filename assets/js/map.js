@@ -86,11 +86,53 @@
         if (panel) panel.classList.toggle('is-expanded');
     }
 
-    // Handle + search row taps toggle the drawer
-    if (panelHandle) panelHandle.addEventListener('click', function (e) {
-        e.stopPropagation();
-        toggleDrawer();
-    });
+    // ── Handle: drag up/down (or tap to toggle) ──
+    if (panelHandle && panel) {
+        var MAP_PEEK = 88;            // matches --drawer-peek in map.css
+        var mDragging = false, mMoved = false;
+        var mStartY = 0, mStartT = 0;
+
+        function mCollapsedT() {
+            return Math.max(0, panel.getBoundingClientRect().height - MAP_PEEK);
+        }
+        function mCurrentT() {
+            return panel.classList.contains('is-expanded') ? 0 : mCollapsedT();
+        }
+        panelHandle.addEventListener('pointerdown', function (e) {
+            mDragging = true; mMoved = false;
+            mStartY = e.clientY; mStartT = mCurrentT();
+            panel.classList.add('is-dragging');
+            panelHandle.classList.add('is-dragging');
+            try { panelHandle.setPointerCapture(e.pointerId); } catch (_) {}
+        });
+        document.addEventListener('pointermove', function (e) {
+            if (!mDragging) return;
+            var dy = e.clientY - mStartY;
+            if (Math.abs(dy) > 4) mMoved = true;
+            var t = Math.max(0, Math.min(mCollapsedT(), mStartT + dy));
+            panel.style.transform = 'translateY(' + t + 'px)';
+        }, { passive: true });
+        function mEnd(e) {
+            if (!mDragging) return;
+            mDragging = false;
+            panelHandle.classList.remove('is-dragging');
+            var dy = (e.clientY || mStartY) - mStartY;
+            var willExpand;
+            if (!mMoved) {
+                willExpand = !panel.classList.contains('is-expanded');
+            } else {
+                var thr = mCollapsedT() * 0.3;
+                willExpand = panel.classList.contains('is-expanded') ? !(dy > thr) : (-dy > thr);
+            }
+            panel.classList.remove('is-dragging');
+            panel.style.transform = '';
+            panel.classList.toggle('is-expanded', willExpand);
+        }
+        document.addEventListener('pointerup', mEnd);
+        document.addEventListener('pointercancel', mEnd);
+    }
+
+    // Search row taps toggle the drawer (but tapping the input always expands)
     if (panelSearch) panelSearch.addEventListener('click', function (e) {
         if (e.target.tagName === 'INPUT') { expandDrawer(); return; }
         toggleDrawer();

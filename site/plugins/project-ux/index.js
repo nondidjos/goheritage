@@ -87,7 +87,6 @@ var ProjectOverviewSection = {
           localInfo: {
             title: '',
             description: '',
-            location: '',
             constructionDate: '',
             scanDate: '',
             architect: '',
@@ -304,7 +303,7 @@ var ProjectOverviewSection = {
 
             <!-- Structured ZIP download — renames files to project-slug prefix
                  and organises them by category into subfolders. -->
-            <button class="gh-pov__asset" @click="downloadPackage()">
+            <button class="gh-pov__asset" @click="downloadPackage($event)">
               <k-icon type="download" class="gh-pov__asset-ico" />
               <div class="gh-pov__asset-body">
                 <strong>Télécharger le dossier</strong>
@@ -351,7 +350,7 @@ var ProjectOverviewSection = {
                   :disabled="uploadingCover"
                   @click="$refs.coverFileInput.click()"
                 >
-                  {{ uploadingCover ? 'Envoi...' : 'Ajouter une image' }}
+                  {{ uploadingCover ? 'Envoi…' : 'Ajouter une image' }}
                 </k-button>
                 <input
                   ref="coverFileInput"
@@ -450,6 +449,8 @@ var ProjectOverviewSection = {
           </k-dialog>
 
           <!-- ── Dialog Info (General Info & Characteristics) ── -->
+          <!-- Location is intentionally absent — it lives exclusively in
+               the Géolocalisation dialog which also saves lat/lng. -->
           <k-dialog
             v-if="infoDialogOpen"
             ref="infoDialog"
@@ -460,102 +461,54 @@ var ProjectOverviewSection = {
             size="medium"
           >
             <div class="gh-info-dialog">
-              <div class="k-fieldset">
-                <div class="k-field k-text-field">
-                  <label class="k-label">Titre du projet</label>
-                  <input
-                    type="text"
-                    v-model="localInfo.title"
-                    class="k-text-input"
-                    style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
-                  />
-                </div>
 
-                <div class="k-field k-textarea-field" style="margin-top:1rem;">
-                  <label class="k-label">Description courte</label>
-                  <textarea
-                    v-model="localInfo.description"
-                    class="k-textarea-input"
-                    rows="3"
-                    style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text); font-family:inherit; font-size:inherit;"
-                  ></textarea>
-                </div>
-
-                <div style="display:flex; gap:1rem; margin-top:1rem;">
-                  <div class="k-field k-text-field" style="flex:1;">
-                    <label class="k-label">Lieu</label>
-                    <input
-                      type="text"
-                      v-model="localInfo.location"
-                      class="k-text-input"
-                      style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
-                    />
-                  </div>
-                  <div class="k-field k-text-field" style="flex:1;">
-                    <label class="k-label">Date de construction</label>
-                    <input
-                      type="text"
-                      v-model="localInfo.constructionDate"
-                      class="k-text-input"
-                      style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
-                    />
-                  </div>
-                </div>
-
-                <div style="display:flex; gap:1rem; margin-top:1rem;">
-                  <div class="k-field k-date-field" style="flex:1;">
-                    <label class="k-label">Date du scan</label>
-                    <k-date-input
-                      :value="localInfo.scanDate"
-                      @input="localInfo.scanDate = $event"
-                      style="width:100%;"
-                    />
-                  </div>
-                  <div class="k-field k-text-field" style="flex:1;">
-                    <label class="k-label">Architecte / Créateur</label>
-                    <input
-                      type="text"
-                      v-model="localInfo.architect"
-                      class="k-text-input"
-                      style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
-                    />
-                  </div>
-                </div>
-
-                <div style="display:flex; gap:1rem; margin-top:1rem;">
-                  <div class="k-field k-text-field" style="flex:1;">
-                    <label class="k-label">Style architectural</label>
-                    <input
-                      type="text"
-                      v-model="localInfo.style"
-                      class="k-text-input"
-                      style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
-                    />
-                  </div>
-                  <div class="k-field k-text-field" style="flex:1;">
-                    <label class="k-label">Dimensions</label>
-                    <input
-                      type="text"
-                      v-model="localInfo.dimensions"
-                      class="k-text-input"
-                      style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
-                    />
-                  </div>
-                </div>
-
-                <div style="margin-top:1rem;">
-                  <div class="k-field k-select-field">
-                    <label class="k-label">Statut de protection</label>
-                    <k-select-input
-                      :value="localInfo.protectionStatus"
-                      :options="protectionOptions"
-                      @input="localInfo.protectionStatus = $event"
-                      style="width:100%;"
-                    />
-                  </div>
-                </div>
-
+              <div class="gh-info-dialog__field">
+                <label class="gh-info-dialog__label">Titre du projet</label>
+                <input type="text" v-model="localInfo.title" class="gh-info-dialog__input" />
               </div>
+
+              <div class="gh-info-dialog__field">
+                <label class="gh-info-dialog__label">Description courte</label>
+                <textarea v-model="localInfo.description" class="gh-info-dialog__input gh-info-dialog__textarea" rows="3"></textarea>
+              </div>
+
+              <div class="gh-info-dialog__row">
+                <div class="gh-info-dialog__field">
+                  <label class="gh-info-dialog__label">Architecte / Créateur</label>
+                  <input type="text" v-model="localInfo.architect" class="gh-info-dialog__input" />
+                </div>
+                <div class="gh-info-dialog__field">
+                  <label class="gh-info-dialog__label">Style architectural</label>
+                  <input type="text" v-model="localInfo.style" class="gh-info-dialog__input" />
+                </div>
+              </div>
+
+              <div class="gh-info-dialog__row">
+                <div class="gh-info-dialog__field">
+                  <label class="gh-info-dialog__label">Date de construction</label>
+                  <input type="text" v-model="localInfo.constructionDate" class="gh-info-dialog__input" placeholder="ex. 1847–1852" />
+                </div>
+                <div class="gh-info-dialog__field">
+                  <label class="gh-info-dialog__label">Date du scan</label>
+                  <input type="date" v-model="localInfo.scanDate" class="gh-info-dialog__input" />
+                </div>
+              </div>
+
+              <div class="gh-info-dialog__row">
+                <div class="gh-info-dialog__field">
+                  <label class="gh-info-dialog__label">Dimensions</label>
+                  <input type="text" v-model="localInfo.dimensions" class="gh-info-dialog__input" placeholder="ex. 45 m × 18 m" />
+                </div>
+                <div class="gh-info-dialog__field">
+                  <label class="gh-info-dialog__label">Statut de protection</label>
+                  <div class="gh-info-dialog__select-wrap">
+                    <select v-model="localInfo.protectionStatus" class="gh-info-dialog__input gh-info-dialog__select">
+                      <option v-for="opt in protectionOptions" :key="opt.value" :value="opt.value">{{ opt.text }}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </k-dialog>
 
@@ -687,12 +640,18 @@ var ProjectOverviewSection = {
         openVisibility() {
           document.dispatchEvent(new CustomEvent('gh:open-share-dialog'));
         },
-        // Trigger a structured ZIP download for this project. The route
-        // streams the archive directly — no panel API involved — so a plain
-        // window.location redirect is enough.
-        downloadPackage() {
+        // Trigger a structured ZIP download for this project. Routes through
+        // the shared helper (spinner feedback during server-side compression,
+        // streamed via hidden iframe). Falls back to a plain redirect if the
+        // helper isn't on window yet.
+        downloadPackage(e) {
           var encoded = this.pageId.replace(/\//g, '+');
-          window.location = '/gh/download/' + encoded;
+          var btn = e && (e.currentTarget || e.target);
+          if (btn && window.ghStartZipDownload) {
+            window.ghStartZipDownload(encoded, btn);
+          } else {
+            window.location = '/gh/download/' + encoded;
+          }
         },
 
         // Embed dialog — shows the iframe snippet to paste elsewhere.
@@ -854,7 +813,6 @@ var ProjectOverviewSection = {
           this.localInfo = {
             title: this.pageTitle || '',
             description: this.description || '',
-            location: this.location || '',
             constructionDate: this.constructionDate || '',
             scanDate: this.dateRaw || '',
             architect: this.architect || '',
@@ -875,7 +833,6 @@ var ProjectOverviewSection = {
             await this.$panel.api.patch('pages/' + pageId, {
               title: this.localInfo.title,
               description: this.localInfo.description,
-              location: this.localInfo.location,
               construction_date: this.localInfo.constructionDate,
               date: this.localInfo.scanDate,
               architect: this.localInfo.architect,
@@ -1432,7 +1389,7 @@ panel.plugin('goheritage/project-ux', {
             token:            toHex(tokenBytes),
             label:            '',
             access:           'visit',
-            visible_sections: ['model', 'info', 'gallery', 'plans', 'annotations']
+            visible_sections: ['model', 'pointcloud', 'info', 'gallery', 'plans', 'annotations']
           };
           this.localShareLinks.push(newLink);
           this.saveShareLinks();
@@ -1576,11 +1533,16 @@ panel.plugin('goheritage/project-ux', {
     },
 
     // ── "Voir la page publique" header button ────────────────────────
+    // Only rendered when the page is actually reachable publicly:
+    //   • public   → plain page URL (no key)
+    //   • link     → page URL + ?key=<long share token> (first viewer link)
+    //   • private  → component renders nothing
     'visit-page': {
       template: /* html */`
         <a
+          v-if="visibility !== 'private'"
           class="gh-visit-page-btn"
-          :href="previewUrl"
+          :href="publicUrl"
           target="_blank"
           rel="noopener"
           title="Voir la page publique"
@@ -1590,9 +1552,30 @@ panel.plugin('goheritage/project-ux', {
         </a>
       `,
       computed: {
-        previewUrl() {
-          return this.$panel?.view?.props?.model?.previewUrl || '#';
-        }
+        visibility() {
+          try {
+            return this.$panel?.view?.props?.versions?.latest?.visibility
+                || this.$panel?.view?.props?.content?.visibility
+                || 'private';
+          } catch (_) { return 'private'; }
+        },
+        publicUrl() {
+          try {
+            var base = this.$panel?.view?.props?.model?.url || '#';
+            if (this.visibility === 'public') return base;
+            // Link-only page: find the first viewer share token and append it
+            // as ?key=. We use our long cryptographic token, NOT Kirby's own
+            // short previewUrl token, which is what was generating the short key.
+            var raw = this.$panel?.view?.props?.versions?.latest?.share_links
+                   || this.$panel?.view?.props?.content?.share_links
+                   || '';
+            var token = '';
+            String(raw).replace(/token:\s*([^\s\n]+)/g, function (_, t) {
+              if (!token) token = t.trim();
+            });
+            return token ? base + '?key=' + encodeURIComponent(token) : base;
+          } catch (_) { return '#'; }
+        },
       }
     },
   },
@@ -1701,13 +1684,10 @@ panel.plugin('goheritage/project-ux', {
   }
 
   // Delegated click handling for EVERY read/edit toggle (model, point cloud,
-  // details). Each toggle button carries `data-gh-toggle="<body mode attr>"`,
-  // e.g. data-gh-toggle="data-gh-model-mode". Delegation (not a listener
-  // bound to a specific button) is essential: the panel re-renders the
-  // section container often, wiping and rebuilding our injected toolbar, so a
-  // listener on a specific button would be lost — and a click landing
-  // mid-rebuild would fire on a detached node and do nothing. One
-  // document-level handler always catches whatever button is live.
+  // details). Each toggle button carries `data-gh-toggle="<body mode attr>"`.
+  // After switching to edit mode we force a rescan so sections that were hidden
+  // (display:none) when scan() first ran get their .gh-section tagging now
+  // that they're visible. Without this, sections appear with raw Kirby styling.
   document.addEventListener('click', function (e) {
     var btn = e.target.closest && e.target.closest('[data-gh-toggle]');
     if (!btn) return;
@@ -1715,6 +1695,7 @@ panel.plugin('goheritage/project-ux', {
     var mode = document.body.getAttribute(attr) === 'edit' ? 'read' : 'edit';
     document.body.setAttribute(attr, mode);
     paintToggleBtn(btn, attr);
+    if (mode === 'edit') rescan();
   });
 
   /*  ALWAYS inject our own headline at the top of every section card.
@@ -1992,6 +1973,63 @@ panel.plugin('goheritage/project-ux', {
     '<path d="M2 13h11"/>' +
     '</svg>';
 
+  // Kick off a structured-ZIP download with live feedback. The archive is
+  // built server-side (can take a while for point-cloud-heavy projects), so
+  // the button shows a "Compression…" spinner while we wait. We stream the
+  // attachment through a hidden iframe — native browser download, no in-memory
+  // buffering (the zips can be hundreds of MB) and the panel never navigates.
+  // The server sets a JS-readable `gh_dl_done=<token>` cookie the instant
+  // compression finishes and bytes start flowing; we poll for it to drop the
+  // spinner. Exposed on window so the Vue overview tile can reuse it.
+  function ghStartZipDownload(encoded, btn) {
+    if (!btn || btn.dataset.ghDl === '1') return;
+    btn.dataset.ghDl = '1';
+    btn.classList.add('gh-dl-loading');
+    btn.setAttribute('aria-busy', 'true');
+    if ('disabled' in btn) btn.disabled = true;
+
+    // Swap the visible label to a progress word (restored afterwards).
+    var labelEl   = btn.querySelector('span, strong');
+    var prevLabel = labelEl ? labelEl.textContent : null;
+    if (labelEl) labelEl.textContent = 'Compression…';
+
+    var token = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+    var iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = '/gh/download/' + encoded + '?dl=' + token;
+    document.body.appendChild(iframe);
+
+    var settled = false;
+    function restore(ok) {
+      if (settled) return;
+      settled = true;
+      clearInterval(poll);
+      clearTimeout(failTimer);
+      if (labelEl) labelEl.textContent = ok ? 'Téléchargement…' : 'Réessayer';
+      setTimeout(function () {
+        btn.classList.remove('gh-dl-loading');
+        btn.removeAttribute('aria-busy');
+        if ('disabled' in btn) btn.disabled = false;
+        if (labelEl && prevLabel != null) labelEl.textContent = prevLabel;
+        delete btn.dataset.ghDl;
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      }, ok ? 900 : 1800);
+    }
+
+    var poll = setInterval(function () {
+      if (document.cookie.indexOf('gh_dl_done=' + token) !== -1) {
+        document.cookie = 'gh_dl_done=; Max-Age=0; path=/';  // one-shot
+        restore(true);
+      }
+    }, 200);
+    // Safety net matching the server's set_time_limit(300) — never leave the
+    // spinner stuck if the cookie never arrives (e.g. an auth error in the
+    // hidden iframe we can't observe).
+    var failTimer = setTimeout(function () { restore(false); }, 300000);
+  }
+  window.ghStartZipDownload = ghStartZipDownload;
+
   function ensureDownloadBtn() {
     if (document.getElementById('gh-download-btn')) return;
 
@@ -2014,7 +2052,7 @@ panel.plugin('goheritage/project-ux', {
     btn.addEventListener('click', function (e) {
       e.preventDefault();
       e.stopPropagation();
-      window.location = '/gh/download/' + encoded;
+      ghStartZipDownload(encoded, btn);
     });
 
     // Insert AFTER the "Fichiers" tab → [Fichiers][Télécharger] right cluster.
@@ -2125,28 +2163,26 @@ panel.plugin('goheritage/project-ux', {
       // card padding/border on top of the component's own layout.
       if (s.classList.contains('k-project-overview-section')) return;
 
-      // Skip sections that hold only hidden fields (no visible content)
-      // — they'd render as empty card boxes which is worse than missing.
-      if (s.classList.contains('k-fields-section')) {
-        var hasVisible = false;
-        var fields = s.querySelectorAll('.k-field');
-        for (var i = 0; i < fields.length; i++) {
-          if (!fields[i].classList.contains('k-hidden-field')) {
-            hasVisible = true;
-            break;
-          }
-        }
-        if (!hasVisible) return;
-      }
+      // Skip the visibility_meta section — it holds only hidden fields and
+      // would render as an empty styled card, which is worse than invisible.
+      // We no longer query child .k-field elements here: Vue hydrates section
+      // content asynchronously after the wrapper enters the DOM, so checking
+      // children at scan() time is a race condition that causes the sections
+      // on the Visite Virtuelle tab to be silently skipped on first scan.
+      if (s.classList.contains('k-section-name-visibility_meta')) return;
       tag(s);
       // Every tagged section gets a title (even non-editable ones like
       // the file-upload sections).
       ensureHeadline(s);
-      // ONLY the exterior/interior model file groups are collapsible —
-      // they're the bulky upload sections you want to fold away. Other
-      // sections (viewer settings, etc.) are just plain titled cards.
+      // Collapsible sections: model file groups (bulky uploads) + all
+      // three content sections on the Visite Virtuelle tab (content,
+      // gallery, sharing) so the long tab can be browsed without
+      // scrolling through everything at once.
       if (s.classList.contains('k-section-name-exterior_files')
-       || s.classList.contains('k-section-name-interior_files')) {
+       || s.classList.contains('k-section-name-interior_files')
+       || s.classList.contains('k-section-name-content_section')
+       || s.classList.contains('k-section-name-gallery_section')
+       || s.classList.contains('k-section-name-sharing_section')) {
         makeCollapsible(s);
       }
       // NOTE: the per-section edit dock (Modifier/Terminé) has been
@@ -2409,9 +2445,136 @@ panel.plugin('goheritage/project-ux', {
     }
   }
 
+  // ── Panel footer ──────────────────────────────────────────────────────
+  // Mirrors the public site footer (dark bg, same fonts, same column grid).
+  // Data comes from gh/footer-data (tagline, email, nav pages, social).
+  // IMPORTANT: we only cache on success. If the panel isn't authenticated
+  // yet when the first fetch fires, we leave _ghFooterData = null so the
+  // next ghGlobalChrome tick (≤1s) retries instead of locking in empty data.
+  var _ghFooterData  = null;
+  var _ghFooterBusy  = false; // prevents concurrent fetches
+
+  function esc(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function buildFooterHtml(d) {
+    var tagline = (d.tagline || '').replace(/\n/g, '<br>');
+    var email   = d.email   || '';
+    var nav     = Array.isArray(d.nav)    ? d.nav    : [];
+    var social  = Array.isArray(d.social) ? d.social : [];
+
+    function col(title, items, blank) {
+      if (!items.length) return '';
+      return '<nav class="gh-pf__col">' +
+        '<h2 class="gh-pf__col-title">' + title + '</h2>' +
+        '<ul class="gh-pf__links">' +
+        items.map(function (it) {
+          // Always open absolute (external) URLs in a new tab so they don't
+          // navigate away from the panel SPA.
+          var external = /^https?:\/\//i.test(it.url || '');
+          var attrs = (blank || external) ? ' target="_blank" rel="noopener"' : '';
+          return '<li><a href="' + esc(it.url) + '"' + attrs + ' class="gh-pf__link">' + esc(it.label) + '</a></li>';
+        }).join('') +
+        '</ul></nav>';
+    }
+
+    var navItems    = nav.map(function (p) { return { url: p.url, label: p.title }; });
+    var socialItems = social.map(function (s) { return { url: s.url, label: s.platform }; });
+
+    return (
+      '<div class="gh-pf__top">' +
+        '<div class="gh-pf__brand">' +
+          '<img src="/assets/logos/govr.svg" alt="GOVR" class="gh-pf__logo">' +
+          (tagline ? '<p class="gh-pf__tagline">' + tagline + '</p>' : '') +
+          (email   ? '<a href="mailto:' + esc(email) + '" class="gh-pf__email">' + esc(email) + '</a>' : '') +
+        '</div>' +
+        '<div class="gh-pf__cols">' +
+          col('Naviguer', navItems, false) +
+          col('Nous suivre', socialItems, true) +
+        '</div>' +
+      '</div>' +
+      '<div class="gh-pf__legal">' +
+        '<span class="gh-pf__copy">© ' + new Date().getFullYear() + ' GoHéritage</span>' +
+        '<a href="/contact" class="gh-pf__legal-link">Mentions légales</a>' +
+        '<a href="/contact" class="gh-pf__legal-link">Confidentialité</a>' +
+      '</div>'
+    );
+  }
+
+  function injectPanelFooter(d) {
+    var main = document.querySelector('.k-panel-main');
+    if (!main) return;
+    var footer = document.getElementById('gh-panel-footer');
+    if (!footer) {
+      footer = document.createElement('footer');
+      footer.id        = 'gh-panel-footer';
+      footer.className = 'gh-panel-footer';
+      main.appendChild(footer);
+    } else if (footer.parentNode !== main) {
+      // Vue re-rendered the view and detached us — re-attach to the live main.
+      main.appendChild(footer);
+    }
+    var html = buildFooterHtml(d);
+    if (footer.innerHTML !== html) footer.innerHTML = html;
+    // Always keep it the LAST child so it sits below the view content.
+    if (main.lastElementChild !== footer) main.appendChild(footer);
+  }
+
+  // Resolve footer data, trying the panel API first and falling back to a raw
+  // authenticated fetch. Defensively unwraps a {data:{…}} envelope. Resolves
+  // to a usable object or null (never throws).
+  function fetchFooterData() {
+    function rawFetch() {
+      return fetch('/api/gh/footer-data', {
+        headers: { 'X-CSRF': (window.panel && window.panel.csrf) || '' },
+        credentials: 'same-origin'
+      }).then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; });
+    }
+    var p;
+    if (window.panel && window.panel.api && window.panel.api.get) {
+      p = window.panel.api.get('gh/footer-data').catch(rawFetch);
+    } else {
+      p = rawFetch();
+    }
+    return p.then(function (d) {
+      if (!d) return null;
+      if (d.data && !d.nav && !d.tagline) d = d.data; // unwrap envelope
+      return (d && (d.status === 'ok' || d.nav || d.tagline)) ? d : null;
+    });
+  }
+
+  function ensurePanelFooter() {
+    // Have data + footer present → keep it pinned as last child and bail.
+    if (_ghFooterData) {
+      var existing = document.getElementById('gh-panel-footer');
+      var main = document.querySelector('.k-panel-main');
+      if (!existing || (main && main.lastElementChild !== existing)) {
+        injectPanelFooter(_ghFooterData);
+      }
+      return;
+    }
+    if (_ghFooterBusy) return;
+    if (!window.panel || !window.panel.user) return; // wait for auth
+
+    _ghFooterBusy = true;
+    fetchFooterData().then(function (d) {
+      _ghFooterBusy = false;
+      if (d) { _ghFooterData = d; injectPanelFooter(d); }
+      // else: stays null, retried on the next ghGlobalChrome tick
+    });
+  }
+
   function ghGlobalChrome() {
     ghDetectTheme();
     ghSetupSidebar();
+    // Panel footer disabled per request — re-enable by uncommenting:
+    // ensurePanelFooter();
   }
 
   // Run once on load, then watch for SPA-style navigation.

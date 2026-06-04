@@ -148,6 +148,7 @@ tabs:
               annotations: Points d'intérêt
             default:
               - model
+              - pointcloud
               - info
               - gallery
               - annotations
@@ -194,10 +195,10 @@ tabs:
             label: false
             type: info
             theme: info
-            text: |
+            text: >
               **Pipeline OBJ** — Exportez le modèle en OBJ + texture depuis Blender,
               puis les hotspots en JSON via l'addon GoHéritage. Les textures sont
-              compressées automatiquement à l'upload.
+              compressées automatiquement à l'import.
 
       # ── Modèle extérieur ─────────────────────────────────────────
       # All exterior 3D assets in one section: model, texture, hotspots.
@@ -341,7 +342,7 @@ tabs:
             label: false
             type: info
             theme: info
-            text: |
+            text: >
               **Nuage de points** — hébergez les nuages volumineux via un
               viewer web (Potree, etc.) et collez le lien ci-dessous, ou
               déposez les données brutes pour traitement ultérieur.
@@ -424,7 +425,7 @@ tabs:
           page_files:
             type: page-files-list
             label: false
-            help: |
-              Liste plate de **tous les fichiers attachés à cette page** — modèles 3D,
-              textures, plans, images de galerie, JSON, etc. Pour ajouter des
-              fichiers, utilisez les onglets dédiés (Documents, Modèle 3D, etc.).
+            help: >
+              Liste de **tous les fichiers attachés à cette page** — modèles 3D,
+              textures, plans, images, JSON, etc. Pour ajouter des fichiers,
+              utilisez les onglets dédiés (Documents, Modèle 3D, etc.).

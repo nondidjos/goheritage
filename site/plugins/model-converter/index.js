@@ -543,10 +543,65 @@ panel.plugin('goheritage/model-converter', {
         rows: { type: Array, default: () => [] },
       },
       data() {
-        return { localFiles: [], busyAll: false };
+        return {
+          localFiles: [],
+          busyAll: false,
+          sortBy: 'modified',  // default: newest first
+          sortDir: 'desc',
+        };
       },
       watch: {
         rows: { immediate: true, handler(v) { this.localFiles = Array.isArray(v) ? [...v] : []; } },
+      },
+      computed: {
+        groups() {
+          var order = [
+            ['model-source',   'Modèle 3D — source'],
+            ['model-web',      'Modèle 3D — web'],
+            ['texture-source', 'Textures — source'],
+            ['texture-web',    'Textures — web'],
+            ['hotspot',        "Points d'intérêt"],
+            ['cloud',          'Nuage de points'],
+            ['photo',          'Photos'],
+            ['doc',            'Documents'],
+            ['data',           'Données'],
+            ['video',          'Vidéos'],
+            ['archive',        'Archives'],
+            ['other',          'Autres'],
+          ];
+          var byCat = {};
+          this.localFiles.forEach(function (f) {
+            var c = f.category || 'other';
+            (byCat[c] || (byCat[c] = [])).push(f);
+          });
+          var sortBy  = this.sortBy;
+          var sortDir = this.sortDir;
+          function cmp(a, b) {
+            var va, vb;
+            if (sortBy === 'filename') {
+              va = (a.filename || '').toLowerCase();
+              vb = (b.filename || '').toLowerCase();
+            } else if (sortBy === 'extension') {
+              va = (a.extension || '').toLowerCase();
+              vb = (b.extension || '').toLowerCase();
+            } else if (sortBy === 'size') {
+              va = a.sizeRaw || 0;
+              vb = b.sizeRaw || 0;
+            } else {
+              // modified — sort by ISO string
+              va = a.modifiedIso || '';
+              vb = b.modifiedIso || '';
+            }
+            if (va < vb) return sortDir === 'asc' ? -1 : 1;
+            if (va > vb) return sortDir === 'asc' ?  1 : -1;
+            return 0;
+          }
+          return order
+            .filter(function (o) { return byCat[o[0]] && byCat[o[0]].length; })
+            .map(function (o) {
+              return { key: o[0], label: o[1], files: byCat[o[0]].slice().sort(cmp) };
+            });
+        },
       },
       methods: {
         async _delete(filename) {
@@ -600,18 +655,34 @@ panel.plugin('goheritage/model-converter', {
             this.busyAll = false;
           }
         },
-        // Pick a Kirby icon + a category class from the file extension so
-        // rows are scannable by type at a glance.
-        fileKind(ext) {
-          var e = String(ext || '').toLowerCase();
-          if (['jpg','jpeg','png','webp','gif','svg','tif','tiff','bmp','avif'].includes(e)) return { icon: 'image',         cat: 'image' };
-          if (['obj','glb','gltf','fbx','stl','mtl','dae','3ds'].includes(e))                return { icon: 'box',           cat: 'model' };
-          if (['ply','las','laz','e57','pts','pcd','xyz'].includes(e))                       return { icon: 'grid',          cat: 'cloud' };
-          if (['pdf','doc','docx','odt','rtf','txt','md'].includes(e))                       return { icon: 'file-document', cat: 'doc'   };
-          if (['json','csv','xml','yml','yaml'].includes(e))                                 return { icon: 'code',          cat: 'data'  };
-          if (['zip','rar','7z','tar','gz'].includes(e))                                     return { icon: 'archive',       cat: 'archive' };
-          if (['mp4','mov','webm','avi','mkv'].includes(e))                                  return { icon: 'video',         cat: 'video' };
-          return { icon: 'file', cat: 'other' };
+        setSort(key) {
+          if (this.sortBy === key) {
+            this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+          } else {
+            this.sortBy  = key;
+            this.sortDir = key === 'modified' ? 'desc' : 'asc';
+          }
+        },
+        // Icon + colour bucket for a row, derived from the server-supplied
+        // category (the shared fileCategory() method) — NOT re-parsed from the
+        // extension here. That keeps one classification source, and means the
+        // icon honours the texture-vs-photo distinction (a plain extension
+        // check can't, since both are images).
+        fileKind(cat) {
+          switch (cat) {
+            case 'model-source':
+            case 'model-web':      return { icon: 'box',           cat: 'model'   };
+            case 'texture-source':
+            case 'texture-web':    return { icon: 'image',         cat: 'texture' };
+            case 'cloud':          return { icon: 'grid',          cat: 'cloud'   };
+            case 'photo':          return { icon: 'image',         cat: 'image'   };
+            case 'doc':            return { icon: 'file-document', cat: 'doc'     };
+            case 'hotspot':
+            case 'data':           return { icon: 'code',          cat: 'data'    };
+            case 'archive':        return { icon: 'archive',       cat: 'archive' };
+            case 'video':          return { icon: 'video',         cat: 'video'   };
+            default:               return { icon: 'file',          cat: 'other'   };
+          }
         },
       },
       template: `
@@ -630,32 +701,47 @@ panel.plugin('goheritage/model-converter', {
             <table class="k-page-files-list">
               <thead>
                 <tr>
-                  <th class="k-page-files-list__th--name">Nom</th>
-                  <th class="k-page-files-list__th--ext">Type</th>
-                  <th class="k-page-files-list__th--size">Taille</th>
-                  <th class="k-page-files-list__th--date">Modifié</th>
+                  <th class="k-page-files-list__th--name k-page-files-list__th--sort" @click="setSort('filename')" :data-active="sortBy === 'filename'" :data-dir="sortDir">
+                    Nom <span class="k-page-files-list__sort-icon" v-if="sortBy === 'filename'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+                  </th>
+                  <th class="k-page-files-list__th--ext k-page-files-list__th--sort" @click="setSort('extension')" :data-active="sortBy === 'extension'" :data-dir="sortDir">
+                    Type <span class="k-page-files-list__sort-icon" v-if="sortBy === 'extension'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+                  </th>
+                  <th class="k-page-files-list__th--size k-page-files-list__th--sort" @click="setSort('size')" :data-active="sortBy === 'size'" :data-dir="sortDir">
+                    Taille <span class="k-page-files-list__sort-icon" v-if="sortBy === 'size'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+                  </th>
+                  <th class="k-page-files-list__th--date k-page-files-list__th--sort" @click="setSort('modified')" :data-active="sortBy === 'modified'" :data-dir="sortDir">
+                    Modifié <span class="k-page-files-list__sort-icon" v-if="sortBy === 'modified'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+                  </th>
                   <th class="k-page-files-list__th--actions"></th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="f in localFiles" :key="f.filename">
-                  <td class="k-page-files-list__td--name">
-                    <span class="k-page-files-list__name-inner" :data-cat="fileKind(f.extension).cat">
-                      <k-icon :type="fileKind(f.extension).icon" />
-                      <a :href="f.url" target="_blank" rel="noopener">{{ f.filename }}</a>
-                    </span>
-                  </td>
-                  <td class="k-page-files-list__td--ext">
-                    <span class="k-page-files-list__ext-badge" :data-cat="fileKind(f.extension).cat">{{ f.extension }}</span>
-                  </td>
-                  <td class="k-page-files-list__td--size">{{ f.size }}</td>
-                  <td class="k-page-files-list__td--date">{{ f.modified }}</td>
-                  <td class="k-page-files-list__td--actions">
-                    <button type="button" class="k-page-files-list__delete" @click="confirmDelete(f)" :title="'Supprimer ' + f.filename">
-                      <k-icon type="trash" />
-                    </button>
-                  </td>
-                </tr>
+                <template v-for="g in groups">
+                  <tr class="k-page-files-list__grouprow" :key="'grp-' + g.key">
+                    <td colspan="5">
+                      <span class="k-page-files-list__groupname">{{ g.label }}</span>
+                    </td>
+                  </tr>
+                  <tr v-for="f in g.files" :key="f.filename">
+                    <td class="k-page-files-list__td--name">
+                      <span class="k-page-files-list__name-inner" :data-cat="fileKind(f.category).cat">
+                        <k-icon :type="fileKind(f.category).icon" />
+                        <a :href="f.url" target="_blank" rel="noopener">{{ f.filename }}</a>
+                      </span>
+                    </td>
+                    <td class="k-page-files-list__td--ext">
+                      <span class="k-page-files-list__ext-badge" :data-cat="fileKind(f.category).cat">{{ f.extension }}</span>
+                    </td>
+                    <td class="k-page-files-list__td--size">{{ f.size }}</td>
+                    <td class="k-page-files-list__td--date">{{ f.modified }}</td>
+                    <td class="k-page-files-list__td--actions">
+                      <button type="button" class="k-page-files-list__delete" @click="confirmDelete(f)" :title="'Supprimer ' + f.filename">
+                        <k-icon type="trash" />
+                      </button>
+                    </td>
+                  </tr>
+                </template>
               </tbody>
             </table>
           </div>
