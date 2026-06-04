@@ -53,8 +53,9 @@ if (!empty(get('pointcloud'))) {
     <style>
       .pc-stage { position: fixed; inset: 0; background: #1a1a1a; }
       .pc-stage iframe, #gh-pointcloud-viewer { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
-      .pc-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 2rem; text-align: center; color: rgba(255,255,255,0.6); font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.7; }
+      .pc-msg { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.9rem; padding: 2rem; text-align: center; color: rgba(255,255,255,0.6); font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.6; }
       .pc-msg strong { color: #fff; }
+      .pc-msg__ico { width: 42px; height: 42px; opacity: 0.5; }
     </style>
     <div class="pc-stage">
       <?php if ($pcExternal): ?>
@@ -62,9 +63,15 @@ if (!empty(get('pointcloud'))) {
       <?php elseif ($pcInline): ?>
         <div id="gh-pointcloud-viewer" data-src="<?= esc($pcInline->url()) ?>" data-format="<?= esc($pcInline->extension()) ?>"></div>
       <?php elseif ($pcOther): ?>
-        <div class="pc-msg">Le format <strong><?= strtoupper(esc($pcOther->extension())) ?></strong> n'est pas pris en charge par l'aperçu intégré.<br>Renseignez un viewer externe (Potree) dans l'onglet « Nuage de points ».</div>
+        <div class="pc-msg">
+          <svg class="pc-msg__ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="12" cy="12" r="1.7"/><circle cx="5.5" cy="7" r="1.3"/><circle cx="18.5" cy="6.5" r="1.3"/><circle cx="6" cy="17" r="1.3"/><circle cx="18" cy="17.5" r="1.3"/><circle cx="12" cy="4.5" r="1.1"/><circle cx="4.5" cy="12.5" r="1.1"/><circle cx="19.5" cy="12.5" r="1.1"/><text x="20" y="8" font-size="9" font-family="monospace" font-weight="700" fill="#fff">?</text></svg>
+          <span>Format <strong><?= strtoupper(esc($pcOther->extension())) ?></strong> non pris en charge</span>
+        </div>
       <?php else: ?>
-        <div class="pc-msg">Aucun nuage de points.<br>Ajoutez un fichier .ply ou .pcd, ou renseignez un viewer externe dans l'onglet « Nuage de points ».</div>
+        <div class="pc-msg">
+          <svg class="pc-msg__ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="12" cy="12" r="1.7"/><circle cx="5.5" cy="7" r="1.3"/><circle cx="18.5" cy="6.5" r="1.3"/><circle cx="6" cy="17" r="1.3"/><circle cx="18" cy="17.5" r="1.3"/><circle cx="12" cy="4.5" r="1.1"/><circle cx="4.5" cy="12.5" r="1.1"/><circle cx="19.5" cy="12.5" r="1.1"/><line x1="3.5" y1="20.5" x2="20.5" y2="3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span>Aucun nuage de points</span>
+        </div>
       <?php endif ?>
     </div>
     <?php
@@ -535,8 +542,9 @@ $defaultMode = $availableModes[0] ?? 'model';
             <?php else: ?>
                 <div class="w-full h-full bg-mid"></div>
             <?php endif ?>
-            <div class="absolute inset-0 bg-ink/30 flex items-center justify-center pointer-events-none">
-                <span class="font-mono text-sm uppercase tracking-widest text-white px-6 py-2 border border-white/30 backdrop-blur-md rounded-sm">Vue 3D prochainement</span>
+            <div class="absolute inset-0 bg-ink/30 flex flex-col items-center justify-center gap-3 pointer-events-none text-white/75">
+                <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/><line x1="3.5" y1="20.5" x2="20.5" y2="3.5"/></svg>
+                <span class="font-mono text-xs uppercase tracking-widest">Aucun modèle 3D</span>
             </div>
         <?php endif ?>
 
