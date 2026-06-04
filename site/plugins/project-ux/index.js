@@ -2573,8 +2573,7 @@ panel.plugin('goheritage/project-ux', {
   function ghGlobalChrome() {
     ghDetectTheme();
     ghSetupSidebar();
-    // Panel footer disabled per request — re-enable by uncommenting:
-    // ensurePanelFooter();
+    ensurePanelFooter();
   }
 
   // Run once on load, then watch for SPA-style navigation.
