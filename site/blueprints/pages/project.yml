@@ -344,7 +344,7 @@ tabs:
             text: |
               **Nuage de points** — hébergez les nuages volumineux via un
               viewer web (Potree, etc.) et collez le lien ci-dessous, ou
-              téléversez les données brutes pour traitement ultérieur.
+              déposez les données brutes pour traitement ultérieur.
           pointcloud_url:
             type: url
             label: Viewer de nuage de points (externe)
@@ -426,5 +426,5 @@ tabs:
             label: false
             help: |
               Liste plate de **tous les fichiers attachés à cette page** — modèles 3D,
-              textures, plans, images de galerie, JSON, etc. Pour téléverser des
+              textures, plans, images de galerie, JSON, etc. Pour ajouter des
               fichiers, utilisez les onglets dédiés (Documents, Modèle 3D, etc.).

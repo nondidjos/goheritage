@@ -25,7 +25,7 @@ panel.plugin('goheritage/model-converter', {
             <!-- Native Kirby dropzone -->
             <k-dropzone class="k-upload-overwrite-dropzone" :disabled="uploading" @drop="onDrop">
               <p class="k-upload-overwrite-dropzone-label">
-                {{ resizing ? 'Redimensionnement…' : (uploading ? 'Téléversement…' : (convertingFile ? 'Conversion GLB…' : (anyCompressing ? 'Compression…' : 'Déposer un fichier ici'))) }}
+                {{ resizing ? 'Redimensionnement…' : (uploading ? 'Envoi…' : (convertingFile ? 'Conversion GLB…' : (anyCompressing ? 'Compression…' : 'Déposer un fichier ici'))) }}
               </p>
               <k-button
                 size="sm"

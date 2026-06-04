@@ -351,7 +351,7 @@ var ProjectOverviewSection = {
                   :disabled="uploadingCover"
                   @click="$refs.coverFileInput.click()"
                 >
-                  {{ uploadingCover ? 'Téléversement...' : 'Téléverser une image' }}
+                  {{ uploadingCover ? 'Envoi...' : 'Ajouter une image' }}
                 </k-button>
                 <input
                   ref="coverFileInput"
@@ -741,15 +741,15 @@ var ProjectOverviewSection = {
               headers: { 'X-CSRF': panel.csrf },
               body: formData
             });
-            if (!resp.ok) throw new Error('Erreur de téléversement');
+            if (!resp.ok) throw new Error('Erreur de envoi');
             const res = await resp.json();
-            this.$panel.notification.success('Image téléversée : ' + res.filename);
+            this.$panel.notification.success('Image envoyée : ' + res.filename);
 
             const sectionData = await this.load();
             Object.assign(this.$data, sectionData);
             this.selectedCoverUuid = res.id;
           } catch (err) {
-            this.$panel.notification.error(err.message || 'Téléversement échoué');
+            this.$panel.notification.error(err.message || 'Envoi échoué');
           } finally {
             this.uploadingCover = false;
             e.target.value = '';

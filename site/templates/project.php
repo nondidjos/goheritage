@@ -64,7 +64,7 @@ if (!empty(get('pointcloud'))) {
       <?php elseif ($pcOther): ?>
         <div class="pc-msg">Le format <strong><?= strtoupper(esc($pcOther->extension())) ?></strong> n'est pas pris en charge par l'aperçu intégré.<br>Renseignez un viewer externe (Potree) dans l'onglet « Nuage de points ».</div>
       <?php else: ?>
-        <div class="pc-msg">Aucun nuage de points.<br>Téléversez un fichier .ply ou .pcd, ou renseignez un viewer externe dans l'onglet « Nuage de points ».</div>
+        <div class="pc-msg">Aucun nuage de points.<br>Ajoutez un fichier .ply ou .pcd, ou renseignez un viewer externe dans l'onglet « Nuage de points ».</div>
       <?php endif ?>
     </div>
     <?php
