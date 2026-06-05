@@ -98,9 +98,9 @@ $ghAssetVer = '3';
   }
   </script>
   <?php if ($isPointcloud): ?>
-  <script type="module" src="<?= url('assets/js/pointcloud-viewer.js') ?>?v=3"></script>
+  <script type="module" src="<?= url('assets/js/pointcloud-viewer.js') ?>?v=4"></script>
   <?php else: ?>
-  <script type="module" src="<?= url('assets/js/viewer.js') ?>?v=3"></script>
+  <script type="module" src="<?= url('assets/js/viewer.js') ?>?v=4"></script>
   <?php endif ?>
   <?php endif ?>
   <link rel="shortcut icon" type="image/x-icon" href="<?= url('favicon.ico') ?>">

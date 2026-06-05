@@ -24,11 +24,13 @@ function initPointCloud(container) {
   const format = (container.dataset.format || 'ply').toLowerCase();
   if (!src) return;
 
-  const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window);
+  // Touch-primary devices only (phones/tablets) — not touch laptops.
+  const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches
+                || window.innerWidth <= 768;
 
   // ── Renderer ──────────────────────────────────────────────────────────
   const renderer = new THREE.WebGLRenderer({ antialias: !isMobile, alpha: false });
-  renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2));
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);

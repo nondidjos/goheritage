@@ -47,7 +47,12 @@ function initViewer(container) {
   if (!objUrl && !glbUrl && !interiorGlbDerivedUrl && !interiorObjUrl) return;
 
   // ── Mobile detection ─────────────────────────────────────────────────────
-  var isMobile = window.innerWidth <= 768 || ('ontouchstart' in window);
+  // Touch-PRIMARY devices (phones/tablets). `(hover:none) and (pointer:coarse)`
+  // is true for those and false for touch laptops (which still have a hovering
+  // pointer) — the old `'ontouchstart' in window` wrongly flagged those laptops
+  // as mobile and dropped them to the low-res path.
+  var isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches
+              || window.innerWidth <= 768;
 
   // ── Renderer ─────────────────────────────────────────────────────────────
   const renderer = new THREE.WebGLRenderer({
@@ -55,7 +60,7 @@ function initViewer(container) {
     alpha: false,
     powerPreference: isMobile ? 'low-power' : 'default',
   });
-  renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2));
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);
@@ -1119,10 +1124,10 @@ function initViewer(container) {
   // ── Adaptive pixel ratio (performance) ───────────────────────────────────
   var frameCount = 0;
   var lastFpsCheck = performance.now();
-  var currentPixelRatio = isMobile ? 1 : Math.min(window.devicePixelRatio, 2);
+  var currentPixelRatio = isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2);
 
   function checkPerformance() {
-    if (isMobile) return; // already locked to 1 on mobile
+    // Adapts on mobile too now: starts at 1.5 and drops to 1 if FPS tanks.
     frameCount++;
     var now = performance.now();
     var delta = now - lastFpsCheck;
