@@ -1561,11 +1561,15 @@ panel.plugin('goheritage/project-ux', {
         },
         publicUrl() {
           try {
-            var base = this.$panel?.view?.props?.model?.url || '#';
+            // model.url isn't reliably present in panel props; previewUrl is
+            // the canonical frontend URL. Strip its query (Kirby's preview
+            // token) so public pages get a clean visitor URL.
+            var m  = this.$panel?.view?.props?.model || {};
+            var pv = m.previewUrl || m.url || '';
+            var base = String(pv).split('?')[0];
+            if (!base) return '#';
             if (this.visibility === 'public') return base;
-            // Link-only page: find the first viewer share token and append it
-            // as ?key=. We use our long cryptographic token, NOT Kirby's own
-            // short previewUrl token, which is what was generating the short key.
+            // Link-only page: append our long cryptographic share token as ?key=
             var raw = this.$panel?.view?.props?.versions?.latest?.share_links
                    || this.$panel?.view?.props?.content?.share_links
                    || '';
