@@ -1833,6 +1833,12 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   border-color: var(--color-border);
 }
 
+.gh-cover-grid__item:focus-visible {
+  outline: 2px solid var(--color-focus, #4271ae);
+  outline-offset: 2px;
+  border-color: var(--color-focus, #4271ae);
+}
+
 .gh-cover-grid__item.is-selected {
   border-color: var(--color-positive, #1a1a1a);
 }

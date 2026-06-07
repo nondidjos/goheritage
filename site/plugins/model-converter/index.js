@@ -663,6 +663,12 @@ panel.plugin('goheritage/model-converter', {
             this.sortDir = key === 'modified' ? 'desc' : 'asc';
           }
         },
+        // aria-sort value for a column header so screen readers announce the
+        // current sort state ("ascending"/"descending"/"none").
+        ariaSort(key) {
+          if (this.sortBy !== key) return 'none';
+          return this.sortDir === 'asc' ? 'ascending' : 'descending';
+        },
         // Icon + colour bucket for a row, derived from the server-supplied
         // category (the shared fileCategory() method) — NOT re-parsed from the
         // extension here. That keeps one classification source, and means the
@@ -701,16 +707,16 @@ panel.plugin('goheritage/model-converter', {
             <table class="k-page-files-list">
               <thead>
                 <tr>
-                  <th class="k-page-files-list__th--name k-page-files-list__th--sort" @click="setSort('filename')" :data-active="sortBy === 'filename'" :data-dir="sortDir">
+                  <th class="k-page-files-list__th--name k-page-files-list__th--sort" role="button" tabindex="0" :aria-sort="ariaSort('filename')" @click="setSort('filename')" @keydown.enter.prevent="setSort('filename')" @keydown.space.prevent="setSort('filename')" :data-active="sortBy === 'filename'" :data-dir="sortDir">
                     Nom <span class="k-page-files-list__sort-icon" v-if="sortBy === 'filename'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
                   </th>
-                  <th class="k-page-files-list__th--ext k-page-files-list__th--sort" @click="setSort('extension')" :data-active="sortBy === 'extension'" :data-dir="sortDir">
+                  <th class="k-page-files-list__th--ext k-page-files-list__th--sort" role="button" tabindex="0" :aria-sort="ariaSort('extension')" @click="setSort('extension')" @keydown.enter.prevent="setSort('extension')" @keydown.space.prevent="setSort('extension')" :data-active="sortBy === 'extension'" :data-dir="sortDir">
                     Type <span class="k-page-files-list__sort-icon" v-if="sortBy === 'extension'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
                   </th>
-                  <th class="k-page-files-list__th--size k-page-files-list__th--sort" @click="setSort('size')" :data-active="sortBy === 'size'" :data-dir="sortDir">
+                  <th class="k-page-files-list__th--size k-page-files-list__th--sort" role="button" tabindex="0" :aria-sort="ariaSort('size')" @click="setSort('size')" @keydown.enter.prevent="setSort('size')" @keydown.space.prevent="setSort('size')" :data-active="sortBy === 'size'" :data-dir="sortDir">
                     Taille <span class="k-page-files-list__sort-icon" v-if="sortBy === 'size'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
                   </th>
-                  <th class="k-page-files-list__th--date k-page-files-list__th--sort" @click="setSort('modified')" :data-active="sortBy === 'modified'" :data-dir="sortDir">
+                  <th class="k-page-files-list__th--date k-page-files-list__th--sort" role="button" tabindex="0" :aria-sort="ariaSort('modified')" @click="setSort('modified')" @keydown.enter.prevent="setSort('modified')" @keydown.space.prevent="setSort('modified')" :data-active="sortBy === 'modified'" :data-dir="sortDir">
                     Modifié <span class="k-page-files-list__sort-icon" v-if="sortBy === 'modified'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
                   </th>
                   <th class="k-page-files-list__th--actions"></th>
@@ -736,7 +742,7 @@ panel.plugin('goheritage/model-converter', {
                     <td class="k-page-files-list__td--size">{{ f.size }}</td>
                     <td class="k-page-files-list__td--date">{{ f.modified }}</td>
                     <td class="k-page-files-list__td--actions">
-                      <button type="button" class="k-page-files-list__delete" @click="confirmDelete(f)" :title="'Supprimer ' + f.filename">
+                      <button type="button" class="k-page-files-list__delete" @click="confirmDelete(f)" :title="'Supprimer ' + f.filename" :aria-label="'Supprimer ' + f.filename">
                         <k-icon type="trash" />
                       </button>
                     </td>

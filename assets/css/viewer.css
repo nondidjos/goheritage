@@ -900,6 +900,12 @@
     transition: background 0.12s ease, color 0.12s ease;
 }
 .viewer-switch__opt:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.viewer-switch__opt:focus-visible {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    outline: 2px solid rgba(255, 255, 255, 0.7);
+    outline-offset: -2px;
+}
 .viewer-switch__opt.is-active { color: #fff; }
 .viewer-switch__opt-ico {
     display: inline-flex;

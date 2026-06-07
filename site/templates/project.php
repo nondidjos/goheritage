@@ -662,7 +662,7 @@ $defaultMode = $availableModes[0] ?? 'model';
 </div>
 
 <?php if ($showModeChips): ?>
-<script src="<?= url('assets/js/viewer-modes.js') ?>?v=1" defer></script>
+<script src="<?= url('assets/js/viewer-modes.js') ?>?v=2" defer></script>
 <?php endif ?>
 
 <?php snippet('footer') ?>

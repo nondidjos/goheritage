@@ -326,13 +326,19 @@ var ProjectOverviewSection = {
             <div class="gh-cover-dialog">
               <k-text class="mb-4">Choisissez une image de couverture ou déposez-en une nouvelle :</k-text>
 
-              <div class="gh-cover-grid">
+              <div class="gh-cover-grid" role="group" aria-label="Images disponibles pour la couverture">
                 <div
                   v-for="img in pageImages"
                   :key="img.uuid"
                   class="gh-cover-grid__item"
                   :class="{ 'is-selected': selectedCoverUuid === img.uuid }"
+                  role="button"
+                  tabindex="0"
+                  :aria-pressed="selectedCoverUuid === img.uuid ? 'true' : 'false'"
+                  :aria-label="'Couverture : ' + img.name"
                   @click="selectCover(img)"
+                  @keydown.enter.prevent="selectCover(img)"
+                  @keydown.space.prevent="selectCover(img)"
                 >
                   <img :src="img.thumb" :alt="img.name" />
                   <div class="gh-cover-grid__checkmark" v-if="selectedCoverUuid === img.uuid">

@@ -30,13 +30,32 @@
     var labelEl   = sw.querySelector('[data-switch-label]');
     var icoEl     = sw.querySelector('[data-switch-ico]');
 
-    function closeMenu() {
+    var optList = Array.prototype.slice.call(opts);
+    // Roving tabindex: options are not in the tab order; arrow keys move a
+    // single focusable option (ARIA listbox pattern).
+    optList.forEach(function (o) { o.setAttribute('tabindex', '-1'); });
+
+    function activeIndex() {
+      var i = optList.findIndex(function (o) {
+        return o.getAttribute('aria-selected') === 'true';
+      });
+      return i < 0 ? 0 : i;
+    }
+    function focusOption(i) {
+      if (!optList.length) return;
+      var idx = (i + optList.length) % optList.length;
+      optList[idx].focus();
+    }
+
+    function closeMenu(returnFocus) {
       sw.classList.remove('is-open');
       trigger.setAttribute('aria-expanded', 'false');
+      if (returnFocus) trigger.focus();
     }
-    function openMenu() {
+    function openMenu(focusIdx) {
       sw.classList.add('is-open');
       trigger.setAttribute('aria-expanded', 'true');
+      focusOption(typeof focusIdx === 'number' ? focusIdx : activeIndex());
     }
 
     // Create the point-cloud iframe the first time that pane is shown.
@@ -97,19 +116,44 @@
       if (sw.classList.contains('is-open')) closeMenu(); else openMenu();
     });
 
-    opts.forEach(function (o) {
-      o.addEventListener('click', function () {
-        setMode(o.getAttribute('data-mode-target'));
-        closeMenu();
+    // Keyboard on the trigger: Down/Up or Enter/Space opens and focuses.
+    trigger.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openMenu();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        openMenu(optList.length - 1);
+      }
+    });
+
+    function choose(o) {
+      setMode(o.getAttribute('data-mode-target'));
+      closeMenu(true);
+    }
+
+    optList.forEach(function (o, i) {
+      o.addEventListener('click', function () { choose(o); });
+      o.addEventListener('keydown', function (e) {
+        switch (e.key) {
+          case 'ArrowDown': e.preventDefault(); focusOption(i + 1); break;
+          case 'ArrowUp':   e.preventDefault(); focusOption(i - 1); break;
+          case 'Home':      e.preventDefault(); focusOption(0); break;
+          case 'End':       e.preventDefault(); focusOption(optList.length - 1); break;
+          case 'Enter':
+          case ' ':         e.preventDefault(); choose(o); break;
+          case 'Escape':    e.preventDefault(); closeMenu(true); break;
+          case 'Tab':       closeMenu(); break;
+        }
       });
     });
 
-    // Dismiss on outside click / Escape.
+    // Dismiss on outside click / Escape (when focus isn't already in the menu).
     document.addEventListener('click', function (e) {
       if (!sw.contains(e.target)) closeMenu();
     });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closeMenu();
+      if (e.key === 'Escape' && sw.classList.contains('is-open')) closeMenu(true);
     });
   }
 
