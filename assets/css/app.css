@@ -4,7 +4,7 @@
 @layer theme {
   :root, :host {
     --font-sans: 'DM Sans', system-ui, sans-serif;
-    --font-serif: 'IBM Plex Serif', Georgia, serif;
+    --font-serif: 'Cormorant Garamond', 'IBM Plex Serif', Georgia, serif;
     --font-mono: 'IBM Plex Mono', monospace;
     --color-black: #000;
     --color-white: #fff;

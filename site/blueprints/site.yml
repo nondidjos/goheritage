@@ -1,51 +1,42 @@
 title: Site
 icon: home
 
-columns:
-  - width: 2/3
-    fields:
-      featured_project:
-        type: pages
-        label: Projet mis en avant (Accueil)
-        query: site.find("map").children.listed
-        max: 1
-        layout: cards
-        size: large
-        image:
-          ratio: 16/9
-          cover: true
-        help: Ce projet sera affiché en évidence sur la page d'accueil.
+tabs:
+  pages:
+    label: Pages
+    columns:
+      - width: 1/3
+        sections:
+          pages:
+            type: pages
+            label: Pages principales
+            layout: list
+            sortBy: title asc
+            templates:
+              - home
+              - map
+              - blog
+              - contact
 
-      featured_article:
-        type: pages
-        label: Article à la une (Blog)
-        query: site.find("blog").children.listed
-        max: 1
-        layout: cards
-        size: large
-        help: Cet article sera affiché en tête de liste sur le blog.
-
-  - width: 1/3
-    sections:
-      pages:
-        type: pages
-        label: Pages principales
-        layout: list
-        sortBy: title asc
-        templates:
-          - home
-          - map
-          - blog
-          - contact
-
-  - width: 1/1
-    sections:
-      footer_settings:
-        type: fields
+      - width: 2/3
         fields:
-          footer_info:
-            type: headline
-            label: Paramètres de Pied de Page
+          featured_project:
+            type: pages
+            label: Projet mis en avant (Accueil)
+            query: site.find("map").children.listed
+            max: 1
+            layout: cards
+            size: large
+            image:
+              ratio: 16/9
+              cover: true
+            help: Ce projet sera affiché en évidence sur la page d'accueil.
+
+  footer:
+    label: Pied de page
+    columns:
+      - width: 1/2
+        fields:
           footer_tagline:
             type: textarea
             label: Accroche du pied de page
@@ -53,13 +44,16 @@ columns:
           footer_email:
             type: email
             label: Email de contact
+
+      - width: 1/2
+        fields:
           social:
             type: structure
             label: Réseaux sociaux
             fields:
               platform:
                 type: text
-                label: "Plateforme (ex: LinkedIn, Twitter)"
+                label: "Plateforme (ex: LinkedIn, Mastodon)"
               url:
                 type: url
                 label: Lien URL

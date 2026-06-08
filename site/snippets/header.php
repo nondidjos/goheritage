@@ -51,6 +51,8 @@ $ghAssetVer = '3';
     }
   </style>
   <?php endif ?>
+  <link rel="preconnect" href="https://fonts.bunny.net">
+  <link rel="stylesheet" href="https://fonts.bunny.net/css?family=cormorant-garamond:400,400i,500,500i,600,600i&display=swap">
   <?php foreach ($cssFiles as $ghCss): ?>
   <link rel="stylesheet" href="<?= url($ghCss) ?>?v=<?= $ghAssetVer ?>">
   <?php endforeach ?>
@@ -202,6 +204,8 @@ $isVisitor = $isVisitor ?? false;
         <?php e($item->isOpen(), 'aria-current="page"') ?>
       ><?= $item->title()->html() ?></a>
       <?php endforeach ?>
+      <a class="font-sans text-sm uppercase tracking-wider text-ink no-underline transition-colors duration-150 hover:underline hover:text-ink opacity-60"
+         href="https://www.govr.eu/blog" target="_blank" rel="noopener">Blog ↗</a>
 
       <!-- mobile close button -->
       <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Fermer le menu">

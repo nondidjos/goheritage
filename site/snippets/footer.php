@@ -33,7 +33,7 @@ if ($isMapPage) {
     <div class="col-1">
       <h2 class="font-mono text-xs uppercase tracking-wider text-[#6B6965] mb-4">Naviguer</h2>
       <ul class="list-none flex flex-col gap-2">
-        <?php foreach ($site->children()->listed() as $item): ?>
+        <?php foreach ($site->children()->listed()->filter(fn($p) => $p->template()->name() !== 'blog') as $item): ?>
           <li><a href="<?= $item->url() ?>"
               class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline"><?= $item->title()->esc() ?></a>
           </li>

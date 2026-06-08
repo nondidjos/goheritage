@@ -256,7 +256,7 @@ $defaultMode = $availableModes[0] ?? 'model';
 
             <!-- Rich text blocks -->
             <?php if ($page->text()->isNotEmpty()): ?>
-                <div class="font-serif text-base text-ink leading-relaxed [&_h2]:font-sans [&_h2]:text-xl [&_h2]:mb-3 [&_h2]:mt-8 [&_p]:mb-4">
+                <div class="font-serif text-[1.0625rem] text-ink leading-[1.85] [&_h2]:font-sans [&_h2]:text-xl [&_h2]:font-medium [&_h2]:mb-4 [&_h2]:mt-10 [&_p]:mb-5 [&_p]:tracking-[0.01em]">
                     <?= $page->text()->toBlocks() ?>
                 </div>
             <?php endif ?>
