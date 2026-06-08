@@ -782,11 +782,16 @@
 }
 
 /* ── Data-type switcher (dropdown) ──────────────────────────────────────
-   A single dropdown in the top-left of the viewer bar — deliberately NOT a
-   segmented pill row, so it never reads as a second toggle next to the
-   in-canvas Extérieur/Intérieur control. */
+   Absolutely positioned so it floats on top of the viewer pane without
+   consuming any height in the flex column — avoids a black strip at the
+   top of the viewer. pointer-events: none on the bar itself; the switch
+   widget re-enables pointer-events on itself. */
 .viewer-mode-bar {
-    flex-shrink: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
     display: flex;
     justify-content: flex-start;
     padding: 12px;
