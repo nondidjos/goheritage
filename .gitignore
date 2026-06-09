@@ -99,7 +99,6 @@ lightsail-key.pem
 
 # SSH keys and sensitive server docs
 *.pem
-HANDOFF.md
 sftp.txt
 
 # Kirby content — binary/large media assets (tracked in storage, not git)
