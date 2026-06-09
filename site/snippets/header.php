@@ -51,8 +51,6 @@ $ghAssetVer = '5';
     }
   </style>
   <?php endif ?>
-  <link rel="preconnect" href="https://fonts.bunny.net">
-  <link rel="stylesheet" href="https://fonts.bunny.net/css?family=lora:400,400i,500,500i,600,600i&display=swap">
   <?php foreach ($cssFiles as $ghCss): ?>
   <link rel="stylesheet" href="<?= url($ghCss) ?>?v=<?= $ghAssetVer ?>">
   <?php endforeach ?>
