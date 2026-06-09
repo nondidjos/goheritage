@@ -138,13 +138,18 @@ if (!function_exists('goheritageAnnotationRow')) {
      *
      *   $values  any subset of the canonical keys
      * Returns a row with every key present and sane defaults applied.
+     *
+     * location and camera_mode use ?: (not ??) deliberately: Kirby's
+     * Field::value() returns '' for a present-but-empty field, and an empty
+     * enum value is just as broken for the viewer as a missing one. Callers
+     * therefore don't need their own ->or() defaults for these keys.
      */
     function goheritageAnnotationRow(array $values): array {
         return [
-            'location'    => $values['location']    ?? 'exterior',
-            'hotspot_id'  => $values['hotspot_id']  ?? ($values['id'] ?? ''),
+            'location'    => ($values['location']    ?? null) ?: 'exterior',
+            'hotspot_id'  => ($values['hotspot_id']  ?? null) ?: (($values['id'] ?? null) ?: ''),
             'title'       => $values['title']       ?? '',
-            'camera_mode' => $values['camera_mode'] ?? 'fly',
+            'camera_mode' => ($values['camera_mode'] ?? null) ?: 'fly',
             'description' => $values['description'] ?? '',
         ];
     }

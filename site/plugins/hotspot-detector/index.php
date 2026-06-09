@@ -178,7 +178,7 @@ function mergeAnnotations($page, array $incoming, array $scopesUpdating): array 
                 'location'    => $scope,
                 'hotspot_id'  => $ann->hotspot_id()->value(),
                 'title'       => $ann->title()->value(),
-                'camera_mode' => $ann->camera_mode()->or('fly')->value(),
+                'camera_mode' => $ann->camera_mode()->value(),
                 'description' => $ann->description()->value(),
             ]);
 
