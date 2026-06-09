@@ -87,19 +87,16 @@ snippet('header', ['isVisitor' => $isVisitor]);
 $dracoPath = url('node_modules/three/examples/jsm/libs/draco/');
 
 // Canonical filenames are set by the upload-overwrite plugin at upload time.
-// We prefer the canonical name; field UUID is kept as secondary fallback.
-// Canonical names set on upload; fall back to field UUID, then any file by extension/type
-$objFile          = $page->file('exterior.obj')         ?? $page->model_obj()->toFile();
-$interiorObjFile  = $page->file('interior.obj')         ?? $page->model_obj_interior()->toFile();
+// The modelFile() page method (model-converter) owns the canonical-name →
+// extension-variants → field-UUID fallback chain for each slot, so the
+// template just asks by slot.
+$objFile          = $page->modelFile('obj');
+$interiorObjFile  = $page->modelFile('obj_interior');
 
-$texFile          = $page->file('exterior-texture.webp') ?? $page->file('exterior-texture.jpg') ?? $page->file('exterior-texture.png')
-                    ?? $page->file('exterior-texture.jpeg') ?? $page->model_texture()->toFile();
-$normFile         = $page->file('exterior-normal.jpg')  ?? $page->file('exterior-normal.png')
-                    ?? $page->file('exterior-normal.jpeg') ?? $page->model_normal()->toFile();
-$interiorTexFile  = $page->file('interior-texture.webp') ?? $page->file('interior-texture.jpg') ?? $page->file('interior-texture.png')
-                    ?? $page->file('interior-texture.jpeg') ?? $page->model_texture_interior()->toFile();
-$interiorNormFile = $page->file('interior-normal.jpg')  ?? $page->file('interior-normal.png')
-                    ?? $page->file('interior-normal.jpeg') ?? $page->model_normal_interior()->toFile();
+$texFile          = $page->modelFile('texture');
+$normFile         = $page->modelFile('normal');
+$interiorTexFile  = $page->modelFile('texture_interior');
+$interiorNormFile = $page->modelFile('normal_interior');
 
 // Progressive loading previews (auto-generated 1024 px JPEG companions)
 $texPreviewFile         = $texFile
@@ -107,8 +104,8 @@ $texPreviewFile         = $texFile
 $interiorTexPreviewFile = $interiorTexFile
     ? $page->file(pathinfo($interiorTexFile->filename(), PATHINFO_FILENAME) . '-preview.jpg') : null;
 
-$hotspotsExtFile = $page->file('hotspots-exterior.json') ?? $page->model_hotspots_json()->toFile();
-$hotspotsIntFile = $page->file('hotspots-interior.json') ?? $page->model_hotspots_json_interior()->toFile();
+$hotspotsExtFile = $page->modelFile('hotspots');
+$hotspotsIntFile = $page->modelFile('hotspots_interior');
 $hotspotsExtUrl  = $hotspotsExtFile ? $hotspotsExtFile->url() : null;
 $hotspotsIntUrl  = $hotspotsIntFile ? $hotspotsIntFile->url() : null;
 
@@ -142,7 +139,7 @@ $texPreviewUrl         = $texPreviewFile         ? $texPreviewFile->url()       
 $interiorTexPreviewUrl = $interiorTexPreviewFile ? $interiorTexPreviewFile->url() : null;
 
 // GLB: prefer canonical name, fall back to field UUID, then any GLB not already used as interior
-$interiorGlbFile = $page->file('interior.glb');
+$interiorGlbFile = $page->modelFile('glb_interior');
 $interiorGlbUrl  = $interiorGlbFile ? $interiorGlbFile->url() : null;
 
 $glbFile = $page->file('exterior.glb') ?? ($objFile ? null

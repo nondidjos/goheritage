@@ -76,7 +76,11 @@ if (!function_exists('gh_guard_collaborator_scope')) {
             throw new \Kirby\Exception\PermissionException('Action non autorisée pour ce compte de partage.');
         }
         $id = $page->id();
-        if ($id !== $scoped && strpos($id, $scoped . '/') !== 0) {
+        // str_starts_with makes the prefix check explicit: the collaborator's
+        // scoped page itself, or a descendant under "<scoped>/". The trailing
+        // slash is load-bearing — without it "map/foo" would also match the
+        // sibling "map/foo-2".
+        if ($id !== $scoped && !str_starts_with($id, $scoped . '/')) {
             throw new \Kirby\Exception\PermissionException('Accès limité à votre projet partagé.');
         }
     }

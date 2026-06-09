@@ -171,13 +171,16 @@ function mergeAnnotations($page, array $incoming, array $scopesUpdating): array 
     if ($raw->isNotEmpty()) {
         foreach ($raw->toStructure() as $ann) {
             $scope = $ann->location()->or('exterior')->value();
-            $row = [
+            // Canonical row shape lives in goheritage-core; building rows
+            // through it guarantees every key is present with a sane default
+            // so a malformed stored row can't propagate nulls to the viewer.
+            $row = goheritageAnnotationRow([
                 'location'    => $scope,
                 'hotspot_id'  => $ann->hotspot_id()->value(),
                 'title'       => $ann->title()->value(),
                 'camera_mode' => $ann->camera_mode()->or('fly')->value(),
                 'description' => $ann->description()->value(),
-            ];
+            ]);
 
             if (in_array($scope, $scopesUpdating, true)) {
                 $id = $row['hotspot_id'];
@@ -201,13 +204,12 @@ function mergeAnnotations($page, array $incoming, array $scopesUpdating): array 
             $merged[] = $row;
             $skipped++;
         } else {
-            $merged[] = [
+            $merged[] = goheritageAnnotationRow([
                 'location'    => $scope,
                 'hotspot_id'  => $hs['id'],
                 'title'       => $hs['title'],
                 'camera_mode' => $hs['camera_mode'],
-                'description' => '',
-            ];
+            ]);
             $added++;
         }
     }
@@ -276,21 +278,12 @@ function extractHotspotNodes(array $nodes): array {
 function parseGlbHotspots(string $glbPath): array {
     if (!file_exists($glbPath)) return [];
 
-    $nodeCandidates = [
-        'C:\\Program Files\\nodejs\\node.exe',
-        'C:\\Program Files (x86)\\nodejs\\node.exe',
-    ];
-    $node = 'node';
-    foreach ($nodeCandidates as $c) {
-        if (file_exists($c)) { $node = $c; break; }
-    }
-
+    // Shared node-job runner (goheritage-core) resolves the binary across
+    // platforms — replaces the local Windows-only candidate list.
     $script = __DIR__ . '/extract-glb.js';
-    $cmd    = sprintf('"%s" %s %s 2>&1', $node, escapeshellarg($script), escapeshellarg($glbPath));
-    $output = []; $code = 0;
-    exec($cmd, $output, $code);
-    if ($code !== 0) return [];
+    $r = goheritageNodeJob($script, [$glbPath]);
+    if (!$r['ok']) return [];
 
-    $data = json_decode(implode('', $output), true);
+    $data = json_decode(implode('', $r['output']), true);
     return is_array($data) ? $data : [];
 }

@@ -263,36 +263,13 @@ function goheritage_plan_viewer_generate(File $file): void {
     $src    = $file->root();
     $dst    = pathinfo($src, PATHINFO_DIRNAME) . '/' . pathinfo($src, PATHINFO_FILENAME);
 
-    // Spawn in background — '> /dev/null 2>&1 &' detaches the child so the
-    // Panel upload request returns immediately. Errors land in /tmp/ since
-    // the plugin directory is owned by `bitnami` (not the web-server user).
-    $logFile = sys_get_temp_dir() . '/goheritage-tile.log';
-
-    // Absolute node path — PHP exec inherits a minimal PATH on most setups.
-    // Fall back to plain `node` on Windows / non-standard installs.
-    $nodeBin = is_executable('/usr/bin/node') ? '/usr/bin/node' : 'node';
-
-    $cmd = sprintf(
-        '%s %s %s %s >> %s 2>&1 &',
-        $nodeBin,
-        escapeshellarg($script),
-        escapeshellarg($src),
-        escapeshellarg($dst),
-        escapeshellarg($logFile),
-    );
-
-    // On Windows the '&' background syntax doesn't apply — fall back to
-    // a blocking exec there (mainly for local dev).
-    if (DIRECTORY_SEPARATOR === '\\') {
-        $cmd = sprintf(
-            '%s %s %s %s >> %s 2>&1',
-            $nodeBin,
-            escapeshellarg($script),
-            escapeshellarg($src),
-            escapeshellarg($dst),
-            escapeshellarg($logFile),
-        );
-    }
-
-    @exec($cmd);
+    // Spawn in the background so the Panel upload request returns immediately;
+    // tiles materialise a few seconds later. The shared node-job runner
+    // (goheritage-core) handles binary resolution, the '&' detach on POSIX,
+    // and the Windows sync fallback. Errors land in /tmp/ since the plugin
+    // directory is owned by `bitnami` (not the web-server user).
+    goheritageNodeJob($script, [$src, $dst], [
+        'background' => true,
+        'logFile'    => sys_get_temp_dir() . '/goheritage-tile.log',
+    ]);
 }
