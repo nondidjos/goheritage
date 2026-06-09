@@ -92,7 +92,9 @@ if ($isMapPage) {
 // Versioned manually so mobile browsers actually re-fetch after a deploy —
 // Kirby's js() helper adds no cache-busting, and phones cache JS hard. Bump
 // GH_ASSET_VER on any change to index.js / map.js.
-$ghAssetVer = '3';
+// Use the same version set by header.php; fall back to a safe default
+// so footer still works in any edge case where header wasn't included first.
+$ghAssetVer = $ghAssetVer ?? '5';
 foreach ($jsFiles as $ghJs): ?>
   <script src="<?= url($ghJs) ?>?v=<?= $ghAssetVer ?>"></script>
 <?php endforeach ?>

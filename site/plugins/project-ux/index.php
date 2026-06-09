@@ -665,7 +665,12 @@ Kirby::plugin('goheritage/project-ux', [
 
                     $nav = [];
                     try {
-                        foreach ($site->children()->listed() as $p) {
+                        // Mirror the public footer: exclude pages with the 'blog'
+                        // template (the internal Kirby blog page) so the external
+                        // "Blog GOVR ↗" link is the only blog entry shown.
+                        foreach ($site->children()->listed()->filter(
+                            fn($p) => $p->intendedTemplate()->name() !== 'blog'
+                        ) as $p) {
                             $nav[] = [
                                 'title' => (string) $p->title(),
                                 'url'   => $p->url(),

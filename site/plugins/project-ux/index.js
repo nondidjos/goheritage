@@ -1307,13 +1307,13 @@ panel.plugin('goheritage/project-ux', {
             });
             if (res && res.status === 'error') throw new Error(res.message);
 
-            // Optimistic update of local states
-            this.content.visibility = opt.visibility;
-            this.localVisibility = value;
+            // DO NOT mutate this.content.visibility here — that writes into
+            // Kirby's reactive form state and marks the page "dirty".  Any
+            // subsequent section-save then re-sends the hidden visibility field
+            // with the OLD form value, reverting the change.  Instead, always
+            // reload the view so the form re-reads from disk (correct value +
+            // clean dirty flag).
 
-            // Picking "Avec un lien" jumps straight into link management —
-            // there's no point choosing link-sharing then hunting for where
-            // to create the link.
             var openLinks = (value === 'link');
 
             // If folder was renamed (draft→listed adds numeric prefix), redirect.
@@ -1325,15 +1325,17 @@ panel.plugin('goheritage/project-ux', {
             this.open = false;
             this.$panel.notification.success('Visibilité : ' + opt.label);
 
+            // Reload syncs form with new on-disk value and clears dirty flag.
+            // viewButton components survive view.reload() unmounted, so
+            // openShareDialog() below is safe.
+            await this.$panel.view.reload();
+            this.localVisibility = null;
+
             if (openLinks) {
-              // Open the links dialog directly; its close handler reloads if
-              // links were changed. (Reloading first would remount us.)
               this.openShareDialog();
-            } else {
-              await this.$panel.view.reload();
-              this.localVisibility = null; // Clear override to sync with fresh props
             }
           } catch (e) {
+            this.localVisibility = null;
             this.$panel.notification.error(
               'Impossible de mettre à jour : ' + (e && e.message ? e.message : 'erreur inconnue')
             );
@@ -1429,8 +1431,9 @@ panel.plugin('goheritage/project-ux', {
             });
             if (res && res.status === 'error') throw new Error(res.message);
 
-            // Optimistic update of local states
-            this.content.visibility = visibility;
+            // DO NOT mutate this.content.visibility — same reason as commit():
+            // would mark form dirty and cause save to revert the change.
+            // _dialogNeedsReload triggers a view.reload() when dialog closes.
             this.localVisibility = visibility === 'private' ? 'brouillon' : visibility;
 
             // If folder was renamed, redirect but automatically reopen the dialog!
