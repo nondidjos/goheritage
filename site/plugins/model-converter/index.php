@@ -542,9 +542,12 @@ function convertObjToGlb($file) {
     if (!$gltfTransform) throw new \Exception('@gltf-transform/cli not found — run npm install on the server.');
 
     try {
-        // step 1: obj → glb
-        $r1 = goheritageNodeJob($obj2gltf, ['-i', $objPath, '-o', $tmpGlb, '--binary', '--unlit'], ['maxOldSpace' => 256]);
-        goheritageLog("  obj2gltf exit={$r1['code']}  " . implode(' | ', $r1['output']));
+        // step 1: obj → glb. logChannel makes the runner log the full command
+        // line + exit/output to model-converter.log (forensics for manual
+        // reproduction); timeout stays under the route's set_time_limit(3600)
+        // split across the two steps.
+        $r1 = goheritageNodeJob($obj2gltf, ['-i', $objPath, '-o', $tmpGlb, '--binary', '--unlit'],
+            ['maxOldSpace' => 256, 'timeout' => 1700, 'logChannel' => 'model-converter']);
 
         if (!$r1['ok'] || !file_exists($tmpGlb)) {
             $msg = "obj2gltf failed (exit {$r1['code']}): " . implode("\n", $r1['output']);
@@ -553,8 +556,8 @@ function convertObjToGlb($file) {
         }
 
         // step 2: draco compression
-        $r2 = goheritageNodeJob($gltfTransform, ['draco', $tmpGlb, $finalGlb], ['maxOldSpace' => 256]);
-        goheritageLog("  draco exit={$r2['code']}  " . implode(' | ', $r2['output']));
+        $r2 = goheritageNodeJob($gltfTransform, ['draco', $tmpGlb, $finalGlb],
+            ['maxOldSpace' => 256, 'timeout' => 1700, 'logChannel' => 'model-converter']);
 
         if (!$r2['ok'] || !file_exists($finalGlb)) {
             $msg = "gltf-transform draco failed (exit {$r2['code']}): " . implode("\n", $r2['output']);
@@ -617,12 +620,13 @@ function compressTexture($file, $size = 4096, $quality = 85) {
     goheritageLog("compressTexture START  node=" . goheritageNodeBin() . "  src=$srcPath  size=$size  quality=$quality");
 
     try {
+        // logChannel logs the full command + exit/output to model-converter.log;
+        // timeout 580 stays under the compress route's set_time_limit(600).
         $r = goheritageNodeJob(
             $script,
             [$srcPath, $tmpPath, '--size=' . (int) $size, '--quality=' . (int) $quality],
-            ['maxOldSpace' => 256]
+            ['maxOldSpace' => 256, 'timeout' => 580, 'logChannel' => 'model-converter']
         );
-        goheritageLog("  exit={$r['code']}  " . implode(' | ', $r['output']));
 
         if (!$r['ok'] || !file_exists($tmpPath)) {
             $msg = "compress-texture.js failed (exit {$r['code']}): " . implode("\n", $r['output']);

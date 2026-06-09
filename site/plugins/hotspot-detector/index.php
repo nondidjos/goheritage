@@ -279,9 +279,11 @@ function parseGlbHotspots(string $glbPath): array {
     if (!file_exists($glbPath)) return [];
 
     // Shared node-job runner (goheritage-core) resolves the binary across
-    // platforms — replaces the local Windows-only candidate list.
+    // platforms — replaces the local Windows-only candidate list. Metadata
+    // extraction is quick; 60 s bounds a pathological GLB without risking
+    // a false kill. No logChannel: output is the full hotspot JSON.
     $script = __DIR__ . '/extract-glb.js';
-    $r = goheritageNodeJob($script, [$glbPath]);
+    $r = goheritageNodeJob($script, [$glbPath], ['timeout' => 60]);
     if (!$r['ok']) return [];
 
     $data = json_decode(implode('', $r['output']), true);

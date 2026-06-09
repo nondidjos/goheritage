@@ -270,6 +270,7 @@ function goheritage_plan_viewer_generate(File $file): void {
     // directory is owned by `bitnami` (not the web-server user).
     goheritageNodeJob($script, [$src, $dst], [
         'background' => true,
+        'timeout'    => 600, // detached job still gets a hard bound — no orphans
         'logFile'    => sys_get_temp_dir() . '/goheritage-tile.log',
     ]);
 }
