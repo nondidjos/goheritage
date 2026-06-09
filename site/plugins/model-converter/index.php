@@ -72,9 +72,13 @@ Kirby::plugin('goheritage/model-converter', [
                 'obj'              => ['names' => ['exterior.obj'],                                                                                  'field' => 'model_obj'],
                 'obj_interior'     => ['names' => ['interior.obj'],                                                                                  'field' => 'model_obj_interior'],
                 'texture'          => ['names' => ['exterior-texture.webp', 'exterior-texture.jpg', 'exterior-texture.png', 'exterior-texture.jpeg'], 'field' => 'model_texture'],
-                'normal'           => ['names' => ['exterior-normal.jpg', 'exterior-normal.png', 'exterior-normal.jpeg'],                             'field' => 'model_normal'],
+                // Normal maps have no upload field or blueprint entry — they
+                // only exist as manually-named files. field => null (like
+                // glb_interior); a 'model_normal' field reference here would
+                // imply an upload path that doesn't exist.
+                'normal'           => ['names' => ['exterior-normal.jpg', 'exterior-normal.png', 'exterior-normal.jpeg'],                             'field' => null],
                 'texture_interior' => ['names' => ['interior-texture.webp', 'interior-texture.jpg', 'interior-texture.png', 'interior-texture.jpeg'], 'field' => 'model_texture_interior'],
-                'normal_interior'  => ['names' => ['interior-normal.jpg', 'interior-normal.png', 'interior-normal.jpeg'],                             'field' => 'model_normal_interior'],
+                'normal_interior'  => ['names' => ['interior-normal.jpg', 'interior-normal.png', 'interior-normal.jpeg'],                             'field' => null],
                 'hotspots'         => ['names' => ['hotspots-exterior.json'],                                                                        'field' => 'model_hotspots_json'],
                 'hotspots_interior'=> ['names' => ['hotspots-interior.json'],                                                                        'field' => 'model_hotspots_json_interior'],
                 'glb_interior'     => ['names' => ['interior.glb'],                                                                                  'field' => null],
