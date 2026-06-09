@@ -333,16 +333,15 @@ main#map-main {
     top: 0.5rem;
 }
 
-/* ── Custom MapLibre marker ── */
+/* ── Custom MapLibre marker — halo dot ── */
 .map-marker {
-    width: 22px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     color: var(--color-accent);
     cursor: pointer;
-    /* drop-shadow follows the SVG shape, unlike box-shadow */
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .30));
+    filter: drop-shadow(0 1px 4px rgba(0, 0, 0, .28));
     transition: transform 0.18s ease, filter 0.18s ease, color 0.18s ease;
-    transform-origin: center bottom;
+    transform-origin: center center;
 }
 
 .map-marker svg {
@@ -352,14 +351,14 @@ main#map-main {
 }
 
 .map-marker:hover {
-    transform: translateY(-4px) scale(1.12);
-    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, .32));
+    transform: scale(1.22);
+    filter: drop-shadow(0 3px 8px rgba(0, 0, 0, .30));
 }
 
 .map-marker.is-active {
     color: var(--color-ink);
-    transform: translateY(-3px) scale(1.1);
-    filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .40));
+    transform: scale(1.15);
+    filter: drop-shadow(0 3px 10px rgba(0, 0, 0, .38));
     z-index: 10;
 }
 

@@ -9,7 +9,7 @@ if ($isMapPage) {
 }
 // Bump on any CSS/JS asset change so mobile browsers re-fetch (Kirby's
 // css()/js() helpers add no cache-busting and phones cache hard).
-$ghAssetVer = '3';
+$ghAssetVer = '4';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -52,7 +52,7 @@ $ghAssetVer = '3';
   </style>
   <?php endif ?>
   <link rel="preconnect" href="https://fonts.bunny.net">
-  <link rel="stylesheet" href="https://fonts.bunny.net/css?family=cormorant-garamond:400,400i,500,500i,600,600i&display=swap">
+  <link rel="stylesheet" href="https://fonts.bunny.net/css?family=lora:400,400i,500,500i,600,600i&display=swap">
   <?php foreach ($cssFiles as $ghCss): ?>
   <link rel="stylesheet" href="<?= url($ghCss) ?>?v=<?= $ghAssetVer ?>">
   <?php endforeach ?>

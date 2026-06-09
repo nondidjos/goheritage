@@ -194,9 +194,9 @@
         el.setAttribute('role', 'button');
         el.setAttribute('aria-label', site.title);
         el.innerHTML =
-            '<svg viewBox="0 0 22 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-              '<path d="M11 1C5.477 1 1 5.477 1 11c0 7.25 10 18 10 18s10-10.75 10-18c0-5.523-4.477-10-10-10z" fill="currentColor"/>' +
-              '<circle cx="11" cy="10.5" r="4" fill="rgba(255,255,255,0.88)"/>' +
+            '<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+              '<circle cx="14" cy="14" r="13" fill="currentColor" fill-opacity="0.18"/>' +
+              '<circle cx="14" cy="14" r="7" fill="currentColor" stroke="white" stroke-width="2.5"/>' +
             '</svg>';
 
         var isEmbed = mapEl.dataset.embed === '1';
@@ -228,7 +228,7 @@
             }
         });
 
-        new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        new maplibregl.Marker({ element: el, anchor: 'center' })
             .setLngLat([site.lng, site.lat])
             .addTo(map);
 
