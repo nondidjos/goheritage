@@ -6,17 +6,22 @@ return function ($page) {
     $sitesData = [];
 
     foreach ($projects as $p) {
-        $cover = $p->cover();
+        $cover  = $p->cover();
+        $isMapOnly = $p->map_only()->isTrue();
+        $type   = $isMapOnly ? 'fiche' : 'projet';
+        $tags   = array_values(array_filter(array_map('trim', $p->tags()->split(','))));
+        $tags[] = '__type:' . $type;           // synthetic tag drives the type filter
+
         $sitesData[] = [
-            'id' => $p->slug(),
-            'title' => $p->title()->value(),
+            'id'       => $p->slug(),
+            'title'    => $p->title()->value(),
             'location' => $p->location()->value(),
-            'desc' => $p->description()->value(),
-            'lat' => (float) $p->lat()->value(),
-            'lng' => (float) $p->lng()->value(),
-            'url' => $p->url(),
-            'thumb' => $cover ? $cover->resize(160, 120)->url() : null,
-            'tags' => array_values(array_filter(array_map('trim', $p->tags()->split(',')))),
+            'desc'     => $p->description()->value(),
+            'lat'      => (float) $p->lat()->value(),
+            'lng'      => (float) $p->lng()->value(),
+            'url'      => $isMapOnly ? null : $p->url(),   // null → no popup link
+            'thumb'    => $cover ? $cover->resize(160, 120)->url() : null,
+            'tags'     => $tags,
         ];
     }
 

@@ -200,7 +200,7 @@
             '</svg>';
 
         var isEmbed = mapEl.dataset.embed === '1';
-        var popupUrl = site.url + (isEmbed ? '?embed=1' : '');
+        var popupUrl = site.url ? (site.url + (isEmbed ? '?embed=1' : '')) : null;
         
         // popup — anchored above the marker, styled as a mini card
         var popup = new maplibregl.Popup({
@@ -218,7 +218,7 @@
                 '</p>' +
                 '<p class="popup-title">' + escHtml(site.title) + '</p>' +
             '</div>' +
-            '<a class="btn popup-link" href="' + escHtml(popupUrl) + '">Voir le modèle →</a>'
+            (popupUrl ? '<a class="btn popup-link" href="' + escHtml(popupUrl) + '">Voir le modèle →</a>' : '')
         );
 
         // close popup when its own close button is clicked — also deactivate
@@ -313,16 +313,34 @@
                 if (t && !seen[t]) { seen[t] = true; allTags.push(t); }
             });
         });
-        allTags.sort();
 
-        if (allTags.length > 0) {
-            allTags.forEach(function (tag) {
+        // Separate synthetic __type: meta-tags from regular keyword tags
+        var typeTags = [];
+        var regularTags = [];
+        allTags.forEach(function (t) {
+            if (t.indexOf('__type:') === 0) { typeTags.push(t); } else { regularTags.push(t); }
+        });
+        // Sort type tags in a fixed order: projet first, then fiche
+        typeTags.sort(function (a, b) {
+            var order = { '__type:projet': 0, '__type:fiche': 1 };
+            return (order[a] || 99) - (order[b] || 99);
+        });
+        regularTags.sort();
+
+        var typeLabels = {
+            '__type:projet': 'Avec visite virtuelle',
+            '__type:fiche':  'Fiche seule'
+        };
+
+        var hasContent = typeTags.length > 0 || regularTags.length > 0;
+
+        if (hasContent) {
+            // Helper — build a toggle button for any tag
+            function makeTagBtn(tag, label, extraClass) {
                 var btn = document.createElement('button');
-                btn.className = 'tag';
-                btn.textContent = tag;
-                if (selectedTags.has(tag)) {
-                    btn.classList.add('tag--active');
-                }
+                btn.className = 'tag' + (extraClass ? ' ' + extraClass : '');
+                btn.textContent = label;
+                if (selectedTags.has(tag)) { btn.classList.add('tag--active'); }
                 btn.addEventListener('click', function (e) {
                     e.stopPropagation();
                     if (selectedTags.has(tag)) {
@@ -335,9 +353,35 @@
                     updateFilterBtnState();
                     applyFilters();
                 });
-                filterPanel.appendChild(btn);
-            });
+                return btn;
+            }
 
+            // Section label helper
+            function makeLabel(text) {
+                var el = document.createElement('span');
+                el.className = 'map-filter-panel__label';
+                el.textContent = text;
+                return el;
+            }
+
+            // Type section (Avec visite / Fiche seule)
+            if (typeTags.length > 0) {
+                filterPanel.appendChild(makeLabel('Type'));
+                typeTags.forEach(function (tag) {
+                    var label = typeLabels[tag] || tag.replace('__type:', '');
+                    filterPanel.appendChild(makeTagBtn(tag, label, 'tag--type'));
+                });
+            }
+
+            // Regular keyword tags
+            if (regularTags.length > 0) {
+                if (typeTags.length > 0) { filterPanel.appendChild(makeLabel('Thèmes')); }
+                regularTags.forEach(function (tag) {
+                    filterPanel.appendChild(makeTagBtn(tag, tag));
+                });
+            }
+
+            // Clear-all button
             var clearBtn = document.createElement('button');
             clearBtn.className = 'tag tag--clear';
             clearBtn.textContent = '× Effacer tout';
@@ -357,12 +401,10 @@
                 filterPanel.classList.toggle('is-open');
                 filterBtn.classList.toggle('is-open');
             });
-
             document.addEventListener('click', function () {
                 filterPanel.classList.remove('is-open');
                 filterBtn.classList.remove('is-open');
             });
-
             filterPanel.addEventListener('click', function (e) { e.stopPropagation(); });
         } else {
             filterBtn.style.display = 'none';

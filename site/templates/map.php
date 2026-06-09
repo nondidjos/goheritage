@@ -41,9 +41,15 @@ $embedSuffix = $isEmbedded ? '?embed=1' : '';
     <!-- project cards list -->
     <nav class="map-list" id="map-list" aria-label="Liste des sites patrimoniaux">
       <?php foreach ($projects as $project): ?>
+        <?php
+          $cardType = $project->map_only()->isTrue() ? 'fiche' : 'projet';
+          $cardTags = array_values(array_filter(array_map('trim', $project->tags()->split(','))));
+          $cardTags[] = '__type:' . $cardType;
+        ?>
         <div class="map-card" data-id="<?= $project->slug() ?>"
+          data-type="<?= $cardType ?>"
           data-lat="<?= $project->lat()->value() ?>" data-lng="<?= $project->lng()->value() ?>"
-          data-tags="<?= htmlspecialchars(json_encode(array_values(array_filter(array_map('trim', $project->tags()->split(','))))), ENT_QUOTES, 'UTF-8') ?>">
+          data-tags="<?= htmlspecialchars(json_encode($cardTags), ENT_QUOTES, 'UTF-8') ?>">
           <div class="map-card__image">
             <?php if ($thumb = $project->cover()->toFile()): ?>
               <img src="<?= $thumb->crop(800, 350)->url() ?>" alt="<?= $thumb->alt()->html() ?>" loading="lazy">
@@ -55,14 +61,14 @@ $embedSuffix = $isEmbedded ? '?embed=1' : '';
               </div>
             <?php endif ?>
           </div>
+          <?php snippet('location-tag', ['location' => $project->location()->html(), 'class' => 'map-card__location']) ?>
           <div class="map-card__body">
-            <?php snippet('location-tag', ['location' => $project->location()->html(), 'class' => 'map-card__location']) ?>
             <p class="map-card__title"><?= $project->title()->html() ?></p>
             <?php if ($project->description()->isNotEmpty()): ?>
               <p class="map-card__desc font-serif"><?= $project->description()->html() ?></p>
             <?php endif ?>
           </div>
-          <div class="map-card__actions mt-4">
+          <div class="map-card__actions mt-4<?= $project->map_only()->isTrue() ? ' map-card__actions--solo' : '' ?>">
             <button class="map-card__btn map-card__btn-center" data-action="center" title="Centrer" aria-label="Centrer">
               <svg width="14" height="14" viewBox="0 0 11 11" fill="none">
                 <circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" stroke-width="1.1"/>
@@ -73,9 +79,11 @@ $embedSuffix = $isEmbedded ? '?embed=1' : '';
                 <line x1="9" y1="5.5" x2="11" y2="5.5" stroke="currentColor" stroke-width="1.1"/>
               </svg>
             </button>
+            <?php if (!$project->map_only()->isTrue()): ?>
             <a class="map-card__btn map-card__btn--visit" href="<?= $project->url() . $embedSuffix ?>">
               Voir le projet →
             </a>
+            <?php endif ?>
           </div>
         </div>
       <?php endforeach ?>

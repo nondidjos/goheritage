@@ -149,6 +149,33 @@ main#map-main {
     animation: map-filter-open 0.2s ease forwards;
 }
 
+/* ── Filter panel section labels + type tag variant ── */
+.map-filter-panel__label {
+    flex-basis: 100%;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-faint);
+    padding: 0.375rem 0 0.125rem;
+}
+.map-filter-panel__label:first-child {
+    padding-top: 0;
+}
+
+/* Type tags (Avec visite / Fiche seule) look slightly distinct from keyword tags */
+.tag--type {
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+}
+.tag--type.tag--active,
+.tag--type.tag--active:hover {
+    background-color: var(--color-ink);
+    color: var(--color-bg);
+    border-color: var(--color-ink);
+}
+
 /* mobile drag handle — hidden on desktop */
 .map-panel__handle {
     display: none;
@@ -216,11 +243,13 @@ main#map-main {
     padding: 0.375rem 1.125rem 0.625rem;
 }
 
-/* location */
+/* location — lives between image and body, always flush right */
 .map-card__location {
     display: flex;
     justify-content: flex-end;
-    margin-bottom: 0.125rem;
+    align-items: center;
+    padding: 0.625rem 0.75rem 0;
+    margin: 0;
 }
 
 .map-card__location .location-pin {
@@ -263,6 +292,11 @@ main#map-main {
     grid-template-columns: auto 1fr;
     gap: 0.5rem;
     margin-top: 0.875rem;
+}
+
+/* map-only entries: no visit link, center button fills full width */
+.map-card__actions--solo {
+    grid-template-columns: 1fr;
 }
 
 .map-card__btn {

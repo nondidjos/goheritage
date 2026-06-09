@@ -79,6 +79,23 @@ tabs:
     icon: preview
     sections:
 
+      # ── Type de fiche ─────────────────────────────────────────────────
+      # Determines whether this entry has a full virtual visit (3D model,
+      # gallery, plans) or is a map-only spot (image + description only).
+      map_mode_section:
+        type: fields
+        fields:
+          map_only:
+            type: toggle
+            label: Fiche cartographique uniquement
+            text:
+              - Projet complet — visite virtuelle disponible
+              - Fiche seule — apparaît uniquement sur la carte
+            default: false
+            help: >
+              Activez pour masquer les sections modèle 3D, galerie et plans.
+              Ce site ne montrera que son image et sa description sur la carte.
+
       # Hidden fields backing the visibility header dropdown.
       visibility_meta:
         type: fields
