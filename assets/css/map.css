@@ -335,19 +335,32 @@ main#map-main {
 
 /* ── Custom MapLibre marker ── */
 .map-marker {
-    width: 24px;
-    height: 24px;
-    background: var(--color-faint);
-    border: 2px solid white;
-    border-radius: 50%;
+    width: 22px;
+    height: 30px;
+    color: var(--color-accent);
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, .25);
-    transition: transform 0.2s, background 0.2s;
+    /* drop-shadow follows the SVG shape, unlike box-shadow */
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .30));
+    transition: transform 0.18s ease, filter 0.18s ease, color 0.18s ease;
+    transform-origin: center bottom;
+}
+
+.map-marker svg {
+    width: 100%;
+    height: 100%;
+    display: block;
 }
 
 .map-marker:hover {
-    background: var(--color-faint);
-    transform: scale(1.25);
+    transform: translateY(-4px) scale(1.12);
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, .32));
+}
+
+.map-marker.is-active {
+    color: var(--color-ink);
+    transform: translateY(-3px) scale(1.1);
+    filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .40));
+    z-index: 10;
 }
 
 /* ── MapLibre popup — card anchored to marker ── */

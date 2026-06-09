@@ -187,12 +187,17 @@
     SITES.forEach(function (site) {
         if (!site.lat || !site.lng) return;
 
-        // marker element
+        // marker element — teardrop pin shape
         var el = document.createElement('div');
         el.className = 'map-marker';
         el.title = site.title;
         el.setAttribute('role', 'button');
         el.setAttribute('aria-label', site.title);
+        el.innerHTML =
+            '<svg viewBox="0 0 22 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+              '<path d="M11 1C5.477 1 1 5.477 1 11c0 7.25 10 18 10 18s10-10.75 10-18c0-5.523-4.477-10-10-10z" fill="currentColor"/>' +
+              '<circle cx="11" cy="10.5" r="4" fill="rgba(255,255,255,0.88)"/>' +
+            '</svg>';
 
         var isEmbed = mapEl.dataset.embed === '1';
         var popupUrl = site.url + (isEmbed ? '?embed=1' : '');
@@ -223,7 +228,7 @@
             }
         });
 
-        new maplibregl.Marker({ element: el })
+        new maplibregl.Marker({ element: el, anchor: 'bottom' })
             .setLngLat([site.lng, site.lat])
             .addTo(map);
 
@@ -380,6 +385,9 @@
         var site = SITES.find(function (s) { return s.id === id; });
         if (!site) return;
 
+        // elevate the selected pin
+        if (markers[id]) markers[id].el.classList.add('is-active');
+
         // highlight list card (desktop only — on mobile drawer collapses)
         var listItem = document.querySelector('.map-card[data-id="' + id + '"]');
         if (listItem && !isMobile) {
@@ -408,6 +416,7 @@
     }
 
     function deactivate(id) {
+        if (markers[id]) markers[id].el.classList.remove('is-active');
         if (popups[id]) popups[id].remove();
     }
 
