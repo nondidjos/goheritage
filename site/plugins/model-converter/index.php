@@ -245,14 +245,6 @@ Kirby::plugin('goheritage/model-converter', [
                     $size    = max(256, min(8192, (int)($request->get('size',    4096))));
                     $quality = max(10,  min(100,  (int)($request->get('quality', 85))));
 
-                    // Kill any orphaned compression process left over from a
-                    // previous PHP timeout (the Node child keeps running after
-                    // PHP is killed). The pipeline is Sharp via
-                    // compress-texture.js, so match that — the old
-                    // "convert.*texture" (ImageMagick) pattern never matched
-                    // the node command line and cleaned up nothing.
-                    @shell_exec('pkill -f "compress-texture" 2>/dev/null');
-
                     // Serialize all heavy jobs — the server only has 512 MB RAM.
                     // A second request while one is running returns 503 immediately.
                     $lockFile   = sys_get_temp_dir() . '/goheritage-heavy.lock';
@@ -261,6 +253,17 @@ Kirby::plugin('goheritage/model-converter', [
                         if ($lockHandle) @fclose($lockHandle);
                         return Response::json(['error' => 'Un traitement est déjà en cours. Veuillez patienter.'], 503);
                     }
+
+                    // Kill any orphaned compression process left over from a
+                    // previous PHP timeout (the Node child keeps running after
+                    // PHP is killed; PHP's death releases the flock, so the
+                    // lock does not protect against it). This MUST run after
+                    // the lock is acquired: holding the lock proves no live
+                    // request owns a compress-texture process, so anything
+                    // still matching the pattern is by definition an orphan.
+                    // Before the lock, a second concurrent request would kill
+                    // the first one's live job and then 503.
+                    @shell_exec('pkill -f "compress-texture" 2>/dev/null');
 
                     try {
                         set_time_limit(600);
