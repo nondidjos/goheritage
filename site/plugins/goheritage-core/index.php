@@ -82,10 +82,21 @@ if (!function_exists('goheritageNodeJob')) {
      *               'background'  => bool     fire-and-forget; appends "&" on
      *                                         POSIX. Windows always runs sync
      *                                         (default false)
+     *               'timeout'     => ?int     hard wall-clock limit in seconds,
+     *                                         enforced via coreutils timeout(1)
+     *                                         on POSIX (exit 124 on expiry).
+     *                                         Bounds every job by construction
+     *                                         so a stalled child can't outlive
+     *                                         the PHP request as an orphan.
+     *                                         Ignored on Windows (default null)
      *               'logChannel'  => ?string  log the command + result to
      *                                         site/logs/<channel>.log
-     *               'logFile'     => ?string  background stdout/stderr redirect
-     *                                         target (defaults to a temp file)
+     *               'logFile'     => ?string  stdout/stderr append target for
+     *                                         background jobs (defaults to a
+     *                                         temp file); on the sync path the
+     *                                         captured output is appended there
+     *                                         too so the same file is useful on
+     *                                         both paths
      *             ]
      *
      * Returns ['ok' => bool, 'code' => int, 'output' => string[]].
@@ -96,10 +107,15 @@ if (!function_exists('goheritageNodeJob')) {
         $node        = goheritageNodeBin();
         $maxOldSpace = $opts['maxOldSpace'] ?? null;
         $background  = $opts['background'] ?? false;
+        $timeout     = $opts['timeout'] ?? null;
         $logChannel  = $opts['logChannel'] ?? null;
         $isWindows   = DIRECTORY_SEPARATOR === '\\';
 
-        $parts = [escapeshellarg($node)];
+        $parts = [];
+        if ($timeout !== null && !$isWindows) {
+            $parts[] = 'timeout ' . (int) $timeout;
+        }
+        $parts[] = escapeshellarg($node);
         if ($maxOldSpace !== null) {
             $parts[] = '--max-old-space-size=' . (int) $maxOldSpace;
         }
@@ -122,7 +138,16 @@ if (!function_exists('goheritageNodeJob')) {
         if ($logChannel) goheritageNodeLog($logChannel, "exec: $cmd");
         $output = []; $code = 0;
         exec($cmd, $output, $code);
-        if ($logChannel) goheritageNodeLog($logChannel, "  exit=$code  " . implode(' | ', $output));
+        $timedOut = ($timeout !== null && !$isWindows && $code === 124);
+        if ($logChannel) {
+            goheritageNodeLog($logChannel, "  exit=$code" . ($timedOut ? " (timeout after {$timeout}s)" : '') . '  ' . implode(' | ', $output));
+        }
+
+        // Honour logFile on the sync path too (incl. the Windows fallback for
+        // background jobs) so callers tailing that file see sync output as well.
+        if (!empty($opts['logFile']) && $output) {
+            @file_put_contents($opts['logFile'], implode("\n", $output) . "\n", FILE_APPEND | LOCK_EX);
+        }
 
         return ['ok' => $code === 0, 'code' => $code, 'output' => $output];
     }
