@@ -58,7 +58,7 @@ site/plugins/model-converter/
 
 - ~~Uses **ImageMagick `convert`** (not Sharp/libvips). Sharp retains ~230 MB of native memory after decoding an 8192×8192 PNG, reliably OOM-killing the server.~~
 - **Resize happens before UV-dilation blur.** Blurring a 4096×4096 image (after resize) takes ~65 s and fits in RAM. Blurring at full 8192×8192 takes >10 minutes via disk cache.
-- **maxSize is capped at 4096** regardless of requested size. The "Haute" preset requests 8192 but the server (512 MB RAM) cannot process it faster than the Apache timeout allows. Capped output is still excellent quality for web 3D viewing.
+- ~~**maxSize is capped at 4096** regardless of requested size.~~ **Now capped at 8192** (`MAX_SUPPORTED = 8192` in `compress-texture.js`; the PHP route clamps to the same). The Sharp pipeline's bounded-memory design (UV dilation on a 2048px blur canvas) is what made the higher cap viable on 512 MB.
 - ~~Environment variables `MAGICK_MEMORY_LIMIT=256MiB`, `MAGICK_MAP_LIMIT=1GiB`, `MAGICK_DISK_LIMIT=4GiB` are passed via `execFileSync` because `policy.xml` is not read by the installed ImageMagick binary.~~
 
 ### PHP-FPM timeouts
@@ -120,7 +120,7 @@ Follow the prompts — it handles Let's Encrypt cert issuance and Apache vhost c
 - **Domain + SSL** (bncert-tool, see above)
 - **OBJ → GLB conversion** — the Node script exists and runs, but has not been tested end-to-end through the panel on the live server
 - **Hotspot JSON upload** — upload works; the viewer reads the JSON, but hotspot UX in the 3D viewer has not been fully verified
-- **Upgrade consideration** — the $10 Lightsail plan (1 GB RAM, ~650 MB available) would allow Sharp-based processing and remove the 4096 cap if higher-res textures are ever needed
+- **Upgrade consideration** — the $10 Lightsail plan (1 GB RAM, ~650 MB available) would give the Sharp pipeline more headroom (currently ~270 MB peak vs 512 MB total, swap-assisted)
 
 ---
 
@@ -142,7 +142,7 @@ sudo /opt/bitnami/ctlscript.sh restart apache
 # Tail Apache error log
 tail -f /opt/bitnami/apache/logs/error_log
 
-# Test compression manually (size=8192 gets capped to 4096)
+# Test compression manually (max supported size: 8192)
 /usr/bin/node --max-old-space-size=256 \
   /opt/bitnami/apache/htdocs/site/plugins/model-converter/compress-texture.js \
   /path/to/texture.png /tmp/out.jpg --size=8192 --quality=85
