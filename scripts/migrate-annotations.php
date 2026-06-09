@@ -65,16 +65,19 @@ foreach ($pages as $page) {
     $hasInterior = $intField->isNotEmpty();
 
     // Read existing exterior rows, retag any missing `location` as exterior.
+    // Rows go through goheritageAnnotationRow (goheritage-core, loaded by the
+    // Kirby bootstrap above) so the canonical shape stays defined in one place
+    // and empty/missing values get the builder's defaults.
     $extRows = [];
     if ($extField->isNotEmpty()) {
         foreach ($extField->toStructure() as $r) {
-            $extRows[] = [
-                'location'    => $r->location()->or('exterior')->value(),
+            $extRows[] = goheritageAnnotationRow([
+                'location'    => $r->location()->value(),   // builder defaults '' to exterior
                 'hotspot_id'  => $r->hotspot_id()->value(),
                 'title'       => $r->title()->value(),
-                'camera_mode' => $r->camera_mode()->or('fly')->value(),
+                'camera_mode' => $r->camera_mode()->value(),
                 'description' => $r->description()->value(),
-            ];
+            ]);
         }
     }
 
@@ -82,13 +85,13 @@ foreach ($pages as $page) {
     $intRows = [];
     if ($hasInterior) {
         foreach ($intField->toStructure() as $r) {
-            $intRows[] = [
+            $intRows[] = goheritageAnnotationRow([
                 'location'    => 'interior',
                 'hotspot_id'  => $r->hotspot_id()->value(),
                 'title'       => $r->title()->value(),
-                'camera_mode' => $r->camera_mode()->or('fly')->value(),
+                'camera_mode' => $r->camera_mode()->value(),
                 'description' => $r->description()->value(),
-            ];
+            ]);
         }
     }
 
