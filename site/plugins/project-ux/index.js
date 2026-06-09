@@ -2324,9 +2324,15 @@ panel.plugin('goheritage/project-ux', {
    *  section (CSS hides everything but the title). Used for the
    *  exterior/interior model file groups so they fold like before. */
   function makeCollapsible(section) {
-    if (section.dataset.ghCollapsible === '1') return;
     var title = section.querySelector(':scope > .gh-section__title');
     if (!title) return;
+    // Guard on the TITLE element, not the section. Vue's vdom diffing removes
+    // our injected child nodes on every re-render (they aren't in the vnode
+    // tree), so section.dataset.ghCollapsible survives but the new title has
+    // no listener/class. By guarding on the title we re-wire each new title
+    // instance while still skipping titles that are already set up.
+    if (title.dataset.ghCollapsible === '1') return;
+    title.dataset.ghCollapsible = '1';
     section.dataset.ghCollapsible = '1';
     title.classList.add('gh-section__title--toggle');
 

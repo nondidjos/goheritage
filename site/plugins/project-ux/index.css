@@ -308,11 +308,18 @@ body.gh-project-edit .k-section:not(.k-project-overview-section)
   border-top: 1px solid var(--color-border) !important;
 }
 
-/* Hide Kirby's stock section header — fields-sections don't render one
-   anyway, but files-sections do; we inject our own h2 for consistency. */
+/* Hide Kirby's stock section header — we inject our own h2 for all
+   sections for consistency. */
 body.gh-project-edit .k-section:not(.k-project-overview-section) > .k-section-header,
 body.gh-project-edit .k-section:not(.k-project-overview-section) > header.k-section-header {
   display: none !important;
+}
+/* Safety net: if our JS title hasn't been injected yet (Vue stripped it
+   between rescans), fall back to showing Kirby's native header so the
+   section is never left completely headingless. */
+body.gh-project-edit .k-section:not(.k-project-overview-section):not(:has(> .gh-section__title)) > .k-section-header,
+body.gh-project-edit .k-section:not(.k-project-overview-section):not(:has(> .gh-section__title)) > header.k-section-header {
+  display: block !important;
 }
 
 /*  Tighter spacing for Kirby's k-info / k-help / k-field-counter so help
@@ -374,11 +381,15 @@ body.gh-project-edit .gh-section__chevron {
   color: var(--color-text-dimmed);
   transition: transform 0.15s ease;
 }
-body.gh-project-edit .gh-section.gh-collapsed .gh-section__chevron {
+body.gh-project-edit .gh-section.gh-collapsed .gh-section__chevron,
+body.gh-project-edit .k-section.gh-collapsed .gh-section__chevron {
   transform: rotate(-90deg);
 }
-/*  Collapsed: hide everything in the card except the title. */
-body.gh-project-edit .gh-section.gh-collapsed > *:not(.gh-section__title) {
+/*  Collapsed: hide everything in the card except the title.
+    Use .k-section as the second-chance selector so this works even when
+    Vue's re-render wipes the .gh-section class we injected. */
+body.gh-project-edit .gh-section.gh-collapsed > *:not(.gh-section__title),
+body.gh-project-edit .k-section.gh-collapsed > *:not(.gh-section__title) {
   display: none !important;
 }
 body.gh-project-edit .gh-section.gh-collapsed > .gh-section__title {
