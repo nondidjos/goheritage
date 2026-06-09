@@ -683,51 +683,6 @@ function compressTexture($file, $size = 4096, $quality = 85) {
     }
 }
 
-/**
- * Compress textures embedded inside a GLB file using gltf-transform.
- * Resizes all embedded textures to a max of 4096px and converts to WebP.
- * Modifies the file in-place (tmp → replace).
- */
-function compressGlbTextures($file) {
-    $gltfTransform = realpath(__DIR__ . '/../../../node_modules/@gltf-transform/cli/bin/cli.js');
-    goheritageLog("compressGlbTextures START  glb=" . $file->root());
-    $glbPath = $file->root();
-    $tmpPath = $glbPath . '.compressing.glb';
-
-    // Step 1: resize embedded textures to max 4096 px
-    $r1 = goheritageNodeJob(
-        $gltfTransform,
-        ['resize', $glbPath, $tmpPath, '--width', '4096', '--height', '4096'],
-        ['maxOldSpace' => 256]
-    );
-
-    if (!$r1['ok'] || !file_exists($tmpPath)) {
-        error_log('[model-converter] glb texture resize failed: ' . implode("\n", $r1['output']));
-        return;
-    }
-
-    // Step 2: convert textures to WebP at quality 80
-    $tmpPath2 = $glbPath . '.webp.glb';
-    $r2 = goheritageNodeJob(
-        $gltfTransform,
-        ['webp', $tmpPath, $tmpPath2, '--quality', '80'],
-        ['maxOldSpace' => 256]
-    );
-
-    @unlink($tmpPath);
-
-    if (!$r2['ok'] || !file_exists($tmpPath2)) {
-        error_log('[model-converter] glb webp compression failed: ' . implode("\n", $r2['output']));
-        return;
-    }
-
-    // Replace the original GLB with the compressed version
-    try {
-        kirby()->impersonate('kirby');
-        $file->replace($tmpPath2);
-    } catch (\Exception $e) {
-        error_log('[model-converter] glb replace after compression failed: ' . $e->getMessage());
-    } finally {
-        @unlink($tmpPath2);
-    }
-}
+// compressGlbTextures() used to live here — its last callers were removed in
+// cbd3fb3 (quality-picker rework, Apr 2026) and the function sat dead since.
+// Recover from git history if direct-GLB-upload compression ever comes back.
