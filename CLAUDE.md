@@ -1,6 +1,6 @@
 # GoHéritage
 
-Kirby 4 CMS genealogy site. Bitnami LAMP on AWS Lightsail ($5/mo, 512 MB RAM).
+Kirby 5 CMS — 3D heritage-visualization platform (interactive map + 3D model viewer for heritage sites). Bitnami LAMP on AWS Lightsail ($5/mo, 512 MB RAM).
 
 ## Agent skills
 
@@ -23,7 +23,7 @@ Single-context — `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/dom
 - Env vars: `.env` (LIGHTSAIL_HOST, LIGHTSAIL_KEY)
 
 ## Stack
-- PHP 8 / Kirby 4 / Apache 2.4 + PHP-FPM
+- PHP 8 / Kirby 5 (5.4.x per composer.lock) / Apache 2.4 + PHP-FPM
 - Vue.js panel components (Kirby's built-in panel system)
 - Node v20 on server for file processing
 - Sharp/libvips for texture compression — memory-tuned pipeline (UV dilation at 2048px blur canvas, ~270 MB peak). An earlier ImageMagick approach was abandoned; HANDOFF.md still references it but the live code is Sharp.
