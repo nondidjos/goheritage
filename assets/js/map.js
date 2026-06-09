@@ -467,6 +467,22 @@
         activeId = null;
     });
 
+    // ── Scroll hijacking: wheel anywhere on the panel scrolls the card list ──
+    // This ensures that hovering over the search bar, filter row, etc. and
+    // wheeling still moves the card list — not the browser page.
+    // Scrollbar drag (which fires 'scroll', not 'wheel') is unaffected.
+    var mapPanel = document.getElementById('map-panel');
+    var mapList  = document.getElementById('map-list');
+    if (mapPanel && mapList) {
+        mapPanel.addEventListener('wheel', function (e) {
+            e.preventDefault();
+            var delta = e.deltaY;
+            if (e.deltaMode === 1) delta *= 40;               // line → px
+            if (e.deltaMode === 2) delta *= mapList.clientHeight; // page → px
+            mapList.scrollTop += delta;
+        }, { passive: false });
+    }
+
     // ── Utility ───────────────────────────────────────────────────────────────
     function escHtml(str) {
         if (!str) return '';

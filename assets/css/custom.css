@@ -1214,6 +1214,13 @@ html:has(body.is-embedded) {
     overflow: hidden !important;
 }
 
+/* On the map page body is position:fixed/overflow:hidden — there is no
+   document scrollbar, so the reserved gutter is just dead white space.
+   Disable it to flush the map panel flush against the viewport edge. */
+html:has(#map-main) {
+    scrollbar-gutter: auto;
+}
+
 /* No header → viewer/map should start at top */
 body.is-embedded #viewer-container {
     top: 0 !important;

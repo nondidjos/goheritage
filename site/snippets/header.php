@@ -9,7 +9,7 @@ if ($isMapPage) {
 }
 // Bump on any CSS/JS asset change so mobile browsers re-fetch (Kirby's
 // css()/js() helpers add no cache-busting and phones cache hard).
-$ghAssetVer = '4';
+$ghAssetVer = '5';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -197,6 +197,8 @@ $isVisitor = $isVisitor ?? false;
 
     <!-- navigation — right-aligned, 2 cols spaced out -->
     <nav class="site-nav col-2 flex w-full items-center justify-between" id="site-nav" aria-label="Navigation principale">
+      <a class="font-sans text-sm uppercase tracking-wider text-ink no-underline transition-colors duration-150 hover:underline hover:text-ink"
+         href="https://www.govr.eu/blog" target="_blank" rel="noopener">Blog ↗</a>
       <?php foreach ($site->children()->listed()->not($site->homePage())->filter(fn($p) => $p->template()->name() !== 'blog') as $item): ?>
       <a
         class="font-sans text-sm uppercase tracking-wider text-ink no-underline transition-colors duration-150 hover:underline hover:text-ink"
@@ -204,8 +206,6 @@ $isVisitor = $isVisitor ?? false;
         <?php e($item->isOpen(), 'aria-current="page"') ?>
       ><?= $item->title()->html() ?></a>
       <?php endforeach ?>
-      <a class="font-sans text-sm uppercase tracking-wider text-ink no-underline transition-colors duration-150 hover:underline hover:text-ink opacity-60"
-         href="https://www.govr.eu/blog" target="_blank" rel="noopener">Blog ↗</a>
 
       <!-- mobile close button -->
       <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Fermer le menu">

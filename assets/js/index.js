@@ -118,6 +118,21 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // ── Scroll hijacking: wheel over the project sidebar stays in the sidebar ──
+    // Prevents wheel events from bubbling up to the page when hovering the
+    // project content panel. The native scrollbar drag (no wheel event) is
+    // still usable to jump directly to the footer.
+    var projectSidebar = document.getElementById('project-content');
+    if (projectSidebar) {
+        projectSidebar.addEventListener('wheel', function (e) {
+            e.preventDefault();
+            var delta = e.deltaY;
+            if (e.deltaMode === 1) delta *= 40;                      // line → px
+            if (e.deltaMode === 2) delta *= projectSidebar.clientHeight; // page → px
+            projectSidebar.scrollTop += delta;
+        }, { passive: false });
+    }
+
     // ── Gallery lightbox ──
     document.querySelectorAll('[data-lightbox]').forEach(function (link) {
         link.addEventListener('click', function (e) {
