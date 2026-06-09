@@ -495,10 +495,9 @@ Kirby::plugin('goheritage/model-converter', [
  * Silently no-ops if the directory isn't writable.
  */
 function goheritageLog(string $msg): void {
-    $logDir  = __DIR__ . '/../../logs';
-    $logFile = $logDir . '/model-converter.log';
-    if (!is_dir($logDir)) @mkdir($logDir, 0775, true);
-    @file_put_contents($logFile, '[' . date('Y-m-d H:i:s') . '] ' . $msg . "\n", FILE_APPEND | LOCK_EX);
+    // Thin alias over the shared channel logger (goheritage-core) so the
+    // log format lives in exactly one place.
+    goheritageNodeLog('model-converter', $msg);
 }
 
 /**
