@@ -1128,3 +1128,67 @@
         gap: 8px;
     }
 }
+
+/* ── Point-cloud size controls (− / +) ─────────────────────────────────────── */
+
+.pc-size-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: rgba(20, 20, 22, 0.72);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    padding: 3px;
+}
+
+.pc-size-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.pc-size-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.pc-size-btn:active {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.pc-size-label {
+    font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    padding: 0 6px;
+    user-select: none;
+}
+
+/* Touch devices: 44px targets per platform guidelines */
+.pc-size-controls--touch {
+    bottom: max(16px, env(safe-area-inset-bottom));
+    left: 16px;
+}
+
+.pc-size-controls--touch .pc-size-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+}

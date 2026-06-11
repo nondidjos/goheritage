@@ -19,10 +19,27 @@ import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
 import { PCDLoader } from 'three/addons/loaders/PCDLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+// Scanner exports (CloudCompare e57/PLY, survey data) are Z-up; Three.js is
+// Y-up. Same -90° X rotation the OBJ/GLB pipeline applies in viewer.js.
+const Z_UP_FIX = -Math.PI / 2;
+
+// Vertex-colour boost. Scan colours read dim on the dark stage (they carry
+// indoor exposure + sRGB-as-linear loss), so lift them a touch. >1 components
+// are fine: the shader multiplies before output encoding.
+const COLOR_BOOST = 1.35;
+
 function initPointCloud(container) {
   const src = container.dataset.src;
   const format = (container.dataset.format || 'ply').toLowerCase();
   if (!src) return;
+
+  // The loader + control overlays are absolutely positioned; if the host
+  // container is static they'd centre against some ancestor instead (the
+  // "off-centre loading bar" bug when the page renders without the side
+  // panel). Force a positioning context unconditionally.
+  if (getComputedStyle(container).position === 'static') {
+    container.style.position = 'relative';
+  }
 
   // Touch-primary devices only (phones/tablets) — not touch laptops.
   const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches
@@ -53,7 +70,7 @@ function initPointCloud(container) {
   progress.className = 'viewer-progress';
   progress.innerHTML =
     '<div class="viewer-progress-bar"><div class="viewer-progress-fill"></div></div>' +
-    '<span class="viewer-progress-text">chargement\u2026</span>';
+    '<span class="viewer-progress-text">chargement…</span>';
   container.appendChild(progress);
   const fill = progress.querySelector('.viewer-progress-fill');
   const ptext = progress.querySelector('.viewer-progress-text');
@@ -62,7 +79,7 @@ function initPointCloud(container) {
     if (e && e.lengthComputable) {
       const pct = Math.round((e.loaded / e.total) * 100);
       fill.style.width = pct + '%';
-      ptext.textContent = 'chargement\u2026 ' + pct + '%';
+      ptext.textContent = 'chargement… ' + pct + '%';
     }
   }
   function onError(err) {
@@ -75,7 +92,80 @@ function initPointCloud(container) {
     setTimeout(() => progress.remove(), 400);
   }
 
-  // ── Add a cloud, centre it, and frame the camera ──────────────────────
+  // ── Point-size controls (− / +) ───────────────────────────────────────
+  // Created up-front but only useful once a material exists; clicks no-op
+  // until then. 44 px targets on touch, compact on desktop.
+  let pointsMaterial = null;
+  const sizeCtl = document.createElement('div');
+  sizeCtl.className = 'pc-size-controls' + (isMobile ? ' pc-size-controls--touch' : '');
+  sizeCtl.innerHTML =
+    '<button type="button" class="pc-size-btn" data-dir="down" aria-label="Réduire la taille des points" title="Points plus petits">−</button>' +
+    '<span class="pc-size-label">points</span>' +
+    '<button type="button" class="pc-size-btn" data-dir="up" aria-label="Augmenter la taille des points" title="Points plus gros">+</button>';
+  container.appendChild(sizeCtl);
+  sizeCtl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.pc-size-btn');
+    if (!btn || !pointsMaterial) return;
+    const f = btn.dataset.dir === 'up' ? 1.25 : 0.8;
+    pointsMaterial.size = THREE.MathUtils.clamp(pointsMaterial.size * f, 1e-5, 1e5);
+    pointsMaterial.needsUpdate = true;
+  });
+  // Keyboard + / − as a desktop nicety.
+  if (!isMobile) {
+    window.addEventListener('keydown', (e) => {
+      if (!pointsMaterial || e.target.matches('input, textarea')) return;
+      if (e.key === '+' || e.key === '=') pointsMaterial.size *= 1.25;
+      else if (e.key === '-' || e.key === '_') pointsMaterial.size *= 0.8;
+      else return;
+      pointsMaterial.needsUpdate = true;
+    });
+  }
+
+  // ── Controls hint (desktop only — same pattern as viewer.js) ──────────
+  if (!isMobile) {
+    const hint = document.createElement('div');
+    hint.className = 'viewer-controls-hint';
+    hint.innerHTML =
+      '<span class="viewer-controls-hint__label">Rotation</span>' +
+      '<svg width="22" height="32" viewBox="0 0 22 32" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="1" y="1" width="20" height="30" rx="10" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>' +
+      '<path d="M1 12 L1 9 Q1 2 11 2 L11 15 L1 15 Z" fill="rgba(255,255,255,0.15)"/>' +
+      '<path d="M21 12 L21 9 Q21 2 11 2 L11 15 L21 15 Z" fill="rgba(255,255,255,0.15)"/>' +
+      '<line x1="11" y1="2" x2="11" y2="15" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>' +
+      '<rect x="9.5" y="5" width="3" height="6" rx="1.5" fill="rgba(255,255,255,0.5)"/>' +
+      '</svg>' +
+      '<span class="viewer-controls-hint__label">Déplacer</span>';
+    container.appendChild(hint);
+
+    let hintTimer = null;
+    let pointerDown = false;
+    function scheduleHint() {
+      clearTimeout(hintTimer);
+      if (!pointerDown) {
+        hintTimer = setTimeout(() => hint.classList.add('is-visible'), 1000);
+      }
+    }
+    function onPointerDown() {
+      pointerDown = true;
+      clearTimeout(hintTimer);
+      hint.classList.remove('is-visible');
+    }
+    function onPointerUp() {
+      pointerDown = false;
+      scheduleHint();
+    }
+    scheduleHint();
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+    renderer.domElement.addEventListener('pointerup', onPointerUp);
+    renderer.domElement.addEventListener('pointercancel', onPointerUp);
+    renderer.domElement.addEventListener('wheel', () => {
+      clearTimeout(hintTimer);
+      hint.classList.remove('is-visible');
+      scheduleHint();
+    }, { passive: true });
+  }
+
+  // ── Add a cloud, centre it, fix the up-axis, and frame the camera ─────
   function addCloud(geometry, existingPoints) {
     geometry.computeBoundingBox();
     const size = new THREE.Vector3();
@@ -102,12 +192,21 @@ function initPointCloud(container) {
       });
       points = new THREE.Points(geometry, material);
     }
+    pointsMaterial = points.material;
 
-    points.position.sub(center); // recentre on the origin
-    scene.add(points);
+    // Lift scan colours — they read dim on the dark stage otherwise.
+    if (hasColor) pointsMaterial.color.setScalar(COLOR_BOOST);
+
+    // Recentre on the origin, then wrap in a group rotated Z-up → Y-up so
+    // the building stands upright instead of pitching toward the camera.
+    points.position.sub(center);
+    const wrap = new THREE.Group();
+    wrap.rotation.x = Z_UP_FIX;
+    wrap.add(points);
+    scene.add(wrap);
 
     const radius = diag / 2;
-    camera.position.set(radius * 1.4, radius * 0.8, radius * 1.6);
+    camera.position.set(radius * 1.2, radius * 0.55, radius * 1.4);
     camera.near = Math.max(radius / 1000, 0.001);
     camera.far = radius * 100;
     camera.updateProjectionMatrix();
