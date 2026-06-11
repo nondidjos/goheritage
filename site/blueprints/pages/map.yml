@@ -14,13 +14,32 @@ columns:
         status: draft
         create: project
 
+      # Link-only projects — listed pages whose visibility is "link":
+      # reachable by anyone with the share URL but absent from the public
+      # map. Kept out of the "Projets patrimoniaux" section so the public
+      # list reflects exactly what visitors see. Orange dot = shared-link
+      # state.
+      linkonly:
+        type: pages
+        label: Accès par lien
+        query: page.children.listed.filterBy('isLinkOnly', true)
+        template: project
+        layout: list
+        image:
+          icon: circle-filled
+          color: orange
+          back: transparent
+        info: "{{ page.location }}"
+        empty: Aucun projet en accès par lien.
+
   - width: 2/3
     sections:
       listed:
         type: pages
         label: Projets patrimoniaux
+        query: page.children.listed.filterBy('isPubliclyVisible', true)
         template: project
-        status: listed
         sortBy: title asc
         layout: cards
         create: project
+        empty: Aucun projet public. Les pages publiées apparaissent ici quand leur visibilité est « Public ».
