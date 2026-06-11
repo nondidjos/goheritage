@@ -2,7 +2,39 @@ Title: Modèle SOMA (à identifier)
 
 ----
 
-Description:
+Map-only: false
+
+----
+
+Text: [{"content":{"level":"","text":"À compléter"},"id":"95ae3d61-b3d4-404e-9fdc-f5df84ca6355","isHidden":false,"type":"heading"},{"content":{"text":"Scan Matterport (identifiant SOMA / RyYp4mYa5Yp) fourni avec un modèle OBJ + textures exploitable directement par le viewer. Bâtiment non identifié — métadonnées et localisation à renseigner. Le modèle OBJ peut être importé via l'onglet Modèle 3D pour générer automatiquement les variantes GLB/LOD."},"id":"f1505fff-e37c-4ab8-8f74-97e4ab06389b","isHidden":false,"type":"text"}]
+
+----
+
+Gallery: []
+
+----
+
+Visible-sections: 
+
+----
+
+Viewer-url: 
+
+----
+
+Model-toggle: false
+
+----
+
+Annotations: []
+
+----
+
+Pointcloud-url: 
+
+----
+
+Description: 
 
 ----
 
@@ -10,31 +42,31 @@ Cover: []
 
 ----
 
-Location:
+Location: 
 
 ----
 
-Construction-date:
+Construction-date: 
 
 ----
 
-Architect:
+Architect: 
 
 ----
 
-Style:
+Style: 
 
 ----
 
-Protection-status:
+Protection-status: 
 
 ----
 
-Lat:
+Lat: 
 
 ----
 
-Lng:
+Lng: 
 
 ----
 
@@ -43,10 +75,6 @@ Date: 2026-06-10
 ----
 
 Tags: à-identifier, matterport
-
-----
-
-Text: [{"type":"heading","content":{"level":2,"text":"À compléter"}},{"type":"text","content":{"text":"Scan Matterport (identifiant SOMA / RyYp4mYa5Yp) fourni avec un modèle OBJ + textures exploitable directement par le viewer. Bâtiment non identifié — métadonnées et localisation à renseigner. Le modèle OBJ peut être importé via l'onglet Modèle 3D pour générer automatiquement les variantes GLB/LOD."}}]
 
 ----
 

@@ -2,6 +2,42 @@ Title: Abbaye de la Cambre
 
 ----
 
+Map-only: false
+
+----
+
+Visibility: public
+
+----
+
+Text: [{"content":{"text":"Fondée en 1201, l'abbaye Notre-Dame de la Cambre fut un haut lieu de la vie monastique cistercienne. Remaniée du XIVe au XVIIIe siècle, elle conserve son église gothique, son cloître et de remarquables jardins en terrasses. Le site abrite aujourd'hui l'École nationale supérieure des arts visuels (La Cambre) et l'Institut géographique national."},"id":"4fd76f15-992a-4bd2-9550-d9fe4c45812b","isHidden":false,"type":"text"}]
+
+----
+
+Gallery: []
+
+----
+
+Visible-sections: 
+
+----
+
+Viewer-url: 
+
+----
+
+Model-toggle: false
+
+----
+
+Annotations: []
+
+----
+
+Pointcloud-url: 
+
+----
+
 Description: Ancienne abbaye cistercienne fondée en 1201, nichée dans un vallon verdoyant d'Ixelles. Église gothique, cloître et jardins en terrasses à la française.
 
 ----
@@ -18,7 +54,7 @@ Construction-date: XIIIe–XVIIIe siècle
 
 ----
 
-Architect:
+Architect: 
 
 ----
 
@@ -43,14 +79,6 @@ Date: 2026-06-10
 ----
 
 Tags: abbaye, cistercien, bruxelles, ixelles, jardins, gothique
-
-----
-
-Text: [{"type":"heading","content":{"level":2,"text":"À propos du site"}},{"type":"text","content":{"text":"Fondée en 1201, l'abbaye Notre-Dame de la Cambre fut un haut lieu de la vie monastique cistercienne. Remaniée du XIVe au XVIIIe siècle, elle conserve son église gothique, son cloître et de remarquables jardins en terrasses. Le site abrite aujourd'hui l'École nationale supérieure des arts visuels (La Cambre) et l'Institut géographique national."}}]
-
-----
-
-Visibility: public
 
 ----
 

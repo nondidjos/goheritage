@@ -2,6 +2,42 @@ Title: Hôtel Astoria
 
 ----
 
+Map-only: false
+
+----
+
+Visibility: public
+
+----
+
+Text: [{"content":{"level":"","text":"À propos du site"},"id":"bf014b84-f69c-4c24-9320-37712b078ac9","isHidden":false,"type":"heading"},{"content":{"text":"Construit sur la rue Royale, l'Hôtel Astoria fut l'un des palaces les plus prestigieux de Bruxelles au début du XXe siècle, accueillant têtes couronnées et personnalités. Après une longue fermeture, le bâtiment a fait l'objet d'une restauration complète et a rouvert ses portes en 2024. Notre relevé documente les façades et les espaces de réception."},"id":"abd65cd7-04f7-4642-907c-4058d0f93e31","isHidden":false,"type":"text"}]
+
+----
+
+Gallery: []
+
+----
+
+Visible-sections: 
+
+----
+
+Viewer-url: 
+
+----
+
+Model-toggle: false
+
+----
+
+Annotations: []
+
+----
+
+Pointcloud-url: 
+
+----
+
 Description: Palace Belle Époque de la rue Royale, inauguré en 1911 dans le sillage de l'Exposition universelle de Bruxelles. Entièrement restauré et rouvert en 2024.
 
 ----
@@ -43,14 +79,6 @@ Date: 2026-06-10
 ----
 
 Tags: hôtel, belle-époque, bruxelles, palace, patrimoine
-
-----
-
-Text: [{"type":"heading","content":{"level":2,"text":"À propos du site"}},{"type":"text","content":{"text":"Construit sur la rue Royale, l'Hôtel Astoria fut l'un des palaces les plus prestigieux de Bruxelles au début du XXe siècle, accueillant têtes couronnées et personnalités. Après une longue fermeture, le bâtiment a fait l'objet d'une restauration complète et a rouvert ses portes en 2024. Notre relevé documente les façades et les espaces de réception."}}]
-
-----
-
-Visibility: public
 
 ----
 

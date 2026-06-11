@@ -2,6 +2,42 @@ Title: Square du Petit Sablon
 
 ----
 
+Map-only: false
+
+----
+
+Visibility: public
+
+----
+
+Text: [{"content":{"text":"Aménagé en 1890 par l'architecte Henri Beyaert, le square du Petit Sablon est l'un des jardins les plus raffinés de Bruxelles. Sa grille est ponctuée de 48 statuettes en bronze représentant les anciens métiers de la ville ; en son centre se dresse le monument dédié aux comtes d'Egmont et de Hornes. Notre relevé restitue la fontaine et les ornements sculptés."},"id":"c93110ce-4004-40ea-88c2-a14a8f6e5274","isHidden":false,"type":"text"}]
+
+----
+
+Gallery: []
+
+----
+
+Visible-sections: 
+
+----
+
+Viewer-url: 
+
+----
+
+Model-toggle: false
+
+----
+
+Annotations: []
+
+----
+
+Pointcloud-url: 
+
+----
+
 Description: Jardin d'ornement néo-Renaissance aménagé en 1890 par Henri Beyaert, ceinturé de 48 statuettes en bronze des métiers médiévaux autour du monument des comtes d'Egmont et de Hornes.
 
 ----
@@ -43,14 +79,6 @@ Date: 2026-06-10
 ----
 
 Tags: square, jardin, néo-renaissance, bruxelles, sculpture
-
-----
-
-Text: [{"type":"heading","content":{"level":2,"text":"À propos du site"}},{"type":"text","content":{"text":"Aménagé en 1890 par l'architecte Henri Beyaert, le square du Petit Sablon est l'un des jardins les plus raffinés de Bruxelles. Sa grille est ponctuée de 48 statuettes en bronze représentant les anciens métiers de la ville ; en son centre se dresse le monument dédié aux comtes d'Egmont et de Hornes. Notre relevé restitue la fontaine et les ornements sculptés."}}]
-
-----
-
-Visibility: public
 
 ----
 
