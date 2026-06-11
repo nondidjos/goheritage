@@ -1817,9 +1817,87 @@ body.is-panel-collapsed #map-fold-toggle svg {
     flex-shrink: 0;
 }
 
+/* Left cluster: logo + back-to-map */
+.visitor-header__left {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.visitor-header__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem 0.4rem 0.6rem;
+    border: 1px solid var(--color-border, rgba(26, 25, 22, 0.15));
+    border-radius: 999px;
+    color: var(--color-ink, #1a1a1a);
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.visitor-header__back:hover {
+    background: var(--color-ink, #1a1a1a);
+    border-color: var(--color-ink, #1a1a1a);
+    color: #fff;
+    text-decoration: none;
+}
+.visitor-header__back svg { flex-shrink: 0; }
+
+/* Right: nav links */
+.visitor-header__nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-shrink: 0;
+}
+
+.visitor-header__link {
+    color: var(--color-ink, #1a1a1a);
+    font-family: var(--font-sans, system-ui, sans-serif);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    transition: color 0.15s ease;
+}
+.visitor-header__link:hover { color: var(--color-accent, #c1683a); text-decoration: none; }
+
+/* Contact rendered as a pill CTA to anchor the right edge */
+.visitor-header__link--cta {
+    padding: 0.45rem 1rem;
+    border: 1px solid var(--color-ink, #1a1a1a);
+    border-radius: 999px;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+    font-size: 0.72rem;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.visitor-header__link--cta:hover {
+    background: var(--color-ink, #1a1a1a);
+    color: #fff;
+}
+
+@media (max-width: 48rem) {
+    /* Tablet/phone: drop the back-button text to just the chevron, tighten nav */
+    .visitor-header__back span { display: none; }
+    .visitor-header__back { padding: 0.4rem; }
+    .visitor-header__nav { gap: 1rem; }
+}
+
 @media (max-width: 32rem) {
     .visitor-header__inner { padding: 0.65rem 1rem; }
     .visitor-header__logo  { height: 1.25rem; }
+    .visitor-header__left  { gap: 0.6rem; }
+    .visitor-header__nav   { gap: 0.75rem; }
+    /* The back button already goes to the map, so the redundant "Carte"
+       text link is dropped on the smallest screens; Blog + Contact stay. */
+    .visitor-header__link--map { display: none; }
     .visitor-header__cta {
         padding: 0.4rem 0.7rem 0.4rem 0.85rem;
         font-size: 0.68rem;

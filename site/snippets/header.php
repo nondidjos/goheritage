@@ -9,7 +9,7 @@ if ($isMapPage) {
 }
 // Bump on any CSS/JS asset change so mobile browsers re-fetch (Kirby's
 // css()/js() helpers add no cache-busting and phones cache hard).
-$ghAssetVer = '9';
+$ghAssetVer = '10';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -149,25 +149,34 @@ $isVisitor = $isVisitor ?? false;
 ?>
 
 <?php if (!$isEmbedded && $isVisitor): ?>
-<!-- ── Visitor header: minimal chrome, content-first ──────────────── -->
+<!-- ── Visitor header: back-to-map + site nav ─────────────────────── -->
 <header class="visitor-header sticky top-0 z-50 bg-white">
   <div class="visitor-header__inner">
-    <a class="visitor-header__brand no-underline hover:no-underline"
-       href="<?= $site->url() ?>"
-       aria-label="<?= $site->title()->html() ?>">
-      <img src="<?= url('assets/logos/goheritage.svg') ?>" alt="GoHéritage" class="visitor-header__logo">
-    </a>
 
-    <a class="visitor-header__cta no-underline"
-       href="<?= url('map') ?>">
-      <span>Carte des projets</span>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <line x1="5" y1="12" x2="19" y2="12"/>
-        <polyline points="12 5 19 12 12 19"/>
-      </svg>
-    </a>
+    <!-- Left: logo + back-to-map -->
+    <div class="visitor-header__left">
+      <a class="visitor-header__brand no-underline hover:no-underline"
+         href="<?= $site->url() ?>"
+         aria-label="<?= $site->title()->html() ?>">
+        <img src="<?= url('assets/logos/goheritage.svg') ?>" alt="GoHéritage" class="visitor-header__logo">
+      </a>
+
+      <a class="visitor-header__back no-underline" href="<?= url('map') ?>">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        <span>Retour à la carte</span>
+      </a>
+    </div>
+
+    <!-- Right: site navigation -->
+    <nav class="visitor-header__nav" aria-label="Navigation">
+      <a class="visitor-header__link visitor-header__link--map no-underline" href="<?= url('map') ?>">Carte</a>
+      <a class="visitor-header__link no-underline" href="https://www.govr.eu/blog" target="_blank" rel="noopener">Blog ↗</a>
+      <a class="visitor-header__link visitor-header__link--cta no-underline" href="<?= url('contact') ?>">Contact</a>
+    </nav>
   </div>
 </header>
 
