@@ -4,12 +4,18 @@ icon: box
 
 num: 0
 
-# Trim the page options menu (the Settings button dropdown) to only what
-# makes sense for a project: rename, duplicate, delete, change status.
-# changeTemplate + move + changePosition are removed — they were either
-# grayed-out (position, because num:0 auto-sorts by date) or irrelevant
-# (a project never changes template / moves out of the map).
+# Trim the page options menu (the Settings ⋯ dropdown, AND the three-dots
+# menu on each project in the map list) to only what makes sense:
+# rename, duplicate, delete.
+#   • changeStatus  — REMOVED. Kirby's native draft/unlisted/listed is the
+#     "old way" of handling visibility; it's fully replaced by the custom
+#     "Visibilité" button (privé / lien / public) on the project page, which
+#     sets the underlying status itself. Exposing both is what left the
+#     conflicting + grayed-out status options in the ⋯ menu.
+#   • changeTemplate + move — removed (a project never changes template or
+#     moves out of the map; they only ever showed grayed-out).
 options:
+  changeStatus: false
   changeTemplate: false
   move: false
 
