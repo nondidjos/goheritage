@@ -456,6 +456,25 @@
     margin: 0;
 }
 
+/* ── Empty-state badge ("Aucun modèle 3D") ─────────────────────────────────
+   Base (mobile / no sidebar): dead-centre of the viewer. The desktop and
+   compact tiers in custom.css shift `left` by --gh-viewer-shift so it lands
+   in the area not covered by the fold-out info sidebar. */
+.viewer-empty {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    pointer-events: none;
+    color: rgba(255, 255, 255, 0.75);
+    text-align: center;
+}
+
 /* ── Spec card (fiche technique) ───────────────────────────────────────────── */
 
 .spec-card {

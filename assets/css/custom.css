@@ -1402,15 +1402,22 @@ body.is-panel-collapsed #map-fold-toggle svg {
 
     /* Sidebar overlays the full-width viewer — anything inside the viewer that
        uses left:50% lands at the centre of the entire wrapper, not the visible
-       canvas. Shift right by half the sidebar width (420/2 = 210px) to re-centre
-       in the visible viewer area. Applies to: bottom toggle, loading screen. */
+       canvas. One variable (= half the sidebar width) drives the horizontal
+       re-centring for every viewer overlay: bottom toggle, loading screen, and
+       the "Aucun modèle 3D" badge. Folding the sidebar sets it to 0. Change
+       the sidebar width in one place and centring follows — robust. */
+    body { --gh-viewer-shift: 210px; }
+
     .viewer-toggle,
-    .viewer-progress {
-        left: calc(50% + 210px) !important;
+    .viewer-progress,
+    .viewer-empty {
+        left: calc(50% + var(--gh-viewer-shift)) !important;
         transition: left 400ms cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
 
     /* Collapsed: sidebar gone, re-centre over the full viewer */
+    body.is-info-collapsed { --gh-viewer-shift: 0px; }
+
     body.is-info-collapsed #project-content {
         transform: translateX(-100%);
         opacity: 0;
@@ -1419,11 +1426,6 @@ body.is-panel-collapsed #map-fold-toggle svg {
 
     body.is-info-collapsed #project-fold-toggle {
         left: 0.75rem;
-    }
-
-    body.is-info-collapsed .viewer-toggle,
-    body.is-info-collapsed .viewer-progress {
-        left: 50% !important;
     }
 
     /* Desktop sidebar typography & spacing refinements */
@@ -1573,16 +1575,16 @@ body.is-panel-collapsed #map-fold-toggle svg {
         left: 0.75rem;
     }
 
-    /* Re-centre viewer overlays in visible canvas (360px sidebar → +180px offset) */
+    /* Re-centre viewer overlays in visible canvas (360px sidebar → +180px).
+       Same variable mechanism as the desktop tier. */
+    body { --gh-viewer-shift: 180px; }
     .viewer-toggle,
-    .viewer-progress {
-        left: calc(50% + 180px) !important;
+    .viewer-progress,
+    .viewer-empty {
+        left: calc(50% + var(--gh-viewer-shift)) !important;
         transition: left 380ms cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
-    body.is-info-collapsed .viewer-toggle,
-    body.is-info-collapsed .viewer-progress {
-        left: 50% !important;
-    }
+    body.is-info-collapsed { --gh-viewer-shift: 0px; }
 
     /* Viewer-ready: JS adds this class when the model has loaded */
     body.viewer-is-ready #project-fold-toggle {

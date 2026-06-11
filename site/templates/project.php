@@ -204,19 +204,45 @@ $hasPointcloudPane = $canSee('pointcloud') && ($pcExternal !== null || $pcInline
 // is the page's intended hero. So we don't gate it on $hasModel.
 $hasModelPane   = true;
 
+// The model pane carries an ACTUAL interactive viewer only when there's a
+// 3D model or an external viewer URL. Otherwise it's just the cover-image
+// placeholder ("Vue 3D prochainement") — present as a fallback, but it must
+// NOT win the default when real content (a point cloud, gallery…) exists.
+$hasRealModel = $hasModel || $hasIframe;
+
+// Switcher order is fixed (model · gallery · plans · point cloud) so the
+// chip row reads consistently across projects.
 $availableModes = [];
 if ($hasModelPane)      $availableModes[] = 'model';
 if ($hasGalleryPane)    $availableModes[] = 'gallery';
 if ($hasPlansPane)      $availableModes[] = 'plans';
 if ($hasPointcloudPane) $availableModes[] = 'pointcloud';
+
 // The data-type switcher belongs to the VISITOR-facing site (and external
 // embeds) only — NOT the CMS panel preview (viewer=only), which already has
 // its own per-type editing tabs (Modèle 3D / Nuage de points). Showing it
 // there would be a redundant control inside the panel's own viewer.
 $showModeChips  = count($availableModes) > 1 && !$isViewerOnly;
-// Default mode = first available. Model is always first, so this
-// effectively means "3D when possible, else gallery, else plans".
-$defaultMode = $availableModes[0] ?? 'model';
+
+// Default mode = the first pane that actually has content, by priority:
+//   real 3D model / external viewer  →  point cloud  →  gallery  →  plans
+// The empty model placeholder is the last resort, so a point-cloud-only
+// project (e.g. Hôtel Tassel) opens on its cloud instead of "Aucun modèle".
+// An explicit ?mode= override always wins (used by deep links / the panel).
+$modeParam = get('mode');
+if ($modeParam && in_array($modeParam, $availableModes, true)) {
+    $defaultMode = $modeParam;
+} elseif ($hasRealModel) {
+    $defaultMode = 'model';
+} elseif ($hasPointcloudPane) {
+    $defaultMode = 'pointcloud';
+} elseif ($hasGalleryPane) {
+    $defaultMode = 'gallery';
+} elseif ($hasPlansPane) {
+    $defaultMode = 'plans';
+} else {
+    $defaultMode = 'model'; // placeholder fallback
+}
 ?>
 
 <div class="items-start pt-0 pb-10">
@@ -534,12 +560,19 @@ $defaultMode = $availableModes[0] ?? 'model';
             </div>
 
         <?php else: ?>
-            <?php if ($posterUrl): ?>
-                <img src="<?= $posterUrl ?>" alt="<?= $page->title()->esc() ?>" class="w-full h-full object-cover">
-            <?php else: ?>
-                <div class="w-full h-full bg-mid"></div>
-            <?php endif ?>
-            <div class="absolute inset-0 bg-ink/30 flex flex-col items-center justify-center gap-3 pointer-events-none text-white/75">
+            <!-- Empty-state. Background is full-bleed (poster dimmed, or a flat
+                 dark fill matching the viewer); the badge is a separate node so
+                 it can be re-centred in the visible area beside the fold-out
+                 sidebar (see .viewer-empty in custom.css). -->
+            <div class="viewer-empty-bg absolute inset-0">
+                <?php if ($posterUrl): ?>
+                    <img src="<?= $posterUrl ?>" alt="<?= $page->title()->esc() ?>" class="w-full h-full object-cover">
+                    <div class="absolute inset-0" style="background: rgba(26,25,22,0.45);"></div>
+                <?php else: ?>
+                    <div class="w-full h-full" style="background: var(--color-ink, #1a1a1a);"></div>
+                <?php endif ?>
+            </div>
+            <div class="viewer-empty">
                 <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/><line x1="3.5" y1="20.5" x2="20.5" y2="3.5"/></svg>
                 <span class="font-mono text-xs uppercase tracking-widest">Aucun modèle 3D</span>
             </div>

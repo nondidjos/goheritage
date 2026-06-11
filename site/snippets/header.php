@@ -9,7 +9,7 @@ if ($isMapPage) {
 }
 // Bump on any CSS/JS asset change so mobile browsers re-fetch (Kirby's
 // css()/js() helpers add no cache-busting and phones cache hard).
-$ghAssetVer = '6';
+$ghAssetVer = '7';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
