@@ -1,0 +1,21 @@
+Scene-id: 
+
+----
+
+Title: 
+
+----
+
+Alt: 
+
+----
+
+Caption: 
+
+----
+
+Uuid: 0zybybtgaupoya8r
+
+----
+
+Template: panorama
