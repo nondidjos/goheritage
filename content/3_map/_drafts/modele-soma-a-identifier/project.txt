@@ -1,0 +1,53 @@
+Title: Modèle SOMA (à identifier)
+
+----
+
+Description:
+
+----
+
+Cover: []
+
+----
+
+Location:
+
+----
+
+Construction-date:
+
+----
+
+Architect:
+
+----
+
+Style:
+
+----
+
+Protection-status:
+
+----
+
+Lat:
+
+----
+
+Lng:
+
+----
+
+Date: 2026-06-10
+
+----
+
+Tags: à-identifier, matterport
+
+----
+
+Text: [{"type":"heading","content":{"level":2,"text":"À compléter"}},{"type":"text","content":{"text":"Scan Matterport (identifiant SOMA / RyYp4mYa5Yp) fourni avec un modèle OBJ + textures exploitable directement par le viewer. Bâtiment non identifié — métadonnées et localisation à renseigner. Le modèle OBJ peut être importé via l'onglet Modèle 3D pour générer automatiquement les variantes GLB/LOD."}}]
+
+----
+
+Uuid: bbgil3y6xv7njs04

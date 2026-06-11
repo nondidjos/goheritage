@@ -1,0 +1,57 @@
+Title: Hôtel Astoria
+
+----
+
+Description: Palace Belle Époque de la rue Royale, inauguré en 1911 dans le sillage de l'Exposition universelle de Bruxelles. Entièrement restauré et rouvert en 2024.
+
+----
+
+Cover: - 'file://lao3iqlnuacpc00q'
+
+----
+
+Location: Bruxelles, Belgique
+
+----
+
+Construction-date: 1909–1911
+
+----
+
+Architect: Henri Van Dievoet
+
+----
+
+Style: Belle Époque
+
+----
+
+Protection-status: classé
+
+----
+
+Lat: 50.8506
+
+----
+
+Lng: 4.3664
+
+----
+
+Date: 2026-06-10
+
+----
+
+Tags: hôtel, belle-époque, bruxelles, palace, patrimoine
+
+----
+
+Text: [{"type":"heading","content":{"level":2,"text":"À propos du site"}},{"type":"text","content":{"text":"Construit sur la rue Royale, l'Hôtel Astoria fut l'un des palaces les plus prestigieux de Bruxelles au début du XXe siècle, accueillant têtes couronnées et personnalités. Après une longue fermeture, le bâtiment a fait l'objet d'une restauration complète et a rouvert ses portes en 2024. Notre relevé documente les façades et les espaces de réception."}}]
+
+----
+
+Visibility: public
+
+----
+
+Uuid: lki66u22haijg71r

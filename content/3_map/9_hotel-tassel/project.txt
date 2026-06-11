@@ -1,0 +1,57 @@
+Title: Hôtel Tassel
+
+----
+
+Description: Considéré comme la première maison Art nouveau au monde, réalisée par Victor Horta (1893–1894) pour le scientifique Émile Tassel. Inscrit au patrimoine mondial de l'UNESCO.
+
+----
+
+Cover: - 'file://4lujvq1lxwtmrciz'
+
+----
+
+Location: Bruxelles, Belgique
+
+----
+
+Construction-date: 1893–1894
+
+----
+
+Architect: Victor Horta
+
+----
+
+Style: Art nouveau
+
+----
+
+Protection-status: unesco
+
+----
+
+Lat: 50.8270
+
+----
+
+Lng: 4.3625
+
+----
+
+Date: 2026-06-10
+
+----
+
+Tags: art-nouveau, horta, unesco, bruxelles, premier-art-nouveau
+
+----
+
+Text: [{"type":"heading","content":{"level":2,"text":"À propos du site"}},{"type":"text","content":{"text":"Édifié en 1893–1894 pour le scientifique Émile Tassel, l'Hôtel Tassel est généralement reconnu comme la première maison Art nouveau au monde. Victor Horta y rompt avec le plan bourgeois traditionnel et introduit la fameuse ligne en coup de fouet, le fer et le verre dans l'architecture domestique. Inscrit au patrimoine mondial de l'UNESCO en 2000."}}]
+
+----
+
+Visibility: public
+
+----
+
+Uuid: fzaex55wa8m5l3cd

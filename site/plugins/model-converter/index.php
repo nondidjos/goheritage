@@ -18,6 +18,17 @@ F::$types['document'][] = 'mtl';
 F::$types['document'][] = 'glb';
 F::$types['document'][] = 'gltf';
 
+// Point-cloud formats — the project blueprint's "Données brutes" section
+// accepts these, so they must be registered or panel uploads get rejected
+// with "invalid extension".
+F::$types['document'][] = 'ply';
+F::$types['document'][] = 'pcd';
+F::$types['document'][] = 'las';
+F::$types['document'][] = 'laz';
+F::$types['document'][] = 'e57';
+F::$types['document'][] = 'xyz';
+F::$types['document'][] = 'pts';
+
 // JSON is "code" by default in Kirby — move it to document so uploads aren't rejected
 if (isset(F::$types['code'])) {
     F::$types['code'] = array_values(array_diff(F::$types['code'], ['json']));

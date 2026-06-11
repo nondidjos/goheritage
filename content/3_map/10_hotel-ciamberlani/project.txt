@@ -1,0 +1,57 @@
+Title: Hôtel Ciamberlani
+
+----
+
+Description: Maison-atelier Art nouveau conçue par Paul Hankar en 1897 pour le peintre Albert Ciamberlani, rue Defacqz. Façade animée de sgraffites.
+
+----
+
+Cover: []
+
+----
+
+Location: Bruxelles, Belgique
+
+----
+
+Construction-date: 1897
+
+----
+
+Architect: Paul Hankar
+
+----
+
+Style: Art nouveau
+
+----
+
+Protection-status: classé
+
+----
+
+Lat: 50.8262
+
+----
+
+Lng: 4.3585
+
+----
+
+Date: 2026-06-10
+
+----
+
+Tags: art-nouveau, hankar, bruxelles, sgraffito, maison-atelier
+
+----
+
+Text: [{"type":"heading","content":{"level":2,"text":"À propos du site"}},{"type":"text","content":{"text":"Conçue en 1897 par Paul Hankar — rival et contemporain de Victor Horta — pour le peintre Albert Ciamberlani, cette maison-atelier de la rue Defacqz illustre la variante graphique de l'Art nouveau bruxellois. Sa façade est ornée de vastes sgraffites aux motifs allégoriques."}}]
+
+----
+
+Visibility: public
+
+----
+
+Uuid: 3ozq4rwyzukx2ulz

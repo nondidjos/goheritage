@@ -1,0 +1,57 @@
+Title: Hôtel Solvay
+
+----
+
+Description: Chef-d'œuvre Art nouveau de Victor Horta (1898–1900), avenue Louise, commandé par l'industriel Armand Solvay. Inscrit au patrimoine mondial de l'UNESCO.
+
+----
+
+Cover: []
+
+----
+
+Location: Bruxelles, Belgique
+
+----
+
+Construction-date: 1898–1900
+
+----
+
+Architect: Victor Horta
+
+----
+
+Style: Art nouveau
+
+----
+
+Protection-status: unesco
+
+----
+
+Lat: 50.8275
+
+----
+
+Lng: 4.3646
+
+----
+
+Date: 2026-06-10
+
+----
+
+Tags: art-nouveau, horta, unesco, bruxelles, hôtel-de-maître
+
+----
+
+Text: [{"type":"heading","content":{"level":2,"text":"À propos du site"}},{"type":"text","content":{"text":"Réalisé entre 1898 et 1900 pour l'industriel Armand Solvay, l'Hôtel Solvay est l'une des demeures Art nouveau les plus abouties de Victor Horta : Horta y a dessiné jusqu'au moindre détail, du mobilier aux vitraux. Il figure parmi les quatre maisons de Horta inscrites au patrimoine mondial de l'UNESCO en 2000."}}]
+
+----
+
+Visibility: public
+
+----
+
+Uuid: jdg03rlzzvz2yun7

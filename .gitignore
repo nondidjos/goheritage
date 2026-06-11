@@ -108,3 +108,10 @@ content/**/*.png
 content/**/*.webp
 content/**/*.glb
 content/**/*.mtl
+content/**/*.ply
+content/**/*.pcd
+content/**/*.las
+content/**/*.laz
+content/**/*.e57
+content/**/*.xyz
+content/**/*.pts
