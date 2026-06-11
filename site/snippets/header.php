@@ -9,7 +9,7 @@ if ($isMapPage) {
 }
 // Bump on any CSS/JS asset change so mobile browsers re-fetch (Kirby's
 // css()/js() helpers add no cache-busting and phones cache hard).
-$ghAssetVer = '8';
+$ghAssetVer = '9';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -98,7 +98,7 @@ $ghAssetVer = '8';
   }
   </script>
   <?php if ($isPointcloud): ?>
-  <script type="module" src="<?= url('assets/js/pointcloud-viewer.js') ?>?v=7"></script>
+  <script type="module" src="<?= url('assets/js/pointcloud-viewer.js') ?>?v=8"></script>
   <?php else: ?>
   <script type="module" src="<?= url('assets/js/viewer.js') ?>?v=4"></script>
   <?php endif ?>

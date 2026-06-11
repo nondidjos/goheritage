@@ -458,7 +458,7 @@
 
 /* ── Empty-state badge ("Aucun modèle 3D") ─────────────────────────────────
    Base (mobile / no sidebar): dead-centre of the viewer. The desktop and
-   compact tiers in custom.css shift `left` by --gh-viewer-shift so it lands
+   fold-aware rules below shift `left` by --gh-viewer-inset-left so it lands
    in the area not covered by the fold-out info sidebar. */
 .viewer-empty {
     position: absolute;
@@ -473,6 +473,42 @@
     pointer-events: none;
     color: rgba(255, 255, 255, 0.75);
     text-align: center;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Fold-aware overlay positioning  (single source of truth)
+ *
+ * The info sidebar overlays the LEFT of the full-width viewer. Its occupied
+ * width is published as --gh-viewer-inset-left (set per breakpoint + fold
+ * state in custom.css; 0 when folded/absent). Every floating viewer overlay
+ * reads it here so nothing is ever computed with a magic number again:
+ *   • centred elements   → shift right by HALF the inset
+ *   • left-anchored ones → shift right by the FULL inset
+ * The eased transition makes them glide in sync with the sidebar fold.
+ * ────────────────────────────────────────────────────────────────────── */
+:root { --gh-viewer-inset-left: 0px; }
+
+/* Centred overlays: loader, bottom model toggle, empty-state badge. */
+.viewer-progress,
+.viewer-toggle,
+.viewer-empty {
+    left: calc(50% + var(--gh-viewer-inset-left) / 2) !important;
+    transition: left 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Left-anchored overlays. The mode dropdown is a full-width bar — grow its
+   left padding so the switch clears the sidebar without the bar itself
+   moving. The point-size pill is left-pinned, so offset its left. */
+.viewer-mode-bar {
+    padding-left: calc(12px + var(--gh-viewer-inset-left)) !important;
+    transition: padding-left 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pc-size-controls {
+    left: calc(20px + var(--gh-viewer-inset-left)) !important;
+    transition: left 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pc-size-controls--touch {
+    left: calc(16px + var(--gh-viewer-inset-left)) !important;
 }
 
 /* ── Spec card (fiche technique) ───────────────────────────────────────────── */
