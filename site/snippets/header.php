@@ -192,7 +192,7 @@ $isVisitor = $isVisitor ?? false;
     <!-- navigation — right-aligned, 2 cols spaced out -->
     <nav class="site-nav col-2 flex w-full items-center justify-between" id="site-nav" aria-label="Navigation principale">
       <a class="font-sans text-sm uppercase tracking-wider text-ink no-underline transition-colors duration-150 hover:underline hover:text-ink"
-         href="https://www.govr.eu/blog" target="_blank" rel="noopener">Blog ↗</a>
+         href="https://www.govr.eu/articles" target="_blank" rel="noopener">Blog ↗</a>
       <?php foreach ($site->children()->listed()->not($site->homePage())->filter(fn($p) => $p->template()->name() !== 'blog') as $item): ?>
       <a
         class="font-sans text-sm uppercase tracking-wider text-ink no-underline transition-colors duration-150 hover:underline hover:text-ink"

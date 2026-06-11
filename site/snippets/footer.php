@@ -38,7 +38,7 @@ if ($isMapPage) {
               class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline"><?= $item->title()->esc() ?></a>
           </li>
         <?php endforeach ?>
-        <li><a href="https://www.govr.eu/blog" target="_blank" rel="noopener"
+        <li><a href="https://www.govr.eu/articles" target="_blank" rel="noopener"
             class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline">Blog GOVR ↗</a>
         </li>
       </ul>
