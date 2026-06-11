@@ -234,9 +234,17 @@ function initPointCloud(container) {
     // Lift scan colours — they read dim on the dark stage otherwise.
     if (hasColor) pointsMaterial.color.setScalar(COLOR_BOOST);
 
-    // Recentre on the origin, then wrap in a group rotated Z-up → Y-up so
-    // the building stands upright instead of pitching toward the camera.
-    points.position.sub(center);
+    // Recentre by baking the offset into the VERTICES, not the object's
+    // position. Scan exports carry large absolute coordinates (survey CRS,
+    // or a metre-scale local frame offset from origin). If we only moved the
+    // object (points.position.sub(center)) the vertex attribute would still
+    // hold those large values, and `modelViewMatrix * position` in float32
+    // suffers catastrophic cancellation — the cloud visibly vibrates as the
+    // camera rotates. Translating the geometry makes the stored coordinates
+    // small (centred on 0), which keeps the matrix math precise.
+    geometry.translate(-center.x, -center.y, -center.z);
+    geometry.computeBoundingSphere();
+
     const wrap = new THREE.Group();
     wrap.rotation.x = Z_UP_FIX;
     wrap.add(points);
@@ -244,8 +252,10 @@ function initPointCloud(container) {
 
     const radius = diag / 2;
     camera.position.set(radius * 1.2, radius * 0.55, radius * 1.4);
-    camera.near = Math.max(radius / 1000, 0.001);
-    camera.far = radius * 100;
+    // Keep the near/far span tight around the model so the depth buffer has
+    // adequate precision (a huge near:far ratio also causes flicker).
+    camera.near = Math.max(radius / 500, 0.01);
+    camera.far = radius * 20;
     camera.updateProjectionMatrix();
     controls.target.set(0, 0, 0);
     controls.update();
