@@ -36,7 +36,11 @@ $isViewerOnly = $isEmbedded && get('viewer') === 'only';
 // Admin and other logged-in users keep the full nav because they
 // actually navigate the site. Embedded mode still strips chrome
 // entirely (iframe consumers don't want anything but the viewer).
-$isVisitor = !$panelUser && !$isEmbedded;
+// Project pages use the SAME site header as the rest of the site (the
+// standalone back-to-map button below lives outside the header). We keep
+// the variable name for the back-button gate, but never switch to the
+// stripped "visitor" header here.
+$isVisitor = false;
 
 // ── Point-cloud preview (?pointcloud=1) ──────────────────────────────────
 // A self-contained view used by the panel's "Nuage de points" tab: render

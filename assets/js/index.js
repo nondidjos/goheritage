@@ -453,8 +453,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
         projectFoldToggle.addEventListener('click', function () {
             document.body.classList.toggle('is-info-collapsed');
-            // The viewer container size changed — let three.js / iframe react
-            window.dispatchEvent(new Event('resize'));
+            // On desktop the viewer is a flex sibling, so folding ANIMATES its
+            // width over ~400ms. Pump resize events across the animation so
+            // three.js keeps the canvas matched to the container the whole way
+            // (not just at the start), otherwise the model looks squished
+            // mid-fold. Harmless on compact/mobile where the viewer doesn't
+            // actually resize.
+            var start = performance.now();
+            (function pump() {
+                window.dispatchEvent(new Event('resize'));
+                if (performance.now() - start < 460) requestAnimationFrame(pump);
+            })();
         });
     }
 });

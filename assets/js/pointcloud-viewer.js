@@ -134,7 +134,7 @@ function initPointCloud(container) {
   sizeCtl.className = 'pc-size-controls' + (isMobile ? ' pc-size-controls--touch' : '');
   sizeCtl.innerHTML =
     '<button type="button" class="pc-size-btn" data-dir="down" aria-label="Réduire la taille des points" title="Points plus petits">−</button>' +
-    '<span class="pc-size-label">Taille</span>' +
+    '<span class="pc-size-label">Taille des points</span>' +
     '<button type="button" class="pc-size-btn" data-dir="up" aria-label="Augmenter la taille des points" title="Points plus gros">+</button>';
   container.appendChild(sizeCtl);
   sizeCtl.addEventListener('click', (e) => {
