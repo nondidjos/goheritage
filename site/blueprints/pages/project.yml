@@ -372,11 +372,16 @@ tabs:
       pointcloud_files:
         type: files
         headline: Données brutes
-        template: default
-        accept: ".laz,.las,.ply,.e57,.zip"
+        template: pointcloud
+        # Explicit uploads block so the panel always shows the upload button
+        # and tags new files with the pointcloud file blueprint (which owns
+        # the accepted-extension list). Without this the section can render
+        # without an upload affordance for non-image types.
+        uploads:
+          template: pointcloud
         layout: list
         info: "{{ file.extension | upper }} · {{ file.niceSize }}"
-        empty: Glissez-déposez ici vos fichiers de nuage de points (.laz, .las, .ply, .e57, .zip).
+        empty: Glissez-déposez ici vos fichiers de nuage de points (.ply, .laz, .las, .e57, .xyz, .pts, .zip).
 
 
   # ─────────────────────────────────────────────────────────────────────

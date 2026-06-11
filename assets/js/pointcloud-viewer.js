@@ -28,6 +28,40 @@ const Z_UP_FIX = -Math.PI / 2;
 // are fine: the shader multiplies before output encoding.
 const COLOR_BOOST = 1.35;
 
+// Round-point sprite: a soft white disc on transparent. Combined with
+// alphaTest it turns the default square GL_POINT into a clean circle with
+// no transparency-sort artefacts (cut pixels are discarded, depth stays
+// correct). Built once, shared across materials.
+let _circleTex = null;
+function circleTexture() {
+  if (_circleTex) return _circleTex;
+  const S = 64;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const ctx = c.getContext('2d');
+  const r = S / 2;
+  const g = ctx.createRadialGradient(r, r, 0, r, r, r);
+  g.addColorStop(0.0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.7, 'rgba(255,255,255,1)');
+  g.addColorStop(0.85, 'rgba(255,255,255,0.9)');
+  g.addColorStop(1.0, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(r, r, r, 0, Math.PI * 2);
+  ctx.fill();
+  _circleTex = new THREE.CanvasTexture(c);
+  _circleTex.colorSpace = THREE.SRGBColorSpace;
+  return _circleTex;
+}
+
+// Apply the circle sprite + alpha cutout to a PointsMaterial in place.
+function makeRound(material) {
+  material.map = circleTexture();
+  material.alphaTest = 0.5;   // discard the square corners
+  material.transparent = false;
+  material.needsUpdate = true;
+}
+
 function initPointCloud(container) {
   const src = container.dataset.src;
   const format = (container.dataset.format || 'ply').toLowerCase();
@@ -193,6 +227,9 @@ function initPointCloud(container) {
       points = new THREE.Points(geometry, material);
     }
     pointsMaterial = points.material;
+
+    // Round points instead of GL's default squares.
+    makeRound(pointsMaterial);
 
     // Lift scan colours — they read dim on the dark stage otherwise.
     if (hasColor) pointsMaterial.color.setScalar(COLOR_BOOST);

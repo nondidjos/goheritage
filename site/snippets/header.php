@@ -98,7 +98,7 @@ $ghAssetVer = '6';
   }
   </script>
   <?php if ($isPointcloud): ?>
-  <script type="module" src="<?= url('assets/js/pointcloud-viewer.js') ?>?v=5"></script>
+  <script type="module" src="<?= url('assets/js/pointcloud-viewer.js') ?>?v=6"></script>
   <?php else: ?>
   <script type="module" src="<?= url('assets/js/viewer.js') ?>?v=4"></script>
   <?php endif ?>

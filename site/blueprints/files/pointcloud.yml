@@ -1,0 +1,22 @@
+title: Nuage de points
+accept:
+  extension:
+    - ply
+    - pcd
+    - las
+    - laz
+    - e57
+    - xyz
+    - pts
+    - zip
+
+columns:
+  - width: 1/1
+    sections:
+      meta:
+        type: fields
+        fields:
+          description:
+            label: Description
+            type: textarea
+            size: small

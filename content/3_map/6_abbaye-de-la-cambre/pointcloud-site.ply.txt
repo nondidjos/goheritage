@@ -1,4 +1,4 @@
-Template: default
+Template: pointcloud
 
 ----
 
