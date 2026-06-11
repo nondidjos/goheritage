@@ -7,9 +7,9 @@ $cssFiles      = ['assets/css/app.css', 'assets/css/custom.css'];
 if ($isMapPage) {
     $cssFiles[] = 'assets/css/map.css';
 }
-// Bump on any CSS/JS asset change so mobile browsers re-fetch (Kirby's
-// css()/js() helpers add no cache-busting and phones cache hard).
-$ghAssetVer = '12';
+// Asset URLs go through ghAsset() (goheritage-core): it swaps in the
+// minified build in production and appends a filemtime cache-bust, so
+// there's no manual version to maintain anymore.
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -52,7 +52,7 @@ $ghAssetVer = '12';
   </style>
   <?php endif ?>
   <?php foreach ($cssFiles as $ghCss): ?>
-  <link rel="stylesheet" href="<?= url($ghCss) ?>?v=<?= $ghAssetVer ?>">
+  <link rel="stylesheet" href="<?= ghAsset($ghCss) ?>">
   <?php endforeach ?>
   <?php if ($isMapPage): ?>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.16.0/dist/maplibre-gl.css">
@@ -67,8 +67,8 @@ $ghAssetVer = '12';
   $isPointcloud = $isProjectPage && !empty(get('pointcloud'));
   $needsThreeJs = $isProjectPage && ($isPointcloud || $page->viewer_url()->isEmpty());
   if ($isProjectPage): ?>
-  <?= css('assets/css/lightbox.css') ?>
-  <link rel="stylesheet" href="<?= url('assets/css/viewer.css') ?>?v=<?= $ghAssetVer ?>">
+  <link rel="stylesheet" href="<?= ghAsset('assets/css/lightbox.css') ?>">
+  <link rel="stylesheet" href="<?= ghAsset('assets/css/viewer.css') ?>">
   <?php endif ?>
   <?php if ($needsThreeJs): ?>
   <?php
@@ -98,9 +98,9 @@ $ghAssetVer = '12';
   }
   </script>
   <?php if ($isPointcloud): ?>
-  <script type="module" src="<?= url('assets/js/pointcloud-viewer.js') ?>?v=9"></script>
+  <script type="module" src="<?= ghAsset('assets/js/pointcloud-viewer.js') ?>"></script>
   <?php else: ?>
-  <script type="module" src="<?= url('assets/js/viewer.js') ?>?v=4"></script>
+  <script type="module" src="<?= ghAsset('assets/js/viewer.js') ?>"></script>
   <?php endif ?>
   <?php endif ?>
   <link rel="shortcut icon" type="image/x-icon" href="<?= url('favicon.ico') ?>">

@@ -693,7 +693,7 @@ if ($modeParam && in_array($modeParam, $availableModes, true)) {
 </div>
 
 <?php if ($showModeChips): ?>
-<script src="<?= url('assets/js/viewer-modes.js') ?>?v=2" defer></script>
+<script src="<?= ghAsset('assets/js/viewer-modes.js') ?>" defer></script>
 <?php endif ?>
 
 <?php snippet('footer') ?>

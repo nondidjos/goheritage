@@ -144,4 +144,4 @@ $modalOnly = $modalOnly ?? false;
 </div>
 
 <link rel="stylesheet" href="<?= url('assets/css/plan-viewer.css') ?>?v=1">
-<script src="<?= url('assets/js/plan-viewer.js') ?>?v=1" defer></script>
+<script src="<?= ghAsset('assets/js/plan-viewer.js') ?>" defer></script>

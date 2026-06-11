@@ -24,6 +24,60 @@ use Kirby\Cms\App as Kirby;
 
 Kirby::plugin('goheritage/core', []);
 
+if (!function_exists('ghIsLocalEnv')) {
+    /**
+     * Local dev host? (localhost / loopback / *.test / *.local / LAN).
+     * Production serves the minified, comment-stripped assets; dev serves
+     * the readable sources so the browser debugger shows real code.
+     */
+    function ghIsLocalEnv(): bool
+    {
+        $host = kirby()->environment()->host() ?? '';
+        return $host === 'localhost'
+            || str_starts_with($host, '127.')
+            || str_starts_with($host, '192.168.')
+            || str_ends_with($host, '.test')
+            || str_ends_with($host, '.local');
+    }
+}
+
+if (!function_exists('ghAsset')) {
+    /**
+     * Resolve a front-end asset URL with two production conveniences:
+     *
+     *   1. In production a `.js` path is swapped for its `.min.js` sibling
+     *      when that built file exists (deploy runs `npm run build`). Dev
+     *      keeps the readable source.
+     *   2. A cache-bust (?v=<filemtime>) is appended automatically, so
+     *      changing a file invalidates the browser cache with no manual
+     *      version bumping.
+     *
+     * Falls back to the source path (and no version) if the file can't be
+     * stat'd, so a missing build never 500s a page.
+     *
+     * @param string $path  e.g. 'assets/js/viewer.js' or 'assets/css/app.css'
+     */
+    function ghAsset(string $path): string
+    {
+        $path    = ltrim($path, '/');
+        $docroot = kirby()->root('index');
+
+        if (!ghIsLocalEnv() && str_ends_with($path, '.js')) {
+            $min = substr($path, 0, -3) . '.min.js';
+            if (is_file($docroot . '/' . $min)) {
+                $path = $min;
+            }
+        }
+
+        $abs = $docroot . '/' . $path;
+        $url = url($path);
+        if (is_file($abs)) {
+            $url .= '?v=' . filemtime($abs);
+        }
+        return $url;
+    }
+}
+
 if (!function_exists('goheritageNodeBin')) {
     /**
      * Resolve the node binary. Checks known platform paths before falling

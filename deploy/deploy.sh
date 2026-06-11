@@ -40,9 +40,14 @@ if [[ ! -f "$LIGHTSAIL_KEY" ]]; then
 fi
 SSH_OPTS=(-i "$LIGHTSAIL_KEY" -o StrictHostKeyChecking=accept-new)
 
-# ── 1. Build production CSS ─────────────────────────────────────────────────
+# ── 1. Build production assets (minified CSS + JS) ──────────────────────────
 if [[ "${SKIP_BUILD:-0}" != "1" ]]; then
-    echo "==> Building production CSS bundle"
+    # Ensure local build tooling is present (tailwind + esbuild devDeps).
+    if [[ ! -d node_modules/esbuild ]] || [[ ! -d node_modules/tailwindcss ]]; then
+        echo "==> Installing build tooling (npm devDependencies)"
+        npm install --no-audit --no-fund
+    fi
+    echo "==> Building production assets (minified CSS + JS)"
     npm run build
 fi
 
