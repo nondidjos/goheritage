@@ -45,6 +45,22 @@ RewriteRule ^site/(.*) index.php [L]
 # block direct access to Kirby and the Panel sources
 RewriteRule ^kirby/(.*) index.php [L]
 
+# ── Anti-rip: gate 3D models + point clouds served from /media ───────────
+# These files are loaded by our own viewer, where the browser tags the
+# request Sec-Fetch-Site: same-origin (and sends our Referer). A direct
+# URL paste, a hotlink from another site, or a scraper does NOT — so 403
+# those. This won't stop a determined ripper that forges headers, but it
+# stops casual "paste the URL / right-click save" downloading.
+#
+# Allow when EITHER:
+#   • the request is a same-origin / same-site fetch (our viewer), OR
+#   • the Referer is one of our hosts (fallback for clients that omit
+#     Sec-Fetch-* — keeps older browsers + the panel working).
+# Block otherwise.
+RewriteCond %{HTTP:Sec-Fetch-Site} !^(same-origin|same-site)$ [NC]
+RewriteCond %{HTTP_REFERER} !^https?://([^/]+\.)?goheritage\. [NC]
+RewriteRule \.(ply|pcd|glb|gltf|obj|mtl|e57|las|laz|xyz|pts)$ - [F,L]
+
 # make site links work
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
