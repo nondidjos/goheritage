@@ -1344,8 +1344,10 @@ body.is-panel-collapsed #map-fold-toggle svg {
         flex-direction: row;
         align-items: stretch;
         position: relative;
-        /* Definite height so the absolute-positioned sidebar can use height:100% */
         min-height: calc(100vh - 100px);
+        /* Flush: sidebar and viewer sit edge-to-edge (the base 1.5rem gap
+           would leave a strip of page background between them). */
+        gap: 0;
     }
 
     /* ── Sidebar + viewer SHARE the row width (no overlay) ──────────────
@@ -1367,7 +1369,9 @@ body.is-panel-collapsed #map-fold-toggle svg {
         scrollbar-width: thin;
         scrollbar-color: rgba(26,25,22,0.18) transparent;
         background: var(--color-bg, #fff);
-        border-right: 1px solid var(--color-border, rgba(26,25,22,0.12));
+        /* No border — the light-panel / dark-viewer colour change is the
+           divider. A border + the (now removed) gap is what read as a
+           "weird space and line". */
         padding: 1.75rem 1.75rem 2.5rem !important;
         gap: 1.5rem !important;
         transition: margin-left 400ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -1385,6 +1389,10 @@ body.is-panel-collapsed #map-fold-toggle svg {
     #viewer-container {
         flex: 1 1 auto;
         min-width: 0;
+        /* Flush against the sidebar: square off the left corners (the outer
+           right corners keep the rounding from the rounded-md utility). */
+        border-top-left-radius: 0 !important;
+        border-bottom-left-radius: 0 !important;
     }
 
     /* Folded: slide the sidebar out of the row; the viewer grows to fill. */
@@ -1394,14 +1402,13 @@ body.is-panel-collapsed #map-fold-toggle svg {
         pointer-events: none;
     }
 
-    /* Fold handle on the viewer's LEFT EDGE, vertically centred so it never
-       collides with the top-left mode dropdown. Absolute on the wrapper
+    /* Fold handle at the viewer's TOP-LEFT corner (the mode dropdown is
+       top-right, so they never collide). Absolute on the wrapper
        (position:relative) so it stays put while the sidebar slides. */
     #project-fold-toggle {
         position: absolute !important;
-        top: 50%;
-        left: calc(420px + 0.5rem);
-        transform: translateY(-50%);
+        top: 0.75rem;
+        left: calc(420px + 0.75rem);
         z-index: 90;
         opacity: 1;
         pointer-events: auto;
@@ -1409,7 +1416,7 @@ body.is-panel-collapsed #map-fold-toggle svg {
         transition: left 400ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     body.is-info-collapsed #project-fold-toggle {
-        left: 0.5rem;
+        left: 0.75rem;
     }
 
     /* Desktop sidebar typography & spacing refinements */
@@ -1541,9 +1548,8 @@ body.is-panel-collapsed #map-fold-toggle svg {
        not using the viewer chrome). */
     #project-fold-toggle {
         position: absolute !important;
-        top: 50%;
+        top: 0.75rem;
         left: calc(360px - 2.5rem);
-        transform: translateY(-50%);
         z-index: 90;
         opacity: 0;            /* JS reveals after model loads */
         pointer-events: none;
@@ -1558,7 +1564,7 @@ body.is-panel-collapsed #map-fold-toggle svg {
     }
 
     body.is-info-collapsed #project-fold-toggle {
-        left: 0.5rem;
+        left: 0.75rem;
     }
 
     body.viewer-is-ready #project-fold-toggle {
@@ -1814,4 +1820,14 @@ body.is-panel-collapsed #map-fold-toggle svg {
         font-size: 0.68rem;
     }
 }
-
+
+/* ── Back-to-map link inside the info panel ───────────────────────────────── */
+.project-back {
+    align-self: flex-start;
+    margin-bottom: -0.5rem; /* tighten toward the title (panel gap is large) */
+}
+/* On mobile the panel is a bottom drawer; the handle sits above, so keep the
+   back link clear of it. */
+@media (max-width: 37.4375rem) {
+    .project-back { margin-top: 0.25rem; }
+}

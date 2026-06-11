@@ -808,7 +808,8 @@
     right: 0;
     z-index: 20;
     display: flex;
-    justify-content: flex-start;
+    /* Top-RIGHT so it never collides with the fold handle (top-left). */
+    justify-content: flex-end;
     padding: 12px;
     pointer-events: none;
 }

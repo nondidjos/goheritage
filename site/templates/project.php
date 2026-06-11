@@ -251,19 +251,6 @@ if ($modeParam && in_array($modeParam, $availableModes, true)) {
 
 <div class="items-start pt-0 pb-10">
 
-    <?php if (!$isEmbedded && !$isVisitor): ?>
-    <!-- Back button (admins / logged-in users only — visitors already
-         have the "Carte des projets" CTA in the simplified header). -->
-    <div class="col-7 flex items-center mb-6 px-4 pt-4 md:pt-6">
-        <a href="<?= $page->parent()->url() ?>" class="inline-flex items-center gap-3 font-mono text-sm md:text-base uppercase tracking-wider text-faint hover:text-ink transition-colors duration-150 no-underline p-2 md:p-3 -m-2 md:-m-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="md:w-6 md:h-6">
-                <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-            Retour
-        </a>
-    </div>
-    <?php endif ?>
-
     <!-- ── Content and Viewer Wrapper for Animation ── -->
     <div class="project-panels-wrapper<?= $isViewerOnly ? ' is-viewer-only' : '' ?>">
         <!-- ── Left: Content & Specs (2 cols) — becomes bottom drawer on mobile ── -->
@@ -274,6 +261,16 @@ if ($modeParam && in_array($modeParam, $availableModes, true)) {
                 <div class="project-drawer__bar"></div>
                 <span class="project-drawer__label">Informations</span>
             </div>
+
+            <!-- Back to map — lives at the top of the info panel -->
+            <?php if (!$isEmbedded): ?>
+            <a href="<?= $page->parent()->url() ?>" class="project-back inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-faint hover:text-ink transition-colors duration-150 no-underline">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                Retour à la carte
+            </a>
+            <?php endif ?>
 
             <!-- Project title — lives inside the foldable sidebar on all breakpoints -->
             <div class="project-sidebar-title">
