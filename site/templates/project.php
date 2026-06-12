@@ -42,6 +42,24 @@ $isViewerOnly = $isEmbedded && get('viewer') === 'only';
 // stripped "visitor" header here.
 $isVisitor = false;
 
+// ── Canonical point-cloud glyph ──────────────────────────────────────────
+// One shape, used everywhere a point cloud is represented on the visitor
+// side (the mode dropdown + the "no cloud"/"unsupported" screens), so it
+// always matches the panel's `gh-pointcloud` tab icon. Geometry is identical
+// to that icon (project-ux/index.js): a big centre dot ringed by 8 satellites
+// on a circle of radius 7 around (12,12), at 45° steps. viewBox is 24×24 and
+// shapes fill with currentColor, so callers just wrap this in their own <svg>.
+$pcDots =
+      '<circle cx="12" cy="12" r="2.6"/>'        // centre (biggest)
+    . '<circle cx="12" cy="5" r="1.3"/>'         // ring of 8, clockwise from top
+    . '<circle cx="16.95" cy="7.05" r="1.3"/>'
+    . '<circle cx="19" cy="12" r="1.3"/>'
+    . '<circle cx="16.95" cy="16.95" r="1.3"/>'
+    . '<circle cx="12" cy="19" r="1.3"/>'
+    . '<circle cx="7.05" cy="16.95" r="1.3"/>'
+    . '<circle cx="5" cy="12" r="1.3"/>'
+    . '<circle cx="7.05" cy="7.05" r="1.3"/>';
+
 // ── Point-cloud preview (?pointcloud=1) ──────────────────────────────────
 // A self-contained view used by the panel's "Nuage de points" tab: render
 // ONLY the point-cloud viewer (an uploaded PLY/PCD via pointcloud-viewer.js),
@@ -68,12 +86,12 @@ if (!empty(get('pointcloud'))) {
         <div id="gh-pointcloud-viewer" data-src="<?= esc($pcInline->url()) ?>" data-format="<?= esc($pcInline->extension()) ?>"></div>
       <?php elseif ($pcOther): ?>
         <div class="pc-msg">
-          <svg class="pc-msg__ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="12" cy="12" r="1.7"/><circle cx="5.5" cy="7" r="1.3"/><circle cx="18.5" cy="6.5" r="1.3"/><circle cx="6" cy="17" r="1.3"/><circle cx="18" cy="17.5" r="1.3"/><circle cx="12" cy="4.5" r="1.1"/><circle cx="4.5" cy="12.5" r="1.1"/><circle cx="19.5" cy="12.5" r="1.1"/><text x="20" y="8" font-size="9" font-family="monospace" font-weight="700" fill="#fff">?</text></svg>
+          <svg class="pc-msg__ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><?= $pcDots ?><text x="20" y="8" font-size="9" font-family="monospace" font-weight="700" fill="#fff">?</text></svg>
           <span>Format <strong><?= strtoupper(esc($pcOther->extension())) ?></strong> non pris en charge</span>
         </div>
       <?php else: ?>
         <div class="pc-msg">
-          <svg class="pc-msg__ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="12" cy="12" r="1.7"/><circle cx="5.5" cy="7" r="1.3"/><circle cx="18.5" cy="6.5" r="1.3"/><circle cx="6" cy="17" r="1.3"/><circle cx="18" cy="17.5" r="1.3"/><circle cx="12" cy="4.5" r="1.1"/><circle cx="4.5" cy="12.5" r="1.1"/><circle cx="19.5" cy="12.5" r="1.1"/><line x1="3.5" y1="20.5" x2="20.5" y2="3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <svg class="pc-msg__ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><?= $pcDots ?><line x1="3.5" y1="20.5" x2="20.5" y2="3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           <span>Aucun nuage de points</span>
         </div>
       <?php endif ?>
@@ -394,7 +412,7 @@ if ($modeParam && in_array($modeParam, $availableModes, true)) {
             'model'      => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
             'gallery'    => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
             'plans'      => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',
-            'pointcloud' => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="1.8"/><circle cx="5" cy="7" r="1.4"/><circle cx="19" cy="6" r="1.4"/><circle cx="6" cy="17" r="1.4"/><circle cx="18" cy="18" r="1.4"/><circle cx="12" cy="4" r="1.2"/><circle cx="4" cy="13" r="1.2"/><circle cx="20" cy="13" r="1.2"/></svg>',
+            'pointcloud' => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">' . $pcDots . '</svg>',
         ];
         $modeLabels = [
             'model'      => 'Modèle 3D',
