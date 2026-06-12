@@ -22,7 +22,49 @@
 
 use Kirby\Cms\App as Kirby;
 
-Kirby::plugin('goheritage/core', []);
+Kirby::plugin('goheritage/core', [
+    // ── Strip HTML comments from production output ──────────────────────────
+    // PHP comments never reach the browser, but the `<!-- … -->` markup
+    // comments in templates/snippets DO show up in "view source". This hook
+    // removes them from the final HTML in production only (dev keeps them so
+    // the rendered source stays debuggable). Runs before Kirby caches the
+    // page, so the cached copy is already clean.
+    'hooks' => [
+        'page.render:after' => function (string $contentType, array $data, string $html, $page) {
+            if ($contentType !== 'html' || ghIsLocalEnv()) {
+                return $html;
+            }
+            return ghStripHtmlComments($html);
+        },
+    ],
+]);
+
+if (!function_exists('ghStripHtmlComments')) {
+    /**
+     * Remove HTML comments from a rendered document, then squeeze the blank
+     * lines they leave behind. Deliberately conservative:
+     *
+     *   - IE conditional comments (`<!--[if …]>`) are preserved — the negative
+     *     lookahead skips any comment opening with `[if`.
+     *   - Only runs of whitespace-only lines are collapsed (never two tags on
+     *     one line), so significant whitespace between inline elements is
+     *     untouched.
+     *
+     * Does NOT touch JS/CSS comments inside <script>/<style> — those would
+     * need a real minifier to strip safely; the front-end JS is already
+     * minified at build time (esbuild, comments dropped).
+     */
+    function ghStripHtmlComments(string $html): string
+    {
+        $out = preg_replace('/<!--(?!\[if).*?-->/s', '', $html);
+        if ($out === null) {
+            return $html; // regex failure (e.g. backtrack limit) — ship original
+        }
+        // Collapse runs of now-empty lines down to a single newline.
+        $out = preg_replace('/(?:[ \t]*\R){2,}/', "\n", $out);
+        return $out ?? $html;
+    }
+}
 
 if (!function_exists('ghIsLocalEnv')) {
     /**
