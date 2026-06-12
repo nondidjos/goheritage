@@ -250,8 +250,56 @@ function initPointCloud(container) {
     wrap.add(points);
     scene.add(wrap);
 
+    // ── Frame the camera on the OUTSIDE of the cloud ──────────────────────
+    // A fixed camera octant lands on the wrong side of one-sided scans
+    // (building facades especially) about half the time. When the cloud has
+    // per-point normals — most facade / photogrammetry exports do — average
+    // them to find which way the surface faces, and sit the camera on that
+    // side, so we open looking AT the facade instead of through its back.
     const radius = diag / 2;
-    camera.position.set(radius * 1.2, radius * 0.55, radius * 1.4);
+    const dist = radius * 1.7;       // pulled back enough to frame the whole cloud
+    const elevation = radius * 0.4;  // a gentle look-down
+
+    // Outward facing direction, in GEOMETRY space (scan data is Z-up).
+    let face = null;
+    const nAttr = geometry.getAttribute('normal');
+    if (nAttr && nAttr.count) {
+      const acc = new THREE.Vector3();
+      const tmp = new THREE.Vector3();
+      // Sample (≤20k points) — averaging every normal on a multi-million-point
+      // cloud is needless work; the dominant direction is stable at this size.
+      const step = Math.max(1, Math.floor(nAttr.count / 20000));
+      for (let i = 0; i < nAttr.count; i += step) {
+        tmp.set(nAttr.getX(i), nAttr.getY(i), nAttr.getZ(i));
+        if (tmp.lengthSq() > 0) acc.add(tmp.normalize());
+      }
+      acc.z = 0;                       // drop the up component → horizontal facing
+      if (acc.lengthSq() > 1e-4) face = acc.normalize();
+    }
+    if (!face) {
+      // No usable normals: look along the thinnest horizontal axis (a facade's
+      // depth is its smallest horizontal extent). Sign is arbitrary here.
+      face = (size.x <= size.y)
+        ? new THREE.Vector3(1, 0, 0)
+        : new THREE.Vector3(0, 1, 0);
+    }
+
+    // Eye position in geometry space: out along the facing direction, lifted a
+    // little, with a slight lateral skew for a flattering 3/4 angle. The cloud
+    // is centred on the origin (we translated the geometry), so this is
+    // relative to the model centre.
+    const sideDir = new THREE.Vector3(-face.y, face.x, 0); // horizontal perpendicular
+    const eyeGeom = new THREE.Vector3()
+      .addScaledVector(face, dist)
+      .addScaledVector(sideDir, dist * 0.3);
+    eyeGeom.z += elevation;
+
+    // The cloud lives inside `wrap` (the Z-up→Y-up rotation), so convert the
+    // geometry-space eye into world space through it. wrap is rotation-only, so
+    // the model centre still maps to the world origin.
+    wrap.updateMatrixWorld(true);
+    camera.position.copy(wrap.localToWorld(eyeGeom));
+
     // Keep the near/far span tight around the model so the depth buffer has
     // adequate precision (a huge near:far ratio also causes flicker).
     camera.near = Math.max(radius / 500, 0.01);
@@ -259,6 +307,13 @@ function initPointCloud(container) {
     camera.updateProjectionMatrix();
     controls.target.set(0, 0, 0);
     controls.update();
+
+    // Depth cue: fade the far tail of the cloud into the background so depth
+    // reads at a glance. Near points already render larger (sizeAttenuation,
+    // above); the fog supplies the complementary "further = fainter" half.
+    // Starts at the camera distance so the model body stays crisp and only
+    // what's behind it recedes.
+    scene.fog = new THREE.Fog(0x1a1a1a, dist, dist + radius * 4);
 
     hideProgress();
     document.body.classList.add('viewer-is-ready');

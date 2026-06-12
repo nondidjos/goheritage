@@ -37,11 +37,15 @@
     var STYLE_URL = 'https://api.maptiler.com/maps/streets-v2/style.json?key=' + MAPTILER_KEY;
     var SITES = JSON.parse(mapEl.dataset.sites || '[]');
 
+    // Initial view: framed on Belgium (most sites are there) while still
+    // keeping the top half of France in frame. Centre sits just south of the
+    // Belgian border so Belgium reads as the focus and northern France fills
+    // the lower portion of the map.
     var map = new maplibregl.Map({
         container: 'heritage-map',
         style: STYLE_URL,
-        center: [2.3, 46.5],
-        zoom: 5,
+        center: [4.5, 49.8],
+        zoom: 6.3,
         attributionControl: true,
     });
 
@@ -272,6 +276,43 @@
             });
         }
     });
+
+    // ── Prioritise on-screen sites in the side list ──────────────────────────
+    // Cards for sites currently inside the map viewport float to the top of the
+    // list (keeping their relative order); everything else stays in the list,
+    // just below. Re-runs whenever the map settles after a pan/zoom.
+    var mapListEl = document.getElementById('map-list');
+
+    function reorderListByViewport() {
+        if (!mapListEl) return;
+        var bounds = map.getBounds();
+        var cards = Array.prototype.slice.call(mapListEl.querySelectorAll('.map-card'));
+        var onscreen = [], offscreen = [];
+
+        cards.forEach(function (card) {
+            var lat = parseFloat(card.dataset.lat);
+            var lng = parseFloat(card.dataset.lng);
+            var inView = !isNaN(lat) && !isNaN(lng) && bounds.contains([lng, lat]);
+            card.classList.toggle('map-card--onscreen', inView);
+            (inView ? onscreen : offscreen).push(card);
+        });
+
+        // Stable partition: on-screen first, rest after, each group keeping its
+        // original order. Bail if the DOM order already matches so we don't
+        // thrash layout (or fight the list scroll) on every idle map event.
+        var ordered = onscreen.concat(offscreen);
+        var changed = ordered.some(function (c, i) { return mapListEl.children[i] !== c; });
+        if (!changed) return;
+
+        // appendChild MOVES existing nodes (no clone), so card listeners and the
+        // active highlight survive the reorder.
+        var frag = document.createDocumentFragment();
+        ordered.forEach(function (c) { frag.appendChild(c); });
+        mapListEl.appendChild(frag);
+    }
+
+    map.on('load', reorderListByViewport);
+    map.on('moveend', reorderListByViewport);
 
     // ── Search + tag filter ──────────────────────────────────────────────────
     var searchInput = document.getElementById('map-search');
