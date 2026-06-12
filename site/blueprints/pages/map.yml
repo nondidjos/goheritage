@@ -1,24 +1,20 @@
 title: Carte
 icon: map
 
-# Trim the page options (⋯) menu and header buttons to match the project
-# pages. Visibility is handled by the custom "Visibilité" button (privé /
-# lien / public) — Kirby's native status/position/template/move controls
-# are removed so they don't show greyed-out or conflict with it.
+# Trim the page options (⋯) menu — drop status/position/template/move so
+# nothing greyed-out lingers (the disabled entries are also hidden by the
+# panel CSS in project-ux).
 options:
   changeStatus: false
   changeTemplate: false
   move: false
   sort: false
 
-# Header buttons (top-right), same set as a project page: the big
-# "Voir la page publique" link, the preview, the trimmed settings (⋯),
-# and the Visibilité dropdown. Replaces Kirby's default status pill.
+# Header buttons (top-right): ONLY the big "Voir la page publique" link.
+# No preview, no settings ⋯, no status/visibility pill — the map page is
+# always public and is edited via its fields, not the header chrome.
 buttons:
   - visit-page
-  - preview
-  - settings
-  - visibility
 
 columns:
   - width: 1/3

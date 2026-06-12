@@ -16,6 +16,24 @@
 
 
 /* ──────────────────────────────────────────────────────────────────────
+ *  0. Hide disabled options in every page-options dropdown (GLOBAL)
+ *
+ *  Kirby's page dropdown (Panel\Page::dropdown) ALWAYS emits changeStatus,
+ *  changeSort, changeTemplate and move — it merely sets `aria-disabled`
+ *  when a blueprint turns the option off, so the greyed-out entries keep
+ *  "popping up" in the ⋯ / k-item-options menus (e.g. each project in the
+ *  map list). Blueprint `options:` can't remove them; this does.
+ *
+ *  NOT scoped to `body.gh-project-edit`: dropdowns are teleported to <body>
+ *  and the map listing isn't a project page, so the rule has to be global.
+ *  Hiding an unusable (disabled) menu entry is harmless everywhere.
+ * ────────────────────────────────────────────────────────────────────── */
+.k-dropdown-content .k-dropdown-item[aria-disabled="true"] {
+  display: none !important;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────
  *  1. Visibility pill + dropdown (page header)
  * ────────────────────────────────────────────────────────────────────── */
 
