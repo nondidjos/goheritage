@@ -161,7 +161,15 @@
   display: none !important;
 }
 
-/*  Card wrapper — gives the inventory a contained "browser" panel look
+/*  Inventory stack — one card per file category, spaced apart so each kind
+    of file reads as its own section instead of one undifferentiated box. */
+.k-page-files-list-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/*  Card wrapper — gives each category a contained "browser" panel look
     (border + rounded corners + clipped header fill) rather than a bare
     table floating in the section. Theme-adaptive via Kirby's vars. */
 .k-page-files-list-wrap {
@@ -170,6 +178,56 @@
   overflow: hidden;
   background: var(--panel-color-back, var(--color-bg, #fff));
 }
+
+/* ── Category card header ────────────────────────────────────────────────
+   Tinted icon + label + file count. A left accent bar in the category's
+   colour makes the sections scannable at a glance. */
+.k-files-group__head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.85rem;
+  background: var(--color-back, rgba(0, 0, 0, 0.035));
+  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
+  border-left: 3px solid var(--gh-cat-color, rgba(0, 0, 0, 0.25));
+}
+.k-files-group__icon {
+  width: 1.15em;
+  height: 1.15em;
+  color: var(--gh-cat-color, var(--color-text-dimmed, rgba(0, 0, 0, 0.5)));
+  flex-shrink: 0;
+}
+.k-files-group__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text, #1a1a1a);
+}
+.k-files-group__count {
+  margin-left: auto;
+  min-width: 1.4em;
+  padding: 0.05rem 0.4rem;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.6));
+  background: var(--color-back, rgba(0, 0, 0, 0.06));
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+  border-radius: 999px;
+}
+
+/* Per-category accent colour — drives both the icon and the left bar.
+   Mirrors the icon tints used in the name column below. */
+.k-files-group[data-cat="model"]   { --gh-cat-color: #7a6ff0; }
+.k-files-group[data-cat="texture"] { --gh-cat-color: #b07fd0; }
+.k-files-group[data-cat="cloud"]   { --gh-cat-color: #3e8ed0; }
+.k-files-group[data-cat="image"]   { --gh-cat-color: #4f9d69; }
+.k-files-group[data-cat="doc"]     { --gh-cat-color: #c8694e; }
+.k-files-group[data-cat="data"]    { --gh-cat-color: #b08900; }
+.k-files-group[data-cat="archive"] { --gh-cat-color: #8a8a8a; }
+.k-files-group[data-cat="video"]   { --gh-cat-color: #c2548a; }
 
 .k-page-files-list {
   width: 100%;
@@ -220,30 +278,6 @@
 
 .k-page-files-list tbody tr:hover td {
   background: var(--color-hover, rgba(0, 0, 0, 0.05));
-}
-
-/* ── Category group header rows ─────────────────────────────────────────
-   Filled band so the label clearly separates sections — not just dim text
-   floating between rows. Top border marks the break from the section
-   above; bottom border grounds the label against its own files. */
-.k-page-files-list__grouprow td {
-  padding: 0.35rem 0.85rem;
-  background: var(--color-back, rgba(0, 0, 0, 0.04)) !important;
-  border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.12)) !important;
-  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.08)) !important;
-}
-.k-page-files-list__grouprow:hover td {
-  background: var(--color-back, rgba(0, 0, 0, 0.04)) !important;
-}
-.k-page-files-list tbody .k-page-files-list__grouprow:first-child td {
-  border-top: none !important;
-}
-.k-page-files-list__groupname {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--color-text, #1a1a1a);
 }
 
 /* ── Name column: flex lives on the inner <span>, not the <td> ─────── */
