@@ -412,7 +412,11 @@ if ($modeParam && in_array($modeParam, $availableModes, true)) {
             'model'      => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
             'gallery'    => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
             'plans'      => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',
+<<<<<<< HEAD
             'pointcloud' => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">' . $pcDots . '</svg>',
+=======
+            'pointcloud' => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="2.6"/><circle cx="12" cy="5" r="1.3"/><circle cx="16.95" cy="7.05" r="1.3"/><circle cx="19" cy="12" r="1.3"/><circle cx="16.95" cy="16.95" r="1.3"/><circle cx="12" cy="19" r="1.3"/><circle cx="7.05" cy="16.95" r="1.3"/><circle cx="5" cy="12" r="1.3"/><circle cx="7.05" cy="7.05" r="1.3"/></svg>',
+>>>>>>> 6b13bc1 (fix(pointcloud): unify icon to symmetric 9-dot cluster, fix dropdown right-bleed)
         ];
         $modeLabels = [
             'model'      => 'Modèle 3D',
