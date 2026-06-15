@@ -27,12 +27,19 @@ snippet('header');
   <div class="col-5">
     <!-- removing aspect ratio constraints and just letting the image fill its natural column height natively -->
     <div class="w-full h-full bg-surface rounded-md overflow-hidden min-h-[50vh]">
-      <?php if ($heroMedia = $page->heroImage()->toFile()): ?>
+      <?php
+      // Desktop renders the landscape "hero" field. Fall back to the portrait
+      // field if only that one was filled, so an uploaded image always shows
+      // instead of a blank surface box.
+      $heroMobile = $page->heroImageMobile()->toFile();
+      $heroMedia  = $page->heroImage()->toFile() ?: $heroMobile;
+      ?>
+      <?php if ($heroMedia): ?>
         <?php if ($heroMedia->type() === 'video'): ?>
           <video src="<?= $heroMedia->url() ?>" class="w-full h-full object-cover" autoplay muted loop playsinline></video>
         <?php else: ?>
           <picture>
-            <?php if ($heroMobile = $page->heroImageMobile()->toFile()): ?>
+            <?php if ($heroMobile && $heroMobile->id() !== $heroMedia->id()): ?>
               <source media="(max-width: 640px)" srcset="<?= $heroMobile->url() ?>">
             <?php endif ?>
             <img src="<?= $heroMedia->url() ?>" alt="<?= $heroMedia->alt()->esc() ?>" class="w-full h-full object-cover" loading="eager">
