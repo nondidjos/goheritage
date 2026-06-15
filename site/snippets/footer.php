@@ -50,17 +50,23 @@ if ($isMapPage) {
     <div class="col-1">
       <h2 class="font-mono text-xs uppercase tracking-wider text-[#6B6965] mb-4">Nous suivre</h2>
       <ul class="list-none flex flex-col gap-2">
-      <?php if ($site->social()->isNotEmpty()): ?>
-        <?php foreach ($site->social()->toStructure() as $social): ?>
-          <li><a href="<?= $social->url() ?>" target="_blank" rel="noopener"
-              class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline"><?= $social->platform()->esc() ?></a>
-          </li>
-        <?php endforeach ?>
-      <?php else: ?>
-        <li><a href="https://mastodon.social" target="_blank" rel="noopener"
-            class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline">Mastodon</a>
+      <?php
+      // Only show entries that have BOTH a platform name and a real http(s)
+      // link. This drops half-filled rows (the panel sync already does the
+      // same) and, with esc() on the href, blocks a stored javascript:/data:
+      // URL from becoming a clickable XSS vector.
+      $socials = $site->social()->toStructure()->filter(function ($s) {
+          $url = trim((string) $s->url());
+          return $url !== ''
+              && preg_match('~^https?://~i', $url)
+              && trim((string) $s->platform()) !== '';
+      });
+      ?>
+      <?php foreach ($socials as $social): ?>
+        <li><a href="<?= esc($social->url(), 'attr') ?>" target="_blank" rel="noopener"
+            class="font-sans text-sm text-[#9A9894] no-underline transition-colors duration-150 hover:text-white hover:no-underline"><?= $social->platform()->esc() ?></a>
         </li>
-      <?php endif ?>
+      <?php endforeach ?>
       </ul>
     </div>
 

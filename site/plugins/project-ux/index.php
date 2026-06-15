@@ -687,10 +687,16 @@ Kirby::plugin('goheritage/project-ux', [
                     $social = [];
                     try {
                         foreach ($site->social()->toStructure() as $s) {
-                            if ($s->url()->isNotEmpty()) {
+                            $url = trim((string) $s->url());
+                            // Require a real http(s) link + a name. Blocks
+                            // half-filled rows and javascript:/data: URLs (the
+                            // panel renderer would happily make them clickable).
+                            if ($url !== ''
+                                && preg_match('~^https?://~i', $url)
+                                && trim((string) $s->platform()) !== '') {
                                 $social[] = [
                                     'platform' => (string) $s->platform(),
-                                    'url'      => (string) $s->url(),
+                                    'url'      => $url,
                                 ];
                             }
                         }
