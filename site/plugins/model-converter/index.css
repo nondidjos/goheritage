@@ -203,39 +203,34 @@
 .k-files-group__head-inner {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.5rem 0.85rem;
+  gap: 0.4rem;
+  padding: 0.22rem 0.65rem;
 }
 .k-files-group__icon {
-  width: 1.15em;
-  height: 1.15em;
+  width: 1em;
+  height: 1em;
   color: var(--gh-cat-color, var(--color-text-dimmed, rgba(0, 0, 0, 0.5)));
   flex-shrink: 0;
 }
 .k-files-group__label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--color-text, #1a1a1a);
-}
-.k-files-group__count {
-  min-width: 1.4em;
-  padding: 0.05rem 0.4rem;
-  text-align: center;
   font-size: 0.68rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.65));
+}
+.k-files-group__count {
+  padding: 0 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.6));
-  background: var(--color-back, rgba(0, 0, 0, 0.06));
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
-  border-radius: 999px;
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.5));
 }
 .k-files-group__chevron {
   margin-left: auto;
-  width: 1em;
-  height: 1em;
-  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.4));
+  width: 0.85em;
+  height: 0.85em;
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.35));
   transition: transform 0.15s ease;
 }
 .k-files-group__head-row.is-collapsed .k-files-group__chevron {
@@ -365,48 +360,82 @@
   font-size: 0.8rem;
 }
 
-/* ── Actions column ───────────────────────────────────────────────── */
+/* ── Actions column + ··· menu ────────────────────────────────────── */
 .k-page-files-list__th--actions,
 .k-page-files-list__td--actions {
-  width: 5.5rem;
+  width: 3rem;
   text-align: right;
-  white-space: nowrap;
 }
 
-/* Shared base for both action buttons + the download link. */
-.k-page-files-list__action {
+.k-file-menu {
+  position: relative;
+  display: inline-flex;
+  justify-content: flex-end;
+}
+
+.k-file-menu__trigger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.1rem;
-  height: 2.1rem;
+  width: 2rem;
+  height: 2rem;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 5px;
   background: transparent;
-  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.5));
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.45));
   cursor: pointer;
-  opacity: 0.35;
-  text-decoration: none;
-  transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease, opacity 0.1s ease;
+  opacity: 0;
+  transition: opacity 0.1s ease, background 0.1s ease;
 }
-.k-page-files-list tbody tr:not(.k-files-group__head-row):hover .k-page-files-list__action { opacity: 1; }
-.k-page-files-list__action:hover {
+.k-file-menu__trigger .k-icon { width: 1em; height: 1em; }
+.k-page-files-list tbody tr:not(.k-files-group__head-row):hover .k-file-menu__trigger,
+.k-file-menu.is-open .k-file-menu__trigger { opacity: 1; }
+.k-file-menu__trigger:hover,
+.k-file-menu.is-open .k-file-menu__trigger {
   background: var(--color-hover, rgba(0, 0, 0, 0.07));
   border-color: var(--color-border, rgba(0, 0, 0, 0.12));
+}
+
+.k-file-menu__popup {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 100;
+  min-width: 10rem;
+  padding: 4px;
+  background: var(--color-bg, #fff);
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.12));
+  border-radius: 7px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.k-file-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.38rem 0.6rem;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
   color: var(--color-text, #1a1a1a);
+  font-size: 0.82rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.08s ease;
 }
-.k-page-files-list__delete:hover {
-  background: var(--color-negative, #b3261e);
-  border-color: var(--color-negative, #b3261e);
-  color: #fff;
-}
-.k-page-files-list__action .k-icon { width: 1.1em; height: 1.1em; }
+.k-file-menu__item:hover { background: var(--color-hover, rgba(0, 0, 0, 0.06)); }
+.k-file-menu__item .k-icon { width: 1em; height: 1em; flex-shrink: 0; color: var(--color-text-dimmed, rgba(0,0,0,0.5)); }
+.k-file-menu__item--danger { color: var(--color-negative, #b3261e); }
+.k-file-menu__item--danger:hover { background: rgba(179, 38, 30, 0.08); }
+.k-file-menu__item--danger .k-icon { color: var(--color-negative, #b3261e); }
 
 /* Narrow viewports: drop the date column + keep the delete button visible
    (no hover on touch). */
 @media (max-width: 50rem) {
   .k-page-files-list__th--date,
   .k-page-files-list__td--date { display: none; }
-  .k-page-files-list__delete { opacity: 1; }
+  .k-file-menu__trigger { opacity: 1; }
 }

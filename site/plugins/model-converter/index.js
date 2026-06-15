@@ -549,7 +549,15 @@ panel.plugin('goheritage/model-converter', {
           sortBy: 'modified',  // default: newest first
           sortDir: 'desc',
           collapsed: {},
+          openMenu: null,
         };
+      },
+      mounted() {
+        this._closeMenus = () => { this.openMenu = null; };
+        document.addEventListener('click', this._closeMenus);
+      },
+      beforeUnmount() {
+        document.removeEventListener('click', this._closeMenus);
       },
       watch: {
         rows: { immediate: true, handler(v) { this.localFiles = Array.isArray(v) ? [...v] : []; } },
@@ -665,7 +673,11 @@ panel.plugin('goheritage/model-converter', {
           }
         },
         toggleGroup(key) {
-          this.collapsed[key] = !this.collapsed[key];
+          this.collapsed = { ...this.collapsed, [key]: !this.collapsed[key] };
+        },
+        toggleMenu(filename, e) {
+          e.stopPropagation();
+          this.openMenu = this.openMenu === filename ? null : filename;
         },
         setSort(key) {
           if (this.sortBy === key) {
@@ -746,7 +758,7 @@ panel.plugin('goheritage/model-converter', {
                       </div>
                     </td>
                   </tr>
-                  <tr v-for="f in g.files" v-show="!collapsed[g.key]" :key="f.filename">
+                  <tr v-if="!collapsed[g.key]" v-for="f in g.files" :key="f.filename">
                     <td class="k-page-files-list__td--name">
                       <span class="k-page-files-list__name-inner" :data-cat="fileKind(f.category).cat">
                         <k-icon :type="fileKind(f.category).icon" />
@@ -759,12 +771,19 @@ panel.plugin('goheritage/model-converter', {
                     <td class="k-page-files-list__td--size">{{ f.size }}</td>
                     <td class="k-page-files-list__td--date">{{ f.modified }}</td>
                     <td class="k-page-files-list__td--actions">
-                      <a :href="f.url" :download="f.filename" class="k-page-files-list__action" :title="'Télécharger ' + f.filename" :aria-label="'Télécharger ' + f.filename">
-                        <k-icon type="download" />
-                      </a>
-                      <button type="button" class="k-page-files-list__action k-page-files-list__delete" @click="confirmDelete(f)" :title="'Supprimer ' + f.filename" :aria-label="'Supprimer ' + f.filename">
-                        <k-icon type="trash" />
-                      </button>
+                      <div class="k-file-menu" :class="{ 'is-open': openMenu === f.filename }">
+                        <button type="button" class="k-file-menu__trigger" @click="toggleMenu(f.filename, $event)" :aria-label="'Actions — ' + f.filename">
+                          <k-icon type="dots" />
+                        </button>
+                        <div v-if="openMenu === f.filename" class="k-file-menu__popup" @click.stop>
+                          <a :href="f.url" :download="f.filename" class="k-file-menu__item">
+                            <k-icon type="download" /><span>Télécharger</span>
+                          </a>
+                          <button type="button" class="k-file-menu__item k-file-menu__item--danger" @click="confirmDelete(f); openMenu = null">
+                            <k-icon type="trash" /><span>Supprimer</span>
+                          </button>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 </template>
