@@ -2472,6 +2472,10 @@ panel.plugin('goheritage/project-ux', {
   // next ghGlobalChrome tick (≤1s) retries instead of locking in empty data.
   var _ghFooterData  = null;
   var _ghFooterBusy  = false; // prevents concurrent fetches
+  var _ghFooterAt    = 0;     // last successful fetch (ms) — drives the TTL refresh
+  var FOOTER_TTL     = 30000; // re-pull footer data at most this often so panel
+                              // edits (e.g. adding a social URL) appear without
+                              // a full browser reload
 
   function esc(s) {
     return String(s || '')
@@ -2596,14 +2600,17 @@ panel.plugin('goheritage/project-ux', {
   }
 
   function ensurePanelFooter() {
-    // Have data + footer present → keep it pinned as last child and bail.
+    // Keep any existing footer pinned as the last child (Vue re-renders detach
+    // it). Then refresh in the background once the cache is older than the TTL
+    // so panel edits (social links, tagline…) appear without a full reload —
+    // the stale footer stays visible meanwhile, no flicker.
     if (_ghFooterData) {
       var existing = document.getElementById('gh-panel-footer');
       var main = document.querySelector('.k-panel-main');
       if (!existing || (main && main.lastElementChild !== existing)) {
         injectPanelFooter(_ghFooterData);
       }
-      return;
+      if (Date.now() - _ghFooterAt < FOOTER_TTL) return; // still fresh
     }
     if (_ghFooterBusy) return;
     if (!window.panel || !window.panel.user) return; // wait for auth
@@ -2611,7 +2618,7 @@ panel.plugin('goheritage/project-ux', {
     _ghFooterBusy = true;
     fetchFooterData().then(function (d) {
       _ghFooterBusy = false;
-      if (d) { _ghFooterData = d; injectPanelFooter(d); }
+      if (d) { _ghFooterData = d; _ghFooterAt = Date.now(); injectPanelFooter(d); }
       // else: stays null, retried on the next ghGlobalChrome tick
     });
   }
