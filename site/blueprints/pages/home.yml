@@ -8,6 +8,10 @@ tabs:
   hero:
     label: Hero
     fields:
+      showHero:
+        label: Afficher la section Hero
+        type: toggle
+        default: true
       heroHeading:
         label: Titre principal
         type: text
@@ -28,6 +32,10 @@ tabs:
   compare:
     label: Jumeau numérique
     fields:
+      showCompare:
+        label: Afficher la section Jumeau numérique
+        type: toggle
+        default: true
       compareHeading:
         label: Titre de la section
         type: text
@@ -58,6 +66,10 @@ tabs:
   procede:
     label: Procédé
     fields:
+      showProcede:
+        label: Afficher la section Procédé
+        type: toggle
+        default: true
       procedeHeading:
         label: Titre de la section
         type: text
@@ -107,6 +119,10 @@ tabs:
   manifesto:
     label: Manifeste
     fields:
+      showManifesto:
+        label: Afficher la section Manifeste
+        type: toggle
+        default: true
       manifestoTag:
         label: Étiquette
         type: text
@@ -158,6 +174,10 @@ tabs:
   deliverables:
     label: Livrables
     fields:
+      showDeliverables:
+        label: Afficher la section Livrables
+        type: toggle
+        default: true
       deliverablesTag:
         label: Étiquette
         type: text
@@ -206,6 +226,10 @@ tabs:
   projects:
     label: Projets
     fields:
+      showProjects:
+        label: Afficher la section Projets
+        type: toggle
+        default: true
       projectsHeading:
         label: Titre de la section projets
         type: text
@@ -213,6 +237,10 @@ tabs:
   impact:
     label: Mission
     fields:
+      showImpact:
+        label: Afficher la section Mission
+        type: toggle
+        default: true
       impactTag:
         label: Étiquette
         type: text

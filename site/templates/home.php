@@ -3,6 +3,7 @@
 snippet('header');
 ?>
 
+<?php if ($page->showHero()->toBool(true)): ?>
 <section class="items-end min-h-[85vh] pt-4 pb-16" id="hero-section">
 
   <div class="col-2 order-2 lg:order-1 flex flex-col justify-end pb-2">
@@ -50,9 +51,11 @@ snippet('header');
   </div>
 
 </section>
+<?php endif ?>
 
 
 
+<?php if ($page->showCompare()->toBool(true)): ?>
 <section class="py-12 md:py-20">
 
   <div class="col-4">
@@ -103,7 +106,9 @@ snippet('header');
   </div>
 
 </section>
+<?php endif ?>
 
+<?php if ($page->showProcede()->toBool(true)): ?>
 <section class="pt-12 pb-12 md:pb-20">
   <h2 class="col-7 font-sans text-[clamp(1.25rem,2vw,1.75rem)] text-ink leading-tight mb-6">
     <?= $page->procedeHeading()->or('Le procédé GOVR') ?>
@@ -182,7 +187,9 @@ snippet('header');
     </div>
   </div>
 </section>
+<?php endif ?>
 
+<?php if ($page->showManifesto()->toBool(true)): ?>
 <section class="py-12 md:py-20">
 
   <div class="col-7 bg-ink rounded-md overflow-hidden">
@@ -229,6 +236,7 @@ snippet('header');
   </div>
 
 </section>
+<?php endif ?>
 
 <?php if ($featured_project = $site->featured_project()->toPage()): ?>
 <section class="py-12 md:py-20">
@@ -269,6 +277,7 @@ snippet('header');
 </section>
 <?php endif ?>
 
+<?php if ($page->showProjects()->toBool(true)): ?>
 <section class="py-12 md:py-20">
   <h2 class="col-7 font-sans text-[clamp(1.25rem,2vw,1.75rem)] text-ink leading-tight mb-6">
     <?= $page->projectsHeading()->or('Nos derniers projets') ?>
@@ -326,7 +335,9 @@ snippet('header');
   </div>
 
 </section>
+<?php endif ?>
 
+<?php if ($page->showDeliverables()->toBool(true)): ?>
 <section class="py-12 md:py-20">
 
   <!-- Left: intro + CTA (3 cols) -->
@@ -385,7 +396,9 @@ snippet('header');
   </div>
 
 </section>
+<?php endif ?>
 
+<?php if ($page->showImpact()->toBool(true)): ?>
 <section class="py-12 mb-8 md:mb-16">
   <div class="col-7 relative rounded-md overflow-hidden min-h-[40vh] md:min-h-[50vh] flex items-center justify-center p-6 md:p-12 bg-ink">
     <?php if ($impactImg = $page->impactImage()->toFile()): ?>
@@ -422,5 +435,6 @@ snippet('header');
     </div>
   </div>
 </section>
+<?php endif ?>
 
 <?php snippet('footer') ?>
