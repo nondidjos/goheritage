@@ -161,17 +161,8 @@
   display: none !important;
 }
 
-/*  Inventory stack — one card per file category, spaced apart so each kind
-    of file reads as its own section instead of one undifferentiated box. */
-.k-page-files-list-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-
-/*  Card wrapper — gives each category a contained "browser" panel look
-    (border + rounded corners + clipped header fill) rather than a bare
-    table floating in the section. Theme-adaptive via Kirby's vars. */
+/*  Card wrapper — single border/radius card for the whole table.
+    Group separators are table rows inside, not separate cards. */
 .k-page-files-list-wrap {
   border: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
   border-radius: var(--rounded, 6px);
@@ -179,17 +170,31 @@
   background: var(--panel-color-back, var(--color-bg, #fff));
 }
 
-/* ── Category card header ────────────────────────────────────────────────
-   Tinted icon + label + file count. A left accent bar in the category's
-   colour makes the sections scannable at a glance. */
-.k-files-group__head {
+/* ── Category separator rows ─────────────────────────────────────────────
+   One <tr> per group; a single full-width <td> holds the icon + label +
+   count. The left accent bar uses inset box-shadow so it doesn't shift
+   column widths under border-collapse. */
+.k-files-group__head-row[data-cat="model"]   { --gh-cat-color: #7a6ff0; }
+.k-files-group__head-row[data-cat="texture"] { --gh-cat-color: #b07fd0; }
+.k-files-group__head-row[data-cat="cloud"]   { --gh-cat-color: #3e8ed0; }
+.k-files-group__head-row[data-cat="image"]   { --gh-cat-color: #4f9d69; }
+.k-files-group__head-row[data-cat="doc"]     { --gh-cat-color: #c8694e; }
+.k-files-group__head-row[data-cat="data"]    { --gh-cat-color: #b08900; }
+.k-files-group__head-row[data-cat="archive"] { --gh-cat-color: #8a8a8a; }
+.k-files-group__head-row[data-cat="video"]   { --gh-cat-color: #c2548a; }
+
+.k-files-group__head-cell {
   display: flex;
   align-items: center;
   gap: 0.55rem;
   padding: 0.5rem 0.85rem;
   background: var(--color-back, rgba(0, 0, 0, 0.035));
   border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
-  border-left: 3px solid var(--gh-cat-color, rgba(0, 0, 0, 0.25));
+  box-shadow: inset 3px 0 0 var(--gh-cat-color, rgba(0, 0, 0, 0.25));
+}
+/* Visual gap above every group after the first. */
+.k-files-group__head-row ~ .k-files-group__head-row .k-files-group__head-cell {
+  border-top: 2px solid var(--color-border, rgba(0, 0, 0, 0.1));
 }
 .k-files-group__icon {
   width: 1.15em;
@@ -217,17 +222,6 @@
   border: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
   border-radius: 999px;
 }
-
-/* Per-category accent colour — drives both the icon and the left bar.
-   Mirrors the icon tints used in the name column below. */
-.k-files-group[data-cat="model"]   { --gh-cat-color: #7a6ff0; }
-.k-files-group[data-cat="texture"] { --gh-cat-color: #b07fd0; }
-.k-files-group[data-cat="cloud"]   { --gh-cat-color: #3e8ed0; }
-.k-files-group[data-cat="image"]   { --gh-cat-color: #4f9d69; }
-.k-files-group[data-cat="doc"]     { --gh-cat-color: #c8694e; }
-.k-files-group[data-cat="data"]    { --gh-cat-color: #b08900; }
-.k-files-group[data-cat="archive"] { --gh-cat-color: #8a8a8a; }
-.k-files-group[data-cat="video"]   { --gh-cat-color: #c2548a; }
 
 .k-page-files-list {
   width: 100%;
@@ -276,7 +270,7 @@
 }
 .k-page-files-list tbody tr:last-child td { border-bottom: none; }
 
-.k-page-files-list tbody tr:hover td {
+.k-page-files-list tbody tr:not(.k-files-group__head-row):hover td {
   background: var(--color-hover, rgba(0, 0, 0, 0.05));
 }
 
@@ -374,7 +368,7 @@
   opacity: 0.35;
   transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease, opacity 0.1s ease;
 }
-.k-page-files-list tbody tr:hover .k-page-files-list__delete { opacity: 1; }
+.k-page-files-list tbody tr:not(.k-files-group__head-row):hover .k-page-files-list__delete { opacity: 1; }
 .k-page-files-list__delete:hover {
   background: var(--color-negative, #b3261e);
   border-color: var(--color-negative, #b3261e);

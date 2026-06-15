@@ -711,35 +711,34 @@ panel.plugin('goheritage/model-converter', {
             :disabled="busyAll"
             @click="confirmDeleteAll"
           />
-          <div v-if="localFiles.length" class="k-page-files-list-stack">
-            <!-- One card per category, so each kind of file (point clouds,
-                 models, textures, photos…) reads as its own clearly-bounded
-                 section rather than band-rows floating in a single table. -->
-            <div v-for="g in groups" :key="g.key" class="k-page-files-list-wrap k-files-group" :data-cat="g.cat">
-              <div class="k-files-group__head">
-                <k-icon :type="g.icon" class="k-files-group__icon" />
-                <span class="k-files-group__label">{{ g.label }}</span>
-                <span class="k-files-group__count">{{ g.files.length }}</span>
-              </div>
-              <table class="k-page-files-list">
-                <thead>
-                  <tr>
-                    <th class="k-page-files-list__th--name k-page-files-list__th--sort" role="button" tabindex="0" :aria-sort="ariaSort('filename')" @click="setSort('filename')" @keydown.enter.prevent="setSort('filename')" @keydown.space.prevent="setSort('filename')" :data-active="sortBy === 'filename'" :data-dir="sortDir">
-                      Nom <span class="k-page-files-list__sort-icon" v-if="sortBy === 'filename'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
-                    </th>
-                    <th class="k-page-files-list__th--ext k-page-files-list__th--sort" role="button" tabindex="0" :aria-sort="ariaSort('extension')" @click="setSort('extension')" @keydown.enter.prevent="setSort('extension')" @keydown.space.prevent="setSort('extension')" :data-active="sortBy === 'extension'" :data-dir="sortDir">
-                      Type <span class="k-page-files-list__sort-icon" v-if="sortBy === 'extension'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
-                    </th>
-                    <th class="k-page-files-list__th--size k-page-files-list__th--sort" role="button" tabindex="0" :aria-sort="ariaSort('size')" @click="setSort('size')" @keydown.enter.prevent="setSort('size')" @keydown.space.prevent="setSort('size')" :data-active="sortBy === 'size'" :data-dir="sortDir">
-                      Taille <span class="k-page-files-list__sort-icon" v-if="sortBy === 'size'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
-                    </th>
-                    <th class="k-page-files-list__th--date k-page-files-list__th--sort" role="button" tabindex="0" :aria-sort="ariaSort('modified')" @click="setSort('modified')" @keydown.enter.prevent="setSort('modified')" @keydown.space.prevent="setSort('modified')" :data-active="sortBy === 'modified'" :data-dir="sortDir">
-                      Modifié <span class="k-page-files-list__sort-icon" v-if="sortBy === 'modified'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
-                    </th>
-                    <th class="k-page-files-list__th--actions"></th>
+          <div v-if="localFiles.length" class="k-page-files-list-wrap">
+            <table class="k-page-files-list">
+              <thead>
+                <tr>
+                  <th class="k-page-files-list__th--name k-page-files-list__th--sort" role="button" tabindex="0" :aria-sort="ariaSort('filename')" @click="setSort('filename')" @keydown.enter.prevent="setSort('filename')" @keydown.space.prevent="setSort('filename')" :data-active="sortBy === 'filename'" :data-dir="sortDir">
+                    Nom <span class="k-page-files-list__sort-icon" v-if="sortBy === 'filename'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+                  </th>
+                  <th class="k-page-files-list__th--ext k-page-files-list__th--sort" role="button" tabindex="0" :aria-sort="ariaSort('extension')" @click="setSort('extension')" @keydown.enter.prevent="setSort('extension')" @keydown.space.prevent="setSort('extension')" :data-active="sortBy === 'extension'" :data-dir="sortDir">
+                    Type <span class="k-page-files-list__sort-icon" v-if="sortBy === 'extension'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+                  </th>
+                  <th class="k-page-files-list__th--size k-page-files-list__th--sort" role="button" tabindex="0" :aria-sort="ariaSort('size')" @click="setSort('size')" @keydown.enter.prevent="setSort('size')" @keydown.space.prevent="setSort('size')" :data-active="sortBy === 'size'" :data-dir="sortDir">
+                    Taille <span class="k-page-files-list__sort-icon" v-if="sortBy === 'size'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+                  </th>
+                  <th class="k-page-files-list__th--date k-page-files-list__th--sort" role="button" tabindex="0" :aria-sort="ariaSort('modified')" @click="setSort('modified')" @keydown.enter.prevent="setSort('modified')" @keydown.space.prevent="setSort('modified')" :data-active="sortBy === 'modified'" :data-dir="sortDir">
+                    Modifié <span class="k-page-files-list__sort-icon" v-if="sortBy === 'modified'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+                  </th>
+                  <th class="k-page-files-list__th--actions"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template v-for="g in groups" :key="g.key">
+                  <tr class="k-files-group__head-row" :data-cat="g.cat">
+                    <td class="k-files-group__head-cell" colspan="5">
+                      <k-icon :type="g.icon" class="k-files-group__icon" />
+                      <span class="k-files-group__label">{{ g.label }}</span>
+                      <span class="k-files-group__count">{{ g.files.length }}</span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
                   <tr v-for="f in g.files" :key="f.filename">
                     <td class="k-page-files-list__td--name">
                       <span class="k-page-files-list__name-inner" :data-cat="fileKind(f.category).cat">
@@ -758,9 +757,9 @@ panel.plugin('goheritage/model-converter', {
                       </button>
                     </td>
                   </tr>
-                </tbody>
-              </table>
-            </div>
+                </template>
+              </tbody>
+            </table>
           </div>
           <k-empty v-else icon="file">Aucun fichier sur cette page.</k-empty>
         </k-field>
