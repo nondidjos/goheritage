@@ -5,7 +5,7 @@ snippet('header');
 
 <section class="items-end min-h-[85vh] pt-4 pb-16" id="hero-section">
 
-  <div class="col-2 flex flex-col justify-end pb-2">
+  <div class="col-2 order-2 lg:order-1 flex flex-col justify-end pb-2">
     <h1 class="font-sans text-[clamp(1.25rem,2vw,1.75rem)] leading-tight text-ink mb-6">
       <?= $page->heroHeading()->or('Notre patrimoine, modélisé et accessible en 3D') ?>
     </h1>
@@ -24,7 +24,7 @@ snippet('header');
     </div>
   </div>
 
-  <div class="col-5">
+  <div class="col-5 order-1 lg:order-2">
     <!-- removing aspect ratio constraints and just letting the image fill its natural column height natively -->
     <div class="w-full h-full bg-surface rounded-md overflow-hidden min-h-[50vh]">
       <?php
