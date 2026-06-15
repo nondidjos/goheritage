@@ -37,7 +37,12 @@ function srgbToLinear(c) {
 // MIN_NODE_PX pixels tall; we keep loading higher-priority (bigger on screen)
 // nodes until the budget is spent. Budget is deliberately conservative — it's
 // the in-GPU point ceiling, independent of the file's total size.
-const MIN_NODE_PX = 120;
+// A node refines the view once its cube projects to at least MIN_NODE_PX tall.
+// Nodes at or above COVERAGE_DEPTH always load when in frustum (regardless of
+// projected size) so the cloud reads as COMPLETE — if only big-on-screen nodes
+// loaded, a zoomed-out/immobile view would show sparse holes.
+const MIN_NODE_PX = 64;
+const COVERAGE_DEPTH = 4;
 const MAX_POINTS = 4_000_000;
 const MAX_CONCURRENT = 6;
 
@@ -283,10 +288,13 @@ async function initCopc(container) {
       if (!frustum.intersectsSphere(_sphere)) continue;
       const dist = Math.max(camera.position.distanceTo(s.center), 1e-3);
       const screen = (s.worldSize / dist) * fovFactor;
-      if (screen < MIN_NODE_PX) continue;
-      wanted.push({ key, node, screen });
+      const cover = d <= COVERAGE_DEPTH;        // baseline coverage tier
+      if (!cover && screen < MIN_NODE_PX) continue;
+      wanted.push({ key, node, screen, cover });
     }
-    wanted.sort((a, b) => b.screen - a.screen);
+    // Coverage tier first (so the coarse cloud is always complete), then refine
+    // by on-screen size within the point budget.
+    wanted.sort((a, b) => (b.cover - a.cover) || (b.screen - a.screen));
 
     // Spend the point budget on the biggest-on-screen nodes first.
     const keep = new Set();
@@ -413,12 +421,21 @@ async function initCopc(container) {
       transparent: false,
     });
 
-    // Frame on the tight data extent, 3/4 view. dist ~ radius/sin(fov/2) fits
-    // the cloud to the viewport (fov 60 → sin30 = 0.5 → ~2×radius).
+    // Frame on the tight data extent. dist ~ radius/sin(fov/2) fits the
+    // bounding sphere to the viewport. Use a FIXED look-down pitch (not an
+    // elevation proportional to radius) — a radius-fraction puts the camera
+    // way overhead on wide/flat site scans (e.g. abbaye), where the cloud is a
+    // thin horizontal slab. A gentle fixed pitch reads as a 3/4 view for both
+    // tall buildings and flat sites.
     const sx = hmax[0] - hmin[0], sy = hmax[1] - hmin[1], sz = hmax[2] - hmin[2];
     const radius = Math.hypot(sx, sy, sz) / 2 || 1;
-    const dist = radius * 2.1;
-    const eye = new THREE.Vector3(0.7, -0.7, 0.45).normalize().multiplyScalar(dist);
+    const dist = (radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2))) * 1.05;
+    const pitch = THREE.MathUtils.degToRad(16);   // gentle look-down
+    // Geometry is Z-up: horizontal plane is X/Y, up is +Z.
+    const eye = new THREE.Vector3(0.7, -0.7, 0).normalize()
+      .multiplyScalar(Math.cos(pitch))
+      .addScaledVector(new THREE.Vector3(0, 0, 1), Math.sin(pitch))
+      .multiplyScalar(dist);
     wrap.updateMatrixWorld(true);
     camera.position.copy(wrap.localToWorld(eye.clone()));
     camera.near = Math.max(radius / 500, 0.01);
