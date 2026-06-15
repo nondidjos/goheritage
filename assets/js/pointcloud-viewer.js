@@ -110,7 +110,9 @@ function initPointCloud(container) {
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
-  controls.dampingFactor = 0.08;
+  // Higher = settles faster. Low values leave a long, obvious glide after the
+  // pointer is released; 0.15 stops crisply without feeling jerky.
+  controls.dampingFactor = 0.15;
 
   // ── Loading UI ────────────────────────────────────────────────────────
   const progress = document.createElement('div');
@@ -361,17 +363,18 @@ function initPointCloud(container) {
   function frame() {
     renderRequested = false;
     const moving = controls.update();   // true while damping is still settling
-    const active = interacting || moving;
-    // Drop to LOW_DPR while moving, snap to FULL_DPR for the resting frame.
-    // setPixelRatio reallocates the drawing buffer, so only call it on an
-    // actual transition (guarded by the current ratio).
-    const want = active ? LOW_DPR : FULL_DPR;
+    // Low DPR ONLY while the pointer is actively down. The damping coast and
+    // the resting frame render at full DPR, so there's no resolution "pop" at
+    // the moment the glide stops (which made the stop point obvious).
+    // setPixelRatio reallocates the drawing buffer, so only call it on a real
+    // transition (guarded by the current ratio).
+    const want = interacting ? LOW_DPR : FULL_DPR;
     if (renderer.getPixelRatio() !== want) {
       renderer.setPixelRatio(want);
       renderer.setSize(container.clientWidth, container.clientHeight);
     }
     renderer.render(scene, camera);
-    if (active) requestRender();        // keep rendering until fully at rest
+    if (interacting || moving) requestRender();   // keep rendering until at rest
   }
   controls.addEventListener('change', requestRender);
   // 'start'/'end' bracket an active drag/zoom gesture; damping may keep the

@@ -119,7 +119,8 @@ async function initCopc(container) {
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
-  controls.dampingFactor = 0.08;
+  // Higher = settles faster; a low value leaves a long, obvious glide.
+  controls.dampingFactor = 0.15;
 
   // The Z-up→Y-up wrapper that every node is parented to.
   const wrap = new THREE.Group();
@@ -186,14 +187,15 @@ async function initCopc(container) {
   function frame() {
     renderRequested = false;
     const moving = controls.update();
-    const active = interacting || moving;
-    const want = active ? LOW_DPR : FULL_DPR;
+    // Low DPR only while the pointer is actively down — coast + rest stay full
+    // DPR, so the glide doesn't sharpen-pop when it stops.
+    const want = interacting ? LOW_DPR : FULL_DPR;
     if (renderer.getPixelRatio() !== want) {
       renderer.setPixelRatio(want);
       renderer.setSize(container.clientWidth, container.clientHeight);
     }
     renderer.render(scene, camera);
-    if (active) requestRender();
+    if (interacting || moving) requestRender();
   }
   controls.addEventListener('change', requestRender);
   controls.addEventListener('start', () => { interacting = true; requestRender(); });
