@@ -25,7 +25,13 @@ import { createLazPerf } from 'laz-perf';
 
 // Scanner data is Z-up; three.js is Y-up. Same fix the PLY/OBJ paths apply.
 const Z_UP_FIX = -Math.PI / 2;
-const COLOR_BOOST = 1.25;
+
+// Scan RGB is sRGB-encoded (8- or 16-bit). The renderer output-encodes to
+// sRGB, so vertex colours must be uploaded in LINEAR space or every midtone
+// gets lifted and the cloud washes out near-white. Convert on upload.
+function srgbToLinear(c) {
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
 
 // LOD tuning. A node is worth loading once its cube projects to at least
 // MIN_NODE_PX pixels tall; we keep loading higher-priority (bigger on screen)
@@ -328,9 +334,12 @@ async function initCopc(container) {
       if (hasColor) { gr = view.getter('Red'); gg = view.getter('Green'); gb = view.getter('Blue'); col = new Float32Array(n * 3); }
 
       if (hasColor && !colorScaleResolved) {
+        // Decide 8- vs 16-bit from the WHOLE first (root) node, strided — the
+        // first 2048 points can all be dark and mis-trip the choice, which on a
+        // 16-bit file divides by 255 and clamps everything to white.
         let max = 0;
-        const probe = Math.min(n, 2048);
-        for (let i = 0; i < probe; i++) { max = Math.max(max, gr(i), gg(i), gb(i)); }
+        const step = Math.max(1, Math.floor(n / 8192));
+        for (let i = 0; i < n; i += step) { max = Math.max(max, gr(i), gg(i), gb(i)); }
         colorScale = max > 255 ? 1 / 65535 : 1 / 255;
         colorScaleResolved = true;
       }
@@ -340,9 +349,9 @@ async function initCopc(container) {
         pos[i * 3 + 1] = gy(i) - offset[1];
         pos[i * 3 + 2] = gz(i) - offset[2];
         if (col) {
-          col[i * 3]     = gr(i) * colorScale;
-          col[i * 3 + 1] = gg(i) * colorScale;
-          col[i * 3 + 2] = gb(i) * colorScale;
+          col[i * 3]     = srgbToLinear(gr(i) * colorScale);
+          col[i * 3 + 1] = srgbToLinear(gg(i) * colorScale);
+          col[i * 3 + 2] = srgbToLinear(gb(i) * colorScale);
         }
       }
 
@@ -379,14 +388,21 @@ async function initCopc(container) {
     lazPerf = await createLazPerf({ locateFile: () => wasmUrl });
     copc = await Copc.create(get);
 
+    // info.cube drives the octree node math (keys subdivide the cube), so keep
+    // it for LOD. But the cube is padded to the largest axis — framing on it
+    // sits the camera way too far back. Recenter + frame on the TIGHT data
+    // bounds from the LAS header instead.
     rootCube = copc.info.cube;
-    offset[0] = (rootCube[0] + rootCube[3]) / 2;
-    offset[1] = (rootCube[1] + rootCube[4]) / 2;
-    offset[2] = (rootCube[2] + rootCube[5]) / 2;
+    const hmin = copc.header.min, hmax = copc.header.max;
+    offset[0] = (hmin[0] + hmax[0]) / 2;
+    offset[1] = (hmin[1] + hmax[1]) / 2;
+    offset[2] = (hmin[2] + hmax[2]) / 2;
     const pdrf = copc.header.pointDataRecordFormat;
     hasColor = pdrf === 2 || pdrf === 3 || pdrf === 7 || pdrf === 8;
 
-    // Material — base size from the root spacing (real-world units).
+    // Material — base size from the root spacing (real-world units). No colour
+    // boost: colours are uploaded linear (srgbToLinear) so they reproduce the
+    // scan faithfully instead of washing toward white.
     material = new THREE.PointsMaterial({
       size: copc.info.spacing * 0.6 || 0.05,
       sizeAttenuation: true,
@@ -396,24 +412,21 @@ async function initCopc(container) {
       alphaTest: 0.5,
       transparent: false,
     });
-    if (hasColor) material.color.setScalar(COLOR_BOOST);
 
-    // Frame the camera on the whole cube (3/4 view), coords already recentred.
-    const sx = rootCube[3] - rootCube[0];
-    const sy = rootCube[4] - rootCube[1];
-    const sz = rootCube[5] - rootCube[2];
-    const diag = Math.hypot(sx, sy, sz) || 1;
-    const radius = diag / 2;
-    // Eye in geometry (Z-up) space: out + lateral + lifted, then into world.
-    const eye = new THREE.Vector3(radius * 1.4, -radius * 1.4, radius * 0.9);
+    // Frame on the tight data extent, 3/4 view. dist ~ radius/sin(fov/2) fits
+    // the cloud to the viewport (fov 60 → sin30 = 0.5 → ~2×radius).
+    const sx = hmax[0] - hmin[0], sy = hmax[1] - hmin[1], sz = hmax[2] - hmin[2];
+    const radius = Math.hypot(sx, sy, sz) / 2 || 1;
+    const dist = radius * 2.1;
+    const eye = new THREE.Vector3(0.7, -0.7, 0.45).normalize().multiplyScalar(dist);
     wrap.updateMatrixWorld(true);
     camera.position.copy(wrap.localToWorld(eye.clone()));
     camera.near = Math.max(radius / 500, 0.01);
-    camera.far = radius * 30;
+    camera.far = (dist + radius) * 4;
     camera.updateProjectionMatrix();
     controls.target.set(0, 0, 0);
     controls.update();
-    scene.fog = new THREE.Fog(0x1a1a1a, radius * 1.5, radius * 6);
+    scene.fog = new THREE.Fog(0x1a1a1a, dist, dist + radius * 4);
 
     setProgress(20, 'chargement de l’octree…');
     const rootPage = await Copc.loadHierarchyPage(get, copc.info.rootHierarchyPage);
