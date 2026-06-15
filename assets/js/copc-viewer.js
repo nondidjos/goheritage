@@ -169,7 +169,7 @@ async function initCopc(container) {
   let material = null;
   let colorScale = 1 / 255;       // resolved from the first decoded node
   let colorScaleResolved = false;
-  let grayscale = false;          // B&W scan → render flat white
+  let grayscale = false;          // B&W scan → render an elevation grey ramp
 
   // ── Point-size controls ───────────────────────────────────────────────────
   const sizeCtl = document.createElement('div');
@@ -220,6 +220,7 @@ async function initCopc(container) {
   let rootCube = null;
   let hasColor = false;
   const offset = [0, 0, 0];        // global recenter (cube centre) to keep float32 precise
+  let zMin = 0, zSpan = 1;         // vertical extent → height ramp for colourless clouds
 
   const known = new Map();         // key "d-x-y-z" -> { pointCount, pointDataOffset, pointDataLength }
   const pageRefs = new Map();      // key -> { pageOffset, pageLength } (lazy sub-hierarchy)
@@ -344,7 +345,9 @@ async function initCopc(container) {
       if (hasColor && !colorScaleResolved) {
         // Decide 8- vs 16-bit AND detect a greyscale (B&W) scan from the WHOLE
         // strided root node (the first 2048 points can all be dark and mis-trip
-        // the bit-depth choice, clamping a 16-bit file to white).
+        // the bit-depth choice, clamping a 16-bit file to white). The root node
+        // is decoded first (see boot) so this is resolved before other nodes
+        // build — no RGB/ramp mix from a concurrent decode.
         let max = 0, spread = 0;
         const step = Math.max(1, Math.floor(n / 8192));
         for (let i = 0; i < n; i += step) {
@@ -354,27 +357,28 @@ async function initCopc(container) {
           if (d > spread) spread = d;
         }
         colorScale = max > 255 ? 1 / 65535 : 1 / 255;
-        // Channels ~equal everywhere → no real colour (B&W scan). The grey it
-        // carries reads muddy on the dark stage, so render flat white instead.
-        // Material is shared, so flipping it recolours every node (incl. any
-        // already built in a concurrent load) — race-safe.
-        if (spread * colorScale < 0.02) {
-          grayscale = true;
-          material.vertexColors = false;
-          material.color.set(0xffffff);
-          material.needsUpdate = true;
-        }
+        // Channels ~equal everywhere → no real colour (B&W scan): render a
+        // height ramp instead of the muddy grey the data carries.
+        if (spread * colorScale < 0.02) grayscale = true;
         colorScaleResolved = true;
       }
 
-      const useColor = hasColor && !grayscale;
+      // Colourless cloud (no RGB at all, or detected B&W) → low-to-high grey
+      // ramp by elevation, which restores the form a flat colour would lose.
+      const ramp = !hasColor || grayscale;
       const pos = new Float32Array(n * 3);
-      const col = useColor ? new Float32Array(n * 3) : null;
+      const col = new Float32Array(n * 3);
       for (let i = 0; i < n; i++) {
+        const Z = gz(i);
         pos[i * 3]     = gx(i) - offset[0];
         pos[i * 3 + 1] = gy(i) - offset[1];
-        pos[i * 3 + 2] = gz(i) - offset[2];
-        if (col) {
+        pos[i * 3 + 2] = Z - offset[2];
+        if (ramp) {
+          let t = (Z - zMin) / zSpan;
+          t = t < 0 ? 0 : t > 1 ? 1 : t;
+          const g = srgbToLinear(0.4 + 0.6 * t);   // floor 0.4 so low points stay visible on the dark stage
+          col[i * 3] = g; col[i * 3 + 1] = g; col[i * 3 + 2] = g;
+        } else {
           col[i * 3]     = srgbToLinear(gr(i) * colorScale);
           col[i * 3 + 1] = srgbToLinear(gg(i) * colorScale);
           col[i * 3 + 2] = srgbToLinear(gb(i) * colorScale);
@@ -426,18 +430,36 @@ async function initCopc(container) {
     const pdrf = copc.header.pointDataRecordFormat;
     hasColor = pdrf === 2 || pdrf === 3 || pdrf === 7 || pdrf === 8;
 
-    // Material — base size from the root spacing (real-world units). No colour
-    // boost: colours are uploaded linear (srgbToLinear) so they reproduce the
-    // scan faithfully instead of washing toward white.
+    // Material — small world-space size with distance attenuation. We ALWAYS
+    // colour per-point (RGB, or a height ramp for colourless/B&W clouds), so
+    // vertexColors stays on. The base size is a fraction of the root spacing;
+    // a shader clamp (below) caps the on-screen size so near points can't
+    // balloon and wreck mobile fill-rate.
+    zMin = copc.header.min[2];
+    zSpan = (copc.header.max[2] - copc.header.min[2]) || 1;
     material = new THREE.PointsMaterial({
-      size: copc.info.spacing * 0.6 || 0.05,
+      size: (copc.info.spacing * 0.2) || 0.02,
       sizeAttenuation: true,
-      vertexColors: hasColor,
-      color: hasColor ? 0xffffff : 0x9fb4c7,
+      vertexColors: true,
       map: circleTexture(),
       alphaTest: 0.5,
       transparent: false,
     });
+    // Clamp gl_PointSize to a sane pixel range: distance attenuation stays, but
+    // points never exceed ~a few px (mobile fill-rate guard) nor drop below 1px
+    // (so far points don't vanish). Range is in framebuffer px; FULL_DPR scales
+    // CSS px → device px. Cheap: one clamp in the vertex shader.
+    const maxPx = (isMobile ? 3.0 : 5.0) * FULL_DPR;
+    material.onBeforeCompile = (shader) => {
+      shader.uniforms.uMinPx = { value: 1.0 };
+      shader.uniforms.uMaxPx = { value: maxPx };
+      shader.vertexShader =
+        'uniform float uMinPx;\nuniform float uMaxPx;\n' +
+        shader.vertexShader.replace(
+          '#include <fog_vertex>',
+          'gl_PointSize = clamp( gl_PointSize, uMinPx, uMaxPx );\n#include <fog_vertex>'
+        );
+    };
 
     // Frame on the tight data extent. dist ~ radius/sin(fov/2) fits the
     // bounding sphere to the viewport. Use a FIXED look-down pitch (not an
@@ -466,13 +488,12 @@ async function initCopc(container) {
     setProgress(20, 'chargement de l’octree…');
     const rootPage = await Copc.loadHierarchyPage(get, copc.info.rootHierarchyPage);
     ingest(rootPage);
+    // Decode the root node FIRST and await it: that resolves the colour mode
+    // (bit depth + B&W) so every subsequent node colours consistently, and it
+    // guarantees the stage is never empty. Then refine by view.
+    const rootKey = known.keys().next().value;
+    if (rootKey) await loadNode(rootKey, known.get(rootKey));
     updateLod();
-    // Safety: if nothing crossed the screen threshold (tiny viewport, etc.),
-    // still show the root node so the user never sees an empty stage.
-    if (!loaded.size && known.size) {
-      const firstKey = known.keys().next().value;
-      loadNode(firstKey, known.get(firstKey));
-    }
   } catch (e) {
     fail(e);
     return;
