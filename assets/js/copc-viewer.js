@@ -169,6 +169,7 @@ async function initCopc(container) {
   let material = null;
   let colorScale = 1 / 255;       // resolved from the first decoded node
   let colorScaleResolved = false;
+  let grayscale = false;          // B&W scan → render flat white
 
   // ── Point-size controls ───────────────────────────────────────────────────
   const sizeCtl = document.createElement('div');
@@ -337,21 +338,38 @@ async function initCopc(container) {
       const view = await Copc.loadPointDataView(get, copc, node, { lazPerf });
       const n = view.pointCount;
       const gx = view.getter('X'), gy = view.getter('Y'), gz = view.getter('Z');
-      const pos = new Float32Array(n * 3);
-      let col = null, gr, gg, gb;
-      if (hasColor) { gr = view.getter('Red'); gg = view.getter('Green'); gb = view.getter('Blue'); col = new Float32Array(n * 3); }
+      let gr, gg, gb;
+      if (hasColor) { gr = view.getter('Red'); gg = view.getter('Green'); gb = view.getter('Blue'); }
 
       if (hasColor && !colorScaleResolved) {
-        // Decide 8- vs 16-bit from the WHOLE first (root) node, strided — the
-        // first 2048 points can all be dark and mis-trip the choice, which on a
-        // 16-bit file divides by 255 and clamps everything to white.
-        let max = 0;
+        // Decide 8- vs 16-bit AND detect a greyscale (B&W) scan from the WHOLE
+        // strided root node (the first 2048 points can all be dark and mis-trip
+        // the bit-depth choice, clamping a 16-bit file to white).
+        let max = 0, spread = 0;
         const step = Math.max(1, Math.floor(n / 8192));
-        for (let i = 0; i < n; i += step) { max = Math.max(max, gr(i), gg(i), gb(i)); }
+        for (let i = 0; i < n; i += step) {
+          const r = gr(i), g = gg(i), b = gb(i);
+          if (r > max) max = r; if (g > max) max = g; if (b > max) max = b;
+          const d = Math.max(r, g, b) - Math.min(r, g, b);
+          if (d > spread) spread = d;
+        }
         colorScale = max > 255 ? 1 / 65535 : 1 / 255;
+        // Channels ~equal everywhere → no real colour (B&W scan). The grey it
+        // carries reads muddy on the dark stage, so render flat white instead.
+        // Material is shared, so flipping it recolours every node (incl. any
+        // already built in a concurrent load) — race-safe.
+        if (spread * colorScale < 0.02) {
+          grayscale = true;
+          material.vertexColors = false;
+          material.color.set(0xffffff);
+          material.needsUpdate = true;
+        }
         colorScaleResolved = true;
       }
 
+      const useColor = hasColor && !grayscale;
+      const pos = new Float32Array(n * 3);
+      const col = useColor ? new Float32Array(n * 3) : null;
       for (let i = 0; i < n; i++) {
         pos[i * 3]     = gx(i) - offset[0];
         pos[i * 3 + 1] = gy(i) - offset[1];
