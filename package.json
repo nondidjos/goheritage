@@ -18,7 +18,9 @@
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.18",
+    "copc": "^0.0.8",
     "esbuild": "^0.24.2",
+    "laz-perf": "^0.0.7",
     "tailwindcss": "^4.1.18",
     "three": "^0.183.2"
   }

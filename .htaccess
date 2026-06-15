@@ -74,6 +74,13 @@ RewriteRule ^(.*) index.php [L]
 # pass the Authorization header to PHP
 SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
 
+# Serve WebAssembly with the correct MIME so the COPC viewer's laz-perf can use
+# WebAssembly.instantiateStreaming (without this Apache may send octet-stream/
+# text/plain and the browser falls back to a slower arrayBuffer compile).
+<IfModule mod_mime.c>
+AddType application/wasm .wasm
+</IfModule>
+
 # compress text file responses
 <IfModule mod_deflate.c>
 AddOutputFilterByType DEFLATE text/plain

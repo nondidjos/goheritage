@@ -351,10 +351,12 @@ tabs:
   # ─────────────────────────────────────────────────────────────────────
   #  Tab — Nuage de points
   #
-  #  Scaffolding for a point-cloud viewer. Large clouds are best served by
-  #  an external octree viewer (Potree); paste its URL here. Raw captures
-  #  (.laz/.las/.ply/.e57/.zip) can also be attached for later processing.
-  #  The actual in-panel viewer is not built yet — see the project notes.
+  #  Point-cloud viewer. Three paths, in order of preference for big scans:
+  #   1. Upload a Cloud-Optimized Point Cloud (.copc.laz) — streamed node by
+  #      node in-panel by copc-viewer.js (no external host needed). Convert
+  #      offline once: `pdal translate input.las output.copc.laz`.
+  #   2. Paste an external octree viewer URL (Potree etc.) below.
+  #   3. Upload a small whole-file PLY/PCD — rendered directly, no LOD.
   # ─────────────────────────────────────────────────────────────────────
   pointcloud:
     label: Nuage de points
@@ -370,9 +372,12 @@ tabs:
             type: info
             theme: info
             text: >
-              **Nuage de points** — hébergez les nuages volumineux via un
-              viewer web (Potree, etc.) et collez le lien ci-dessous, ou
-              déposez les données brutes pour traitement ultérieur.
+              **Nuage de points** — pour les gros relevés, téléversez un
+              fichier **COPC** (`.copc.laz`) : il est diffusé progressivement
+              dans cet onglet, sans serveur externe. Conversion hors ligne :
+              `pdal translate entrée.las sortie.copc.laz`. Sinon, collez un
+              lien de viewer web (Potree…) ci-dessous, ou déposez un petit
+              PLY/PCD (affiché directement, sans niveau de détail).
           pointcloud_url:
             type: url
             label: Viewer de nuage de points (externe)

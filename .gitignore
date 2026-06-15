@@ -72,6 +72,9 @@ assets/fonts/*.ttf
 # ghAsset(); dev serves the readable sources.
 assets/js/*.min.js
 
+# WASM copied out of node_modules by build:js (laz-perf, for the COPC viewer).
+assets/wasm/
+
 # Node.js
 node_modules/
 npm-debug.log*

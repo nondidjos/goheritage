@@ -65,6 +65,11 @@ if ($isMapPage) {
   // The point-cloud preview (?pointcloud=1) always needs three.js — even when
   // a 3D external viewer URL is set — since it renders an uploaded PLY/PCD.
   $isPointcloud = $isProjectPage && !empty(get('pointcloud'));
+  // A .copc.laz upload switches the point-cloud tab to the streaming COPC
+  // viewer; everything else (PLY/PCD) uses the plain whole-file viewer.
+  $pcIsCopc     = $isPointcloud
+               && $page->files()->filter(fn ($f) => preg_match('/\.copc\.laz$/i', $f->filename()))->count() > 0
+               && $page->pointcloud_url()->isEmpty();
   $needsThreeJs = $isProjectPage && ($isPointcloud || $page->viewer_url()->isEmpty());
   if ($isProjectPage): ?>
   <link rel="stylesheet" href="<?= ghAsset('assets/css/lightbox.css') ?>">
@@ -97,7 +102,9 @@ if ($isMapPage) {
     }
   }
   </script>
-  <?php if ($isPointcloud): ?>
+  <?php if ($pcIsCopc): ?>
+  <script type="module" src="<?= ghAsset('assets/js/copc-viewer.js') ?>"></script>
+  <?php elseif ($isPointcloud): ?>
   <script type="module" src="<?= ghAsset('assets/js/pointcloud-viewer.js') ?>"></script>
   <?php else: ?>
   <script type="module" src="<?= ghAsset('assets/js/viewer.js') ?>"></script>

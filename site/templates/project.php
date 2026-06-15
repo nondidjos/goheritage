@@ -69,12 +69,15 @@ if (!empty(get('pointcloud'))) {
     snippet('header', ['isVisitor' => $isVisitor]);
 
     $pcExternal = $page->pointcloud_url()->isNotEmpty() ? $page->pointcloud_url()->value() : null;
+    // Cloud-Optimized Point Cloud: streamed node-by-node by copc-viewer.js.
+    // Detected by the .copc.laz filename suffix (extension() is just "laz").
+    $pcCopc     = $page->files()->filter(fn ($f) => preg_match('/\.copc\.laz$/i', $f->filename()))->sortBy('modified', 'desc')->first();
     $pcInline   = $page->files()->filterBy('extension', 'in', ['ply', 'pcd'])->sortBy('modified', 'desc')->first();
     $pcOther    = $page->files()->filterBy('extension', 'in', ['las', 'laz', 'e57', 'xyz', 'pts'])->sortBy('modified', 'desc')->first();
     ?>
     <style>
       .pc-stage { position: fixed; inset: 0; background: #1a1a1a; }
-      .pc-stage iframe, #gh-pointcloud-viewer { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+      .pc-stage iframe, #gh-pointcloud-viewer, #gh-copc-viewer { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
       .pc-msg { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.9rem; padding: 2rem; text-align: center; color: rgba(255,255,255,0.6); font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.6; }
       .pc-msg strong { color: #fff; }
       .pc-msg__ico { width: 42px; height: 42px; opacity: 0.5; }
@@ -82,6 +85,8 @@ if (!empty(get('pointcloud'))) {
     <div class="pc-stage">
       <?php if ($pcExternal): ?>
         <iframe src="<?= esc($pcExternal) ?>" allow="xr-spatial-tracking; fullscreen" allowfullscreen></iframe>
+      <?php elseif ($pcCopc): ?>
+        <div id="gh-copc-viewer" data-src="<?= esc($pcCopc->url()) ?>" data-wasm="<?= esc(url('assets/wasm/laz-perf.wasm')) ?>"></div>
       <?php elseif ($pcInline): ?>
         <div id="gh-pointcloud-viewer" data-src="<?= esc($pcInline->url()) ?>" data-format="<?= esc($pcInline->extension()) ?>"></div>
       <?php elseif ($pcOther): ?>
@@ -220,7 +225,8 @@ $hasPlansPane   = $canSee('plans')   && $plansList && $plansList->count() > 0;
 // can reach it without leaving the page.
 $pcExternal     = $page->pointcloud_url()->isNotEmpty() ? $page->pointcloud_url()->value() : null;
 $pcInline       = $page->files()->filterBy('extension', 'in', ['ply', 'pcd'])->sortBy('modified', 'desc')->first();
-$hasPointcloudPane = $canSee('pointcloud') && ($pcExternal !== null || $pcInline !== null);
+$pcCopc         = $page->files()->filter(fn ($f) => preg_match('/\.copc\.laz$/i', $f->filename()))->sortBy('modified', 'desc')->first();
+$hasPointcloudPane = $canSee('pointcloud') && ($pcExternal !== null || $pcInline !== null || $pcCopc !== null);
 // The model pane is always present — even when there's nothing to show it
 // falls back to the cover image / "Vue 3D prochainement" placeholder, which
 // is the page's intended hero. So we don't gate it on $hasModel.
