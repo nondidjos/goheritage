@@ -143,16 +143,20 @@ function initPointCloud(container) {
     const f = btn.dataset.dir === 'up' ? 1.25 : 0.8;
     pointsMaterial.size = THREE.MathUtils.clamp(pointsMaterial.size * f, 1e-5, 1e5);
     pointsMaterial.needsUpdate = true;
+    requestRender();
   });
   // Keyboard + / − as a desktop nicety.
+  let onKeydown = null;
   if (!isMobile) {
-    window.addEventListener('keydown', (e) => {
+    onKeydown = (e) => {
       if (!pointsMaterial || e.target.matches('input, textarea')) return;
       if (e.key === '+' || e.key === '=') pointsMaterial.size *= 1.25;
       else if (e.key === '-' || e.key === '_') pointsMaterial.size *= 0.8;
       else return;
       pointsMaterial.needsUpdate = true;
-    });
+      requestRender();
+    };
+    window.addEventListener('keydown', onKeydown);
   }
 
   // ── Controls hint (desktop only — same pattern as viewer.js) ──────────
@@ -317,6 +321,7 @@ function initPointCloud(container) {
 
     hideProgress();
     document.body.classList.add('viewer-is-ready');
+    requestRender();
   }
 
   // ── Load ──────────────────────────────────────────────────────────────
@@ -326,21 +331,56 @@ function initPointCloud(container) {
     new PLYLoader().load(src, (geo) => addCloud(geo, null), onProgress, onError);
   }
 
-  // ── Resize + render loop ──────────────────────────────────────────────
+  // ── On-demand rendering ───────────────────────────────────────────────
+  // A static point cloud doesn't change between frames, so we don't run a
+  // permanent rAF loop (continuous full-res GPU work + battery drain on a
+  // multi-million-point cloud). Instead we render only when something moves:
+  // user interaction fires OrbitControls' 'change' event, and while damping
+  // settles `controls.update()` keeps returning true, so we self-reschedule
+  // until the camera comes to rest — then go fully idle.
+  let renderRequested = false;
+  function requestRender() {
+    if (renderRequested) return;
+    renderRequested = true;
+    requestAnimationFrame(frame);
+  }
+  function frame() {
+    renderRequested = false;
+    const moving = controls.update();   // true while damping is still settling
+    renderer.render(scene, camera);
+    if (moving) requestRender();
+  }
+  controls.addEventListener('change', requestRender);
+
+  // ── Resize ────────────────────────────────────────────────────────────
   function resize() {
     const w = container.clientWidth, h = container.clientHeight;
     if (!w || !h) return;
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
+    requestRender();
   }
   window.addEventListener('resize', resize);
 
-  (function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-  })();
+  // ── Teardown ──────────────────────────────────────────────────────────
+  // Release the WebGL context + GPU buffers and unbind global listeners when
+  // the page/iframe goes away. Browsers cap live WebGL contexts (~16), so a
+  // leaked context per pointcloud-tab open would eventually blank the viewer.
+  function dispose() {
+    window.removeEventListener('resize', resize);
+    if (onKeydown) window.removeEventListener('keydown', onKeydown);
+    controls.removeEventListener('change', requestRender);
+    controls.dispose();
+    scene.traverse((obj) => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) obj.material.dispose();
+    });
+    if (_circleTex) { _circleTex.dispose(); _circleTex = null; }
+    renderer.dispose();
+    renderer.forceContextLoss();
+  }
+  window.addEventListener('pagehide', dispose, { once: true });
 }
 
 const el = document.getElementById('gh-pointcloud-viewer');
