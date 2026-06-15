@@ -183,18 +183,28 @@
 .k-files-group__head-row[data-cat="archive"] { --gh-cat-color: #8a8a8a; }
 .k-files-group__head-row[data-cat="video"]   { --gh-cat-color: #c2548a; }
 
+/* <td> keeps table-cell display so colspan="5" works; flex lives in the
+   inner <div> so it doesn't interfere with the table layout algorithm. */
 .k-files-group__head-cell {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.5rem 0.85rem;
+  padding: 0;
   background: var(--color-back, rgba(0, 0, 0, 0.035));
   border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.1));
   box-shadow: inset 3px 0 0 var(--gh-cat-color, rgba(0, 0, 0, 0.25));
+  cursor: pointer;
+  user-select: none;
 }
 /* Visual gap above every group after the first. */
 .k-files-group__head-row ~ .k-files-group__head-row .k-files-group__head-cell {
   border-top: 2px solid var(--color-border, rgba(0, 0, 0, 0.1));
+}
+.k-files-group__head-row:hover .k-files-group__head-cell {
+  background: var(--color-hover, rgba(0, 0, 0, 0.055));
+}
+.k-files-group__head-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.85rem;
 }
 .k-files-group__icon {
   width: 1.15em;
@@ -210,7 +220,6 @@
   color: var(--color-text, #1a1a1a);
 }
 .k-files-group__count {
-  margin-left: auto;
   min-width: 1.4em;
   padding: 0.05rem 0.4rem;
   text-align: center;
@@ -221,6 +230,16 @@
   background: var(--color-back, rgba(0, 0, 0, 0.06));
   border: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
   border-radius: 999px;
+}
+.k-files-group__chevron {
+  margin-left: auto;
+  width: 1em;
+  height: 1em;
+  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.4));
+  transition: transform 0.15s ease;
+}
+.k-files-group__head-row.is-collapsed .k-files-group__chevron {
+  transform: rotate(-90deg);
 }
 
 .k-page-files-list {
@@ -349,11 +368,13 @@
 /* ── Actions column ───────────────────────────────────────────────── */
 .k-page-files-list__th--actions,
 .k-page-files-list__td--actions {
-  width: 3rem;
+  width: 5.5rem;
   text-align: right;
+  white-space: nowrap;
 }
 
-.k-page-files-list__delete {
+/* Shared base for both action buttons + the download link. */
+.k-page-files-list__action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -366,15 +387,21 @@
   color: var(--color-text-dimmed, rgba(0, 0, 0, 0.5));
   cursor: pointer;
   opacity: 0.35;
+  text-decoration: none;
   transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease, opacity 0.1s ease;
 }
-.k-page-files-list tbody tr:not(.k-files-group__head-row):hover .k-page-files-list__delete { opacity: 1; }
+.k-page-files-list tbody tr:not(.k-files-group__head-row):hover .k-page-files-list__action { opacity: 1; }
+.k-page-files-list__action:hover {
+  background: var(--color-hover, rgba(0, 0, 0, 0.07));
+  border-color: var(--color-border, rgba(0, 0, 0, 0.12));
+  color: var(--color-text, #1a1a1a);
+}
 .k-page-files-list__delete:hover {
   background: var(--color-negative, #b3261e);
   border-color: var(--color-negative, #b3261e);
   color: #fff;
 }
-.k-page-files-list__delete .k-icon { width: 1.1em; height: 1.1em; }
+.k-page-files-list__action .k-icon { width: 1.1em; height: 1.1em; }
 
 /* Narrow viewports: drop the date column + keep the delete button visible
    (no hover on touch). */

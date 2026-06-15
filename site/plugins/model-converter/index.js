@@ -548,6 +548,7 @@ panel.plugin('goheritage/model-converter', {
           busyAll: false,
           sortBy: 'modified',  // default: newest first
           sortDir: 'desc',
+          collapsed: {},
         };
       },
       watch: {
@@ -663,6 +664,9 @@ panel.plugin('goheritage/model-converter', {
             this.busyAll = false;
           }
         },
+        toggleGroup(key) {
+          this.collapsed[key] = !this.collapsed[key];
+        },
         setSort(key) {
           if (this.sortBy === key) {
             this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
@@ -732,14 +736,17 @@ panel.plugin('goheritage/model-converter', {
               </thead>
               <tbody>
                 <template v-for="g in groups" :key="g.key">
-                  <tr class="k-files-group__head-row" :data-cat="g.cat">
+                  <tr class="k-files-group__head-row" :class="{ 'is-collapsed': collapsed[g.key] }" :data-cat="g.cat" @click="toggleGroup(g.key)">
                     <td class="k-files-group__head-cell" colspan="5">
-                      <k-icon :type="g.icon" class="k-files-group__icon" />
-                      <span class="k-files-group__label">{{ g.label }}</span>
-                      <span class="k-files-group__count">{{ g.files.length }}</span>
+                      <div class="k-files-group__head-inner">
+                        <k-icon :type="g.icon" class="k-files-group__icon" />
+                        <span class="k-files-group__label">{{ g.label }}</span>
+                        <span class="k-files-group__count">{{ g.files.length }}</span>
+                        <k-icon type="angle-down" class="k-files-group__chevron" />
+                      </div>
                     </td>
                   </tr>
-                  <tr v-for="f in g.files" :key="f.filename">
+                  <tr v-for="f in g.files" v-show="!collapsed[g.key]" :key="f.filename">
                     <td class="k-page-files-list__td--name">
                       <span class="k-page-files-list__name-inner" :data-cat="fileKind(f.category).cat">
                         <k-icon :type="fileKind(f.category).icon" />
@@ -752,7 +759,10 @@ panel.plugin('goheritage/model-converter', {
                     <td class="k-page-files-list__td--size">{{ f.size }}</td>
                     <td class="k-page-files-list__td--date">{{ f.modified }}</td>
                     <td class="k-page-files-list__td--actions">
-                      <button type="button" class="k-page-files-list__delete" @click="confirmDelete(f)" :title="'Supprimer ' + f.filename" :aria-label="'Supprimer ' + f.filename">
+                      <a :href="f.url" :download="f.filename" class="k-page-files-list__action" :title="'Télécharger ' + f.filename" :aria-label="'Télécharger ' + f.filename">
+                        <k-icon type="download" />
+                      </a>
+                      <button type="button" class="k-page-files-list__action k-page-files-list__delete" @click="confirmDelete(f)" :title="'Supprimer ' + f.filename" :aria-label="'Supprimer ' + f.filename">
                         <k-icon type="trash" />
                       </button>
                     </td>

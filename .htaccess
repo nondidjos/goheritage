@@ -60,6 +60,9 @@ RewriteRule ^kirby/(.*) index.php [L]
 RewriteCond %{HTTP:Sec-Fetch-Site} !^(same-origin|same-site)$ [NC]
 RewriteCond %{HTTP_REFERER} !^https?://([^/]+\.)?goheritage\. [NC]
 RewriteRule \.(ply|pcd|glb|gltf|obj|mtl|e57|las|laz|xyz|pts)$ - [F,L]
+# Serve a plain-text 403 body so Apache does NOT delegate to index.php
+# (which would trigger Kirby+Whoops on an already-committed 403 status).
+ErrorDocument 403 "403 Forbidden"
 
 # make site links work
 RewriteCond %{REQUEST_FILENAME} !-f
