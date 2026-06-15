@@ -80,8 +80,21 @@ function initPointCloud(container) {
                 || window.innerWidth <= 768;
 
   // ── Renderer ──────────────────────────────────────────────────────────
-  const renderer = new THREE.WebGLRenderer({ antialias: !isMobile, alpha: false });
-  renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2));
+  const renderer = new THREE.WebGLRenderer({
+    antialias: !isMobile,
+    alpha: false,
+    powerPreference: isMobile ? 'low-power' : 'high-performance',
+  });
+  // Full DPR for the crisp resting frame; a lower DPR while the camera is
+  // moving (drag/zoom/damping). On a dense cloud the fragment cost scales with
+  // DPR², so quartering it during motion — when fine detail isn't perceptible
+  // anyway — is the difference between a smooth and a stuttering drag. The
+  // resting frame snaps back to full resolution. Mirrors viewer.js's adaptive
+  // pixel ratio, but driven by interaction state instead of an FPS sampler
+  // (we render on-demand, so there's no steady frame stream to sample).
+  const FULL_DPR = isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2);
+  const LOW_DPR  = Math.min(FULL_DPR, 1);
+  renderer.setPixelRatio(FULL_DPR);
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);
@@ -339,6 +352,7 @@ function initPointCloud(container) {
   // settles `controls.update()` keeps returning true, so we self-reschedule
   // until the camera comes to rest — then go fully idle.
   let renderRequested = false;
+  let interacting = false;
   function requestRender() {
     if (renderRequested) return;
     renderRequested = true;
@@ -347,10 +361,23 @@ function initPointCloud(container) {
   function frame() {
     renderRequested = false;
     const moving = controls.update();   // true while damping is still settling
+    const active = interacting || moving;
+    // Drop to LOW_DPR while moving, snap to FULL_DPR for the resting frame.
+    // setPixelRatio reallocates the drawing buffer, so only call it on an
+    // actual transition (guarded by the current ratio).
+    const want = active ? LOW_DPR : FULL_DPR;
+    if (renderer.getPixelRatio() !== want) {
+      renderer.setPixelRatio(want);
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
     renderer.render(scene, camera);
-    if (moving) requestRender();
+    if (active) requestRender();        // keep rendering until fully at rest
   }
   controls.addEventListener('change', requestRender);
+  // 'start'/'end' bracket an active drag/zoom gesture; damping may keep the
+  // camera moving past 'end', which the `moving` flag covers.
+  controls.addEventListener('start', () => { interacting = true; requestRender(); });
+  controls.addEventListener('end',   () => { interacting = false; requestRender(); });
 
   // ── Resize ────────────────────────────────────────────────────────────
   function resize() {
