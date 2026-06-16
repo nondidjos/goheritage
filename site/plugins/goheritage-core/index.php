@@ -120,6 +120,25 @@ if (!function_exists('ghAsset')) {
     }
 }
 
+if (!function_exists('goheritageSocialLinks')) {
+    /**
+     * Footer social links that are safe to render: a non-empty platform name
+     * AND a real http(s) URL. One definition shared by the public footer
+     * snippet and the panel's gh/footer-data sync so they can't diverge — a
+     * javascript:/data: URL or a half-filled row never reaches either.
+     */
+    function goheritageSocialLinks($site = null)
+    {
+        $site = $site ?? site();
+        return $site->social()->toStructure()->filter(function ($s) {
+            $url = trim((string) $s->url());
+            return $url !== ''
+                && preg_match('~^https?://~i', $url)
+                && trim((string) $s->platform()) !== '';
+        });
+    }
+}
+
 if (!function_exists('goheritageNodeBin')) {
     /**
      * Resolve the node binary. Checks known platform paths before falling

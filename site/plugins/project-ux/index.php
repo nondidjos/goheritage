@@ -688,7 +688,7 @@ Kirby::plugin('goheritage/project-ux', [
                     try {
                         // Shared filter (non-empty platform + real http(s) url)
                         // so the panel footer matches the public one exactly.
-                        foreach ($site->socialLinks() as $s) {
+                        foreach (goheritageSocialLinks($site) as $s) {
                             $social[] = [
                                 'platform' => (string) $s->platform(),
                                 'url'      => trim((string) $s->url()),
@@ -1218,22 +1218,6 @@ Kirby::plugin('goheritage/project-ux', [
                 }
             }
             return false;
-        },
-    ],
-
-    // ── Site methods ───────────────────────────────────────────────────────
-    'siteMethods' => [
-        // Footer social links that are safe to render: a non-empty platform
-        // name AND a real http(s) URL. One definition shared by the public
-        // footer and the panel's gh/footer-data sync so they can't diverge — a
-        // javascript:/data: URL or a half-filled row never reaches either.
-        'socialLinks' => function () {
-            return $this->social()->toStructure()->filter(function ($s) {
-                $url = trim((string) $s->url());
-                return $url !== ''
-                    && preg_match('~^https?://~i', $url)
-                    && trim((string) $s->platform()) !== '';
-            });
         },
     ],
 ]);
