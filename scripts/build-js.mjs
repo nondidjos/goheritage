@@ -42,15 +42,20 @@ if (sources.length === 0) {
   process.exit(0);
 }
 
-// copc-viewer.js depends on copc + laz-perf, which are CommonJS npm packages,
-// so it MUST be bundled (those deps get inlined). three.js stays external so
-// it still resolves through the page importmap, exactly like the non-bundled
-// scripts. Everything else keeps imports external and is only minified.
-const BUNDLED = new Set(['copc-viewer.js']);
+// Entry points that must be BUNDLED rather than just minified, so their
+// relative/CJS imports get inlined. three.js stays external in both so it
+// still resolves through the page importmap.
+//   - copc-viewer.js   pulls in copc + laz-perf (CommonJS) and ./pointcloud-common.js
+//   - pointcloud-viewer.js pulls in ./pointcloud-common.js
+// pointcloud-common.js is only ever imported by those two (never loaded on its
+// own), so it isn't an entry point — skip emitting a standalone min for it.
+const BUNDLED = new Set(['copc-viewer.js', 'pointcloud-viewer.js']);
+const SKIP = new Set(['pointcloud-common.js']);
 
 let failed = false;
 await Promise.all(
   sources.map(async (file) => {
+    if (SKIP.has(file)) return;          // inlined into the bundles, no standalone min
     const out = file.replace(/\.js$/, '.min.js');
     const bundle = BUNDLED.has(file);
     try {

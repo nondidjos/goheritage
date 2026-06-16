@@ -19,12 +19,13 @@
  */
 
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Copc } from 'copc';
 import { createLazPerf } from 'laz-perf';
-
-// Scanner data is Z-up; three.js is Y-up. Same fix the PLY/OBJ paths apply.
-const Z_UP_FIX = -Math.PI / 2;
+import {
+  Z_UP_FIX, circleTexture,
+  createStage, createRenderLoop, attachResize,
+  makeProgress, makeSizeControls, makeControlsHint, disposeStage,
+} from './pointcloud-common.js';
 
 // Scan RGB is sRGB-encoded (8- or 16-bit). The renderer output-encodes to
 // sRGB, so vertex colours must be uploaded in LINEAR space or every midtone
@@ -63,29 +64,6 @@ const COVERAGE_DEPTH = 4;
 const MAX_POINTS = 4_000_000;
 const MAX_CONCURRENT = 6;
 
-// ── Round-point sprite (shared) ───────────────────────────────────────────
-let _circleTex = null;
-function circleTexture() {
-  if (_circleTex) return _circleTex;
-  const S = 64;
-  const c = document.createElement('canvas');
-  c.width = c.height = S;
-  const ctx = c.getContext('2d');
-  const r = S / 2;
-  const g = ctx.createRadialGradient(r, r, 0, r, r, r);
-  g.addColorStop(0.0, 'rgba(255,255,255,1)');
-  g.addColorStop(0.7, 'rgba(255,255,255,1)');
-  g.addColorStop(0.85, 'rgba(255,255,255,0.9)');
-  g.addColorStop(1.0, 'rgba(255,255,255,0)');
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(r, r, r, 0, Math.PI * 2);
-  ctx.fill();
-  _circleTex = new THREE.CanvasTexture(c);
-  _circleTex.colorSpace = THREE.SRGBColorSpace;
-  return _circleTex;
-}
-
 // Native fetch range getter — same-origin, so the browser tags it
 // Sec-Fetch-Site: same-origin and the .htaccess anti-rip gate lets it through.
 function makeGetter(url) {
@@ -117,119 +95,29 @@ async function initCopc(container) {
   const wasmUrl = container.dataset.wasm;
   if (!src) return;
 
-  if (getComputedStyle(container).position === 'static') {
-    container.style.position = 'relative';
-  }
-
-  const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches
-                || window.innerWidth <= 768;
-
-  // ── Renderer (adaptive DPR + GPU hint, same policy as pointcloud-viewer) ─
-  const renderer = new THREE.WebGLRenderer({
-    antialias: !isMobile,
-    alpha: false,
-    powerPreference: isMobile ? 'low-power' : 'high-performance',
-  });
-  const FULL_DPR = isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2);
-  const LOW_DPR = Math.min(FULL_DPR, 1);
-  renderer.setPixelRatio(FULL_DPR);
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  container.appendChild(renderer.domElement);
-
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a1a1a);
-
-  const camera = new THREE.PerspectiveCamera(
-    60, container.clientWidth / container.clientHeight, 0.01, 1e7
-  );
-  camera.position.set(0, 0, 5);
-
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  // Higher = settles faster; a low value leaves a long, obvious glide.
-  controls.dampingFactor = 0.15;
+  // Shared renderer + scene + camera + controls + adaptive-DPR setup.
+  const stage = createStage(container);
+  const { isMobile, renderer, FULL_DPR, scene, camera, controls } = stage;
 
   // The Z-up→Y-up wrapper that every node is parented to.
   const wrap = new THREE.Group();
   wrap.rotation.x = Z_UP_FIX;
   scene.add(wrap);
 
-  // ── Loading UI ──────────────────────────────────────────────────────────
-  const progress = document.createElement('div');
-  progress.className = 'viewer-progress';
-  progress.innerHTML =
-    '<div class="viewer-progress-bar"><div class="viewer-progress-fill"></div></div>' +
-    '<span class="viewer-progress-text">chargement…</span>';
-  container.appendChild(progress);
-  const fill = progress.querySelector('.viewer-progress-fill');
-  const ptext = progress.querySelector('.viewer-progress-text');
-  function setProgress(pct, label) {
-    fill.style.width = pct + '%';
-    ptext.textContent = label;
-  }
-  function fail(err) {
-    ptext.textContent = 'impossible de charger le nuage de points.';
-    fill.style.background = '#c0392b';
-    if (window.console) console.error('[copc] load failed', err);
-  }
-  let progressGone = false;
-  function hideProgress() {
-    if (progressGone) return;
-    progressGone = true;
-    progress.style.opacity = '0';
-    setTimeout(() => progress.remove(), 400);
-    document.body.classList.add('viewer-is-ready');
-  }
+  const progress = makeProgress(container);
 
-  // ── Shared material ───────────────────────────────────────────────────────
+  // ── Material + colour state ─────────────────────────────────────────────
   let material = null;
   let colorScale = 1 / 255;       // resolved from the first decoded node
   let colorScaleResolved = false;
   let colorLut = null;            // srgbToLinear[channel value], built once
   let grayscale = false;          // B&W scan → render an elevation grey ramp
 
-  // ── Point-size controls ───────────────────────────────────────────────────
-  const sizeCtl = document.createElement('div');
-  sizeCtl.className = 'pc-size-controls' + (isMobile ? ' pc-size-controls--touch' : '');
-  sizeCtl.innerHTML =
-    '<button type="button" class="pc-size-btn" data-dir="down" aria-label="Réduire la taille des points">−</button>' +
-    '<span class="pc-size-label">Taille des points</span>' +
-    '<button type="button" class="pc-size-btn" data-dir="up" aria-label="Augmenter la taille des points">+</button>';
-  container.appendChild(sizeCtl);
-  sizeCtl.addEventListener('click', (e) => {
-    const btn = e.target.closest('.pc-size-btn');
-    if (!btn || !material) return;
-    const f = btn.dataset.dir === 'up' ? 1.25 : 0.8;
-    material.size = THREE.MathUtils.clamp(material.size * f, 1e-6, 1e6);
-    material.needsUpdate = true;
-    requestRender();
-  });
-
-  // ── On-demand render + adaptive DPR (see pointcloud-viewer.js) ────────────
-  let renderRequested = false;
-  let interacting = false;
-  function requestRender() {
-    if (renderRequested) return;
-    renderRequested = true;
-    requestAnimationFrame(frame);
-  }
-  function frame() {
-    renderRequested = false;
-    const moving = controls.update();
-    // Low DPR only while the pointer is actively down — coast + rest stay full
-    // DPR, so the glide doesn't sharpen-pop when it stops.
-    const want = interacting ? LOW_DPR : FULL_DPR;
-    if (renderer.getPixelRatio() !== want) {
-      renderer.setPixelRatio(want);
-      renderer.setSize(container.clientWidth, container.clientHeight);
-    }
-    renderer.render(scene, camera);
-    if (interacting || moving) requestRender();
-  }
-  controls.addEventListener('change', requestRender);
-  controls.addEventListener('start', () => { interacting = true; requestRender(); });
-  controls.addEventListener('end', () => { interacting = false; scheduleLod(); requestRender(); });
+  // On-demand render loop; 'end' of a gesture also kicks an LOD refresh.
+  const { requestRender } = createRenderLoop(stage, { onEnd: () => scheduleLod() });
+  makeSizeControls(stage, () => material, requestRender);
+  makeControlsHint(stage);
+  attachResize(stage, requestRender, () => scheduleLod());
 
   // ── COPC state ────────────────────────────────────────────────────────────
   const get = makeGetter(src);
@@ -414,7 +302,7 @@ async function initCopc(container) {
       const points = new THREE.Points(geo, material);
       wrap.add(points);
       loaded.set(key, points);
-      hideProgress();
+      progress.hide();
       requestRender();
     } catch (e) {
       if (window.console) console.warn('[copc] node failed', key, e);
@@ -435,7 +323,7 @@ async function initCopc(container) {
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   try {
-    setProgress(8, 'lecture de l’en-tête…');
+    progress.setProgress(8, 'lecture de l’en-tête…');
     lazPerf = await createLazPerf({ locateFile: () => wasmUrl });
     copc = await Copc.create(get);
 
@@ -506,7 +394,7 @@ async function initCopc(container) {
     controls.update();
     scene.fog = new THREE.Fog(0x1a1a1a, dist, dist + radius * 4);
 
-    setProgress(20, 'chargement de l’octree…');
+    progress.setProgress(20, 'chargement de l’octree…');
     const rootPage = await Copc.loadHierarchyPage(get, copc.info.rootHierarchyPage);
     ingest(rootPage);
     // Decode the root node FIRST and await it: that resolves the colour mode
@@ -516,33 +404,19 @@ async function initCopc(container) {
     if (rootKey) await loadNode(rootKey, known.get(rootKey));
     updateLod();
   } catch (e) {
-    fail(e);
+    progress.fail(e);
     return;
   }
 
-  // ── Resize + teardown ───────────────────────────────────────────────────
-  function resize() {
-    const w = container.clientWidth, h = container.clientHeight;
-    if (!w || !h) return;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
-    scheduleLod();
-    requestRender();
-  }
-  window.addEventListener('resize', resize);
-
-  function dispose() {
-    window.removeEventListener('resize', resize);
-    controls.removeEventListener('change', requestRender);
-    controls.dispose();
-    for (const key of [...loaded.keys()]) unloadNode(key);
-    if (material) material.dispose();
-    if (_circleTex) { _circleTex.dispose(); _circleTex = null; }
-    renderer.dispose();
-    renderer.forceContextLoss();
-  }
-  window.addEventListener('pagehide', dispose, { once: true });
+  // ── Teardown ──────────────────────────────────────────────────────────────
+  // disposeStage unbinds the shared listeners + releases the context; we just
+  // release the streamed node geometry + the material.
+  window.addEventListener('pagehide', () => disposeStage(stage, {
+    disposeScene: () => {
+      for (const key of [...loaded.keys()]) unloadNode(key);
+      if (material) material.dispose();
+    },
+  }), { once: true });
 }
 
 const el = document.getElementById('gh-copc-viewer');

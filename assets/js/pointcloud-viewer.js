@@ -1,222 +1,46 @@
 /**
  * GoHéritage — minimal point-cloud viewer
  *
- * A deliberately small companion to viewer.js: same three.js stack (loaded
- * via the page's importmap) and the same camera/controls/render-loop
- * patterns, but it renders a THREE.Points cloud instead of a textured mesh.
+ * Renders a single uploaded PLY/PCD as one THREE.Points cloud (the common case
+ * shown straight in the panel). Big octree-streamed clouds use the COPC viewer
+ * (copc-viewer.js) or an external Potree URL instead.
  *
  * Mounts onto #gh-pointcloud-viewer and reads:
  *   data-src    — URL of the point-cloud file (.ply or .pcd)
  *   data-format — the file extension ("ply" | "pcd")
  *
- * Big octree-streamed clouds still belong in an external Potree viewer
- * (set via the "Viewer externe" field); this handles the common case of a
- * single uploaded PLY/PCD so the dataset is visible straight in the panel.
+ * Shared renderer/loop/chrome/teardown live in pointcloud-common.js; this file
+ * owns only the PLY/PCD loading and the whole-file colour + camera framing.
  */
 
 import * as THREE from 'three';
 import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
 import { PCDLoader } from 'three/addons/loaders/PCDLoader.js';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-// Scanner exports (CloudCompare e57/PLY, survey data) are Z-up; Three.js is
-// Y-up. Same -90° X rotation the OBJ/GLB pipeline applies in viewer.js.
-const Z_UP_FIX = -Math.PI / 2;
+import {
+  Z_UP_FIX, makeRound,
+  createStage, createRenderLoop, attachResize,
+  makeProgress, makeSizeControls, makeControlsHint, disposeStage,
+} from './pointcloud-common.js';
 
 // Vertex-colour boost. Scan colours read dim on the dark stage (they carry
 // indoor exposure + sRGB-as-linear loss), so lift them a touch. >1 components
 // are fine: the shader multiplies before output encoding.
 const COLOR_BOOST = 1.35;
 
-// Round-point sprite: a soft white disc on transparent. Combined with
-// alphaTest it turns the default square GL_POINT into a clean circle with
-// no transparency-sort artefacts (cut pixels are discarded, depth stays
-// correct). Built once, shared across materials.
-let _circleTex = null;
-function circleTexture() {
-  if (_circleTex) return _circleTex;
-  const S = 64;
-  const c = document.createElement('canvas');
-  c.width = c.height = S;
-  const ctx = c.getContext('2d');
-  const r = S / 2;
-  const g = ctx.createRadialGradient(r, r, 0, r, r, r);
-  g.addColorStop(0.0, 'rgba(255,255,255,1)');
-  g.addColorStop(0.7, 'rgba(255,255,255,1)');
-  g.addColorStop(0.85, 'rgba(255,255,255,0.9)');
-  g.addColorStop(1.0, 'rgba(255,255,255,0)');
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(r, r, r, 0, Math.PI * 2);
-  ctx.fill();
-  _circleTex = new THREE.CanvasTexture(c);
-  _circleTex.colorSpace = THREE.SRGBColorSpace;
-  return _circleTex;
-}
-
-// Apply the circle sprite + alpha cutout to a PointsMaterial in place.
-function makeRound(material) {
-  material.map = circleTexture();
-  material.alphaTest = 0.5;   // discard the square corners
-  material.transparent = false;
-  material.needsUpdate = true;
-}
-
 function initPointCloud(container) {
   const src = container.dataset.src;
   const format = (container.dataset.format || 'ply').toLowerCase();
   if (!src) return;
 
-  // The loader + control overlays are absolutely positioned; if the host
-  // container is static they'd centre against some ancestor instead (the
-  // "off-centre loading bar" bug when the page renders without the side
-  // panel). Force a positioning context unconditionally.
-  if (getComputedStyle(container).position === 'static') {
-    container.style.position = 'relative';
-  }
+  const stage = createStage(container);
+  const { scene, camera, controls } = stage;
+  const { requestRender } = createRenderLoop(stage);
+  attachResize(stage, requestRender);
 
-  // Touch-primary devices only (phones/tablets) — not touch laptops.
-  const isMobile = window.matchMedia('(hover: none) and (pointer: coarse)').matches
-                || window.innerWidth <= 768;
-
-  // ── Renderer ──────────────────────────────────────────────────────────
-  const renderer = new THREE.WebGLRenderer({
-    antialias: !isMobile,
-    alpha: false,
-    powerPreference: isMobile ? 'low-power' : 'high-performance',
-  });
-  // Full DPR for the crisp resting frame; a lower DPR while the camera is
-  // moving (drag/zoom/damping). On a dense cloud the fragment cost scales with
-  // DPR², so quartering it during motion — when fine detail isn't perceptible
-  // anyway — is the difference between a smooth and a stuttering drag. The
-  // resting frame snaps back to full resolution. Mirrors viewer.js's adaptive
-  // pixel ratio, but driven by interaction state instead of an FPS sampler
-  // (we render on-demand, so there's no steady frame stream to sample).
-  const FULL_DPR = isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2);
-  const LOW_DPR  = Math.min(FULL_DPR, 1);
-  renderer.setPixelRatio(FULL_DPR);
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  container.appendChild(renderer.domElement);
-
-  // ── Scene + camera + controls ─────────────────────────────────────────
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a1a1a);
-
-  const camera = new THREE.PerspectiveCamera(
-    60, container.clientWidth / container.clientHeight, 0.01, 1e7
-  );
-  camera.position.set(0, 0, 5);
-
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  // Higher = settles faster. Low values leave a long, obvious glide after the
-  // pointer is released; 0.15 stops crisply without feeling jerky.
-  controls.dampingFactor = 0.15;
-
-  // ── Loading UI ────────────────────────────────────────────────────────
-  const progress = document.createElement('div');
-  progress.className = 'viewer-progress';
-  progress.innerHTML =
-    '<div class="viewer-progress-bar"><div class="viewer-progress-fill"></div></div>' +
-    '<span class="viewer-progress-text">chargement…</span>';
-  container.appendChild(progress);
-  const fill = progress.querySelector('.viewer-progress-fill');
-  const ptext = progress.querySelector('.viewer-progress-text');
-
-  function onProgress(e) {
-    if (e && e.lengthComputable) {
-      const pct = Math.round((e.loaded / e.total) * 100);
-      fill.style.width = pct + '%';
-      ptext.textContent = 'chargement… ' + pct + '%';
-    }
-  }
-  function onError(err) {
-    ptext.textContent = 'impossible de charger le nuage de points.';
-    fill.style.background = '#c0392b';
-    if (window.console && window.console.error) window.console.error('point cloud load failed', err);
-  }
-  function hideProgress() {
-    progress.style.opacity = '0';
-    setTimeout(() => progress.remove(), 400);
-  }
-
-  // ── Point-size controls (− / +) ───────────────────────────────────────
-  // Created up-front but only useful once a material exists; clicks no-op
-  // until then. 44 px targets on touch, compact on desktop.
+  const progress = makeProgress(container);
   let pointsMaterial = null;
-  const sizeCtl = document.createElement('div');
-  sizeCtl.className = 'pc-size-controls' + (isMobile ? ' pc-size-controls--touch' : '');
-  sizeCtl.innerHTML =
-    '<button type="button" class="pc-size-btn" data-dir="down" aria-label="Réduire la taille des points" title="Points plus petits">−</button>' +
-    '<span class="pc-size-label">Taille des points</span>' +
-    '<button type="button" class="pc-size-btn" data-dir="up" aria-label="Augmenter la taille des points" title="Points plus gros">+</button>';
-  container.appendChild(sizeCtl);
-  sizeCtl.addEventListener('click', (e) => {
-    const btn = e.target.closest('.pc-size-btn');
-    if (!btn || !pointsMaterial) return;
-    const f = btn.dataset.dir === 'up' ? 1.25 : 0.8;
-    pointsMaterial.size = THREE.MathUtils.clamp(pointsMaterial.size * f, 1e-5, 1e5);
-    pointsMaterial.needsUpdate = true;
-    requestRender();
-  });
-  // Keyboard + / − as a desktop nicety.
-  let onKeydown = null;
-  if (!isMobile) {
-    onKeydown = (e) => {
-      if (!pointsMaterial || e.target.matches('input, textarea')) return;
-      if (e.key === '+' || e.key === '=') pointsMaterial.size *= 1.25;
-      else if (e.key === '-' || e.key === '_') pointsMaterial.size *= 0.8;
-      else return;
-      pointsMaterial.needsUpdate = true;
-      requestRender();
-    };
-    window.addEventListener('keydown', onKeydown);
-  }
-
-  // ── Controls hint (desktop only — same pattern as viewer.js) ──────────
-  if (!isMobile) {
-    const hint = document.createElement('div');
-    hint.className = 'viewer-controls-hint';
-    hint.innerHTML =
-      '<span class="viewer-controls-hint__label">Rotation</span>' +
-      '<svg width="22" height="32" viewBox="0 0 22 32" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-      '<rect x="1" y="1" width="20" height="30" rx="10" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>' +
-      '<path d="M1 12 L1 9 Q1 2 11 2 L11 15 L1 15 Z" fill="rgba(255,255,255,0.15)"/>' +
-      '<path d="M21 12 L21 9 Q21 2 11 2 L11 15 L21 15 Z" fill="rgba(255,255,255,0.15)"/>' +
-      '<line x1="11" y1="2" x2="11" y2="15" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>' +
-      '<rect x="9.5" y="5" width="3" height="6" rx="1.5" fill="rgba(255,255,255,0.5)"/>' +
-      '</svg>' +
-      '<span class="viewer-controls-hint__label">Déplacer</span>';
-    container.appendChild(hint);
-
-    let hintTimer = null;
-    let pointerDown = false;
-    function scheduleHint() {
-      clearTimeout(hintTimer);
-      if (!pointerDown) {
-        hintTimer = setTimeout(() => hint.classList.add('is-visible'), 1000);
-      }
-    }
-    function onPointerDown() {
-      pointerDown = true;
-      clearTimeout(hintTimer);
-      hint.classList.remove('is-visible');
-    }
-    function onPointerUp() {
-      pointerDown = false;
-      scheduleHint();
-    }
-    scheduleHint();
-    renderer.domElement.addEventListener('pointerdown', onPointerDown);
-    renderer.domElement.addEventListener('pointerup', onPointerUp);
-    renderer.domElement.addEventListener('pointercancel', onPointerUp);
-    renderer.domElement.addEventListener('wheel', () => {
-      clearTimeout(hintTimer);
-      hint.classList.remove('is-visible');
-      scheduleHint();
-    }, { passive: true });
-  }
+  makeSizeControls(stage, () => pointsMaterial, requestRender);
+  makeControlsHint(stage);
 
   // ── Add a cloud, centre it, fix the up-axis, and frame the camera ─────
   function addCloud(geometry, existingPoints) {
@@ -330,87 +154,20 @@ function initPointCloud(container) {
     // Depth cue: fade the far tail of the cloud into the background so depth
     // reads at a glance. Near points already render larger (sizeAttenuation,
     // above); the fog supplies the complementary "further = fainter" half.
-    // Starts at the camera distance so the model body stays crisp and only
-    // what's behind it recedes.
     scene.fog = new THREE.Fog(0x1a1a1a, dist, dist + radius * 4);
 
-    hideProgress();
-    document.body.classList.add('viewer-is-ready');
+    progress.hide();
     requestRender();
   }
 
   // ── Load ──────────────────────────────────────────────────────────────
   if (format === 'pcd') {
-    new PCDLoader().load(src, (pts) => addCloud(pts.geometry, pts), onProgress, onError);
+    new PCDLoader().load(src, (pts) => addCloud(pts.geometry, pts), progress.onProgress, progress.fail);
   } else {
-    new PLYLoader().load(src, (geo) => addCloud(geo, null), onProgress, onError);
+    new PLYLoader().load(src, (geo) => addCloud(geo, null), progress.onProgress, progress.fail);
   }
 
-  // ── On-demand rendering ───────────────────────────────────────────────
-  // A static point cloud doesn't change between frames, so we don't run a
-  // permanent rAF loop (continuous full-res GPU work + battery drain on a
-  // multi-million-point cloud). Instead we render only when something moves:
-  // user interaction fires OrbitControls' 'change' event, and while damping
-  // settles `controls.update()` keeps returning true, so we self-reschedule
-  // until the camera comes to rest — then go fully idle.
-  let renderRequested = false;
-  let interacting = false;
-  function requestRender() {
-    if (renderRequested) return;
-    renderRequested = true;
-    requestAnimationFrame(frame);
-  }
-  function frame() {
-    renderRequested = false;
-    const moving = controls.update();   // true while damping is still settling
-    // Low DPR ONLY while the pointer is actively down. The damping coast and
-    // the resting frame render at full DPR, so there's no resolution "pop" at
-    // the moment the glide stops (which made the stop point obvious).
-    // setPixelRatio reallocates the drawing buffer, so only call it on a real
-    // transition (guarded by the current ratio).
-    const want = interacting ? LOW_DPR : FULL_DPR;
-    if (renderer.getPixelRatio() !== want) {
-      renderer.setPixelRatio(want);
-      renderer.setSize(container.clientWidth, container.clientHeight);
-    }
-    renderer.render(scene, camera);
-    if (interacting || moving) requestRender();   // keep rendering until at rest
-  }
-  controls.addEventListener('change', requestRender);
-  // 'start'/'end' bracket an active drag/zoom gesture; damping may keep the
-  // camera moving past 'end', which the `moving` flag covers.
-  controls.addEventListener('start', () => { interacting = true; requestRender(); });
-  controls.addEventListener('end',   () => { interacting = false; requestRender(); });
-
-  // ── Resize ────────────────────────────────────────────────────────────
-  function resize() {
-    const w = container.clientWidth, h = container.clientHeight;
-    if (!w || !h) return;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
-    requestRender();
-  }
-  window.addEventListener('resize', resize);
-
-  // ── Teardown ──────────────────────────────────────────────────────────
-  // Release the WebGL context + GPU buffers and unbind global listeners when
-  // the page/iframe goes away. Browsers cap live WebGL contexts (~16), so a
-  // leaked context per pointcloud-tab open would eventually blank the viewer.
-  function dispose() {
-    window.removeEventListener('resize', resize);
-    if (onKeydown) window.removeEventListener('keydown', onKeydown);
-    controls.removeEventListener('change', requestRender);
-    controls.dispose();
-    scene.traverse((obj) => {
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) obj.material.dispose();
-    });
-    if (_circleTex) { _circleTex.dispose(); _circleTex = null; }
-    renderer.dispose();
-    renderer.forceContextLoss();
-  }
-  window.addEventListener('pagehide', dispose, { once: true });
+  window.addEventListener('pagehide', () => disposeStage(stage), { once: true });
 }
 
 const el = document.getElementById('gh-pointcloud-viewer');
