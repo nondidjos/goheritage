@@ -35,25 +35,32 @@ tabs:
   footer:
     label: Pied de page
     columns:
-      - width: 1/2
+      - width: 1/1
         fields:
           footer_tagline:
             type: textarea
             label: Accroche du pied de page
-            help: "S'affiche au dessus du formulaire de contact."
+            help: "S'affiche au-dessus du formulaire de contact."
           footer_email:
             type: email
             label: Email de contact
-
-      - width: 1/2
-        fields:
           social:
             type: structure
             label: Réseaux sociaux
+            help: >
+              Ajoutez vos comptes. Un lien n'apparaît dans la colonne « Nous
+              suivre » du pied de page (site + panneau) QUE si l'URL est remplie
+              et commence par https:// — une plateforme sans URL est ignorée.
+            columns:
+              platform:
+                width: 1/3
+              url:
+                width: 2/3
             fields:
               platform:
                 type: text
                 label: "Plateforme (ex: LinkedIn, Mastodon)"
               url:
                 type: url
-                label: Lien URL
+                label: Lien URL (https://…)
+                placeholder: https://www.linkedin.com/company/…

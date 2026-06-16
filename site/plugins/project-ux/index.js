@@ -73,10 +73,20 @@ var ProjectOverviewSection = {
           localGeo: { location: '', lat: '', lng: '' },
 
           // Tags Dialog state — separate dialog so the overview can offer
-          // distinct Caractéristiques and Tags tiles.
+          // distinct Caractéristiques and Tags tiles. Edits happen on drafts
+          // (tagsDraft/primaryDraft) so Cancel discards cleanly.
           tagsDialogOpen: false,
           tagsInput: '',
-          primaryTagInput: '',
+          tagsDraft: [],
+          primaryDraft: '',
+          // Curated THEMATIC vocabulary — styles/periods + a few functions.
+          // Deliberately excludes places, centuries and "patrimoine" (those are
+          // map locations / noise, not themes). Shown as one-click preset chips.
+          tagPresets: [
+            'religieux', 'art-nouveau', 'gothique', 'baroque', 'médiéval',
+            'historicisme', 'belle-époque', 'orientalisme', 'jardin',
+            'sculpture', 'cistercien', 'sgraffito', 'unesco',
+          ],
 
           // Embed Dialog state
           embedDialogOpen: false,
@@ -529,26 +539,39 @@ var ProjectOverviewSection = {
             size="medium"
           >
             <div class="gh-tags-dialog">
-              <div class="k-field k-textarea-field">
-                <label class="k-label">Tags (séparés par des virgules)</label>
-                <textarea
-                  v-model="tagsInput"
-                  class="k-textarea-input"
-                  rows="3"
-                  placeholder="patrimoine, XIXe, gothique, etc."
-                  style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text); font-family:inherit; font-size:inherit;"
-                ></textarea>
-              </div>
-              <div class="k-field k-text-field" style="margin-top:1rem;">
-                <label class="k-label">Tag mis en avant</label>
+              <label class="k-label">Tags</label>
+              <div class="gh-tagchips">
+                <span
+                  v-for="t in tagsDraft"
+                  :key="t"
+                  class="gh-tagchip"
+                  :class="{ 'is-primary': t === primaryDraft }"
+                >
+                  <button type="button" class="gh-tagchip__star" @click="setPrimary(t)"
+                    :title="t === primaryDraft ? 'Tag mis en avant' : 'Mettre en avant'">★</button>
+                  <span class="gh-tagchip__label">{{ t }}</span>
+                  <button type="button" class="gh-tagchip__x" @click="removeTag(t)" aria-label="Retirer le tag">×</button>
+                </span>
                 <input
-                  type="text"
-                  v-model="primaryTagInput"
-                  class="k-text-input"
-                  placeholder="ex. gothique"
-                  style="width:100%; padding:0.35rem 0.6rem; border:1px solid var(--color-border); border-radius:var(--rounded); background:var(--color-bg); color:var(--color-text);"
+                  class="gh-tagchips__input"
+                  v-model="tagsInput"
+                  @keydown.enter.prevent="commitInput"
+                  @keydown="onTagKey"
+                  placeholder="Ajouter…"
                 />
-                <p style="margin-top:0.4rem; font-size:0.78rem; color:var(--color-text-dimmed);">Doit correspondre exactement à un tag ci-dessus. Affiché en badge sur les cartes.</p>
+              </div>
+              <p class="gh-tags-hint">Entrée ou virgule pour ajouter · ★ met un tag en avant (badge sur les cartes).</p>
+
+              <label class="k-label gh-tags-presets-label">Catégories</label>
+              <div class="gh-tagpresets">
+                <button
+                  v-for="p in tagPresets"
+                  :key="p"
+                  type="button"
+                  class="gh-tagpreset"
+                  :class="{ 'is-on': tagsDraft.includes(p) }"
+                  @click="toggleTag(p)"
+                >{{ p }}</button>
               </div>
             </div>
           </k-dialog>
@@ -854,10 +877,41 @@ var ProjectOverviewSection = {
           }
         },
 
-        // Tags Dialog methods — standalone so the overview has a Tags tile.
+        // ── Tags Dialog (chip editor) ───────────────────────────────────────
+        normTag(t) {
+          return String(t || '').trim().toLowerCase().replace(/\s+/g, '-');
+        },
+        addTag(raw) {
+          const t = this.normTag(raw);
+          if (t && !this.tagsDraft.includes(t)) this.tagsDraft.push(t);
+        },
+        removeTag(t) {
+          this.tagsDraft = this.tagsDraft.filter((x) => x !== t);
+          if (this.primaryDraft === t) this.primaryDraft = '';
+        },
+        toggleTag(t) {
+          if (this.tagsDraft.includes(t)) this.removeTag(t);
+          else this.addTag(t);
+        },
+        commitInput() {
+          this.tagsInput.split(',').forEach((t) => this.addTag(t));
+          this.tagsInput = '';
+        },
+        onTagKey(e) {
+          if (e.key === ',') {
+            e.preventDefault();
+            this.commitInput();
+          } else if (e.key === 'Backspace' && !this.tagsInput && this.tagsDraft.length) {
+            this.removeTag(this.tagsDraft[this.tagsDraft.length - 1]);
+          }
+        },
+        setPrimary(t) {
+          this.primaryDraft = this.primaryDraft === t ? '' : t;
+        },
         openTagsDialog() {
-          this.tagsInput = Array.isArray(this.tags) ? this.tags.join(', ') : '';
-          this.primaryTagInput = this.primaryTag || '';
+          this.tagsDraft = Array.isArray(this.tags) ? this.tags.slice() : [];
+          this.primaryDraft = this.primaryTag || '';
+          this.tagsInput = '';
           this.tagsDialogOpen = true;
           this.$nextTick(() => {
             if (this.$refs.tagsDialog) this.$refs.tagsDialog.open();
@@ -865,11 +919,13 @@ var ProjectOverviewSection = {
         },
         async saveTags() {
           const pageId = this.pageId.replace(/\//g, '+');
-          const tagsArr = this.tagsInput.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+          this.commitInput();                       // fold a half-typed tag in the input
+          const tagsArr = this.tagsDraft.slice();
+          const primary = tagsArr.includes(this.primaryDraft) ? this.primaryDraft : '';
           try {
             await this.$panel.api.patch('pages/' + pageId, {
               tags: tagsArr.join(','),
-              primary_tag: this.primaryTagInput.trim()
+              primary_tag: primary
             });
             this.$panel.notification.success('Tags enregistrés');
             this.tagsDialogOpen = false;
