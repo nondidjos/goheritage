@@ -52,8 +52,10 @@ let _rampLut = null;
 // sRGB endpoints, converted to linear for upload (renderer output-encodes).
 function rampLut() {
   if (_rampLut) return _rampLut;
-  const lo = [0.48, 0.52, 0.58];        // shadows — light cool grey (lifted so nothing reads near-black)
-  const hi = [1.00, 0.98, 0.92];        // highlights — warm near-white
+  // Single warm "stone" hue across the whole ramp — no cool/blue end (blue on a
+  // point cloud reads as unnatural). Just a faint warm tinge, dark→light.
+  const lo = [0.52, 0.51, 0.48];        // shadows — warm mid grey (lifted, nothing near-black)
+  const hi = [1.00, 0.97, 0.91];        // highlights — warm near-white
   _rampLut = new Float32Array(256 * 3);
   for (let i = 0; i < 256; i++) {
     const t = i / 255;
