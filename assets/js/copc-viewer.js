@@ -386,7 +386,7 @@ async function initCopc(container) {
       depthSpan = (depthIsX ? exX : exY) || 1;
     }
     material = new THREE.PointsMaterial({
-      size: (copc.info.spacing * 0.2) || 0.02,
+      size: (copc.info.spacing * 0.16) || 0.02,
       sizeAttenuation: true,
       vertexColors: true,
       map: circleTexture(),
@@ -394,12 +394,13 @@ async function initCopc(container) {
       transparent: false,
     });
     // Clamp gl_PointSize to a sane pixel range: distance attenuation stays, but
-    // points never exceed ~a few px (mobile fill-rate guard) nor drop below 1px
-    // (so far points don't vanish). Range is in framebuffer px; FULL_DPR scales
-    // CSS px → device px. Cheap: one clamp in the vertex shader.
-    const maxPx = (isMobile ? 3.0 : 5.0) * FULL_DPR;
+    // points are capped so near points don't balloon into a solid opaque sheet
+    // (you lose the depth/3D read on dense clouds) and the floor is low so the
+    // − control + far points can thin right down. Range is in framebuffer px;
+    // FULL_DPR scales CSS px → device px. Cheap: one clamp in the vertex shader.
+    const maxPx = (isMobile ? 2.5 : 3.5) * FULL_DPR;
     material.onBeforeCompile = (shader) => {
-      shader.uniforms.uMinPx = { value: 1.0 };
+      shader.uniforms.uMinPx = { value: 0.5 };
       shader.uniforms.uMaxPx = { value: maxPx };
       shader.vertexShader =
         'uniform float uMinPx;\nuniform float uMaxPx;\n' +
