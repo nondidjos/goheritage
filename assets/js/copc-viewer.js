@@ -44,10 +44,17 @@ function buildSrgbLut(maxVal, scale) {
   return lut;
 }
 let _rampLut = null;
+// Grey ramp for colourless / B&W clouds, 256 buckets. A smoothstep contrast
+// curve (not a straight line) keeps the gradient from reading flat, and the
+// wider 0.28 → 1.0 range gives more tonal separation than a plain linear fade.
 function rampLut() {
-  if (_rampLut) return _rampLut;        // grey elevation ramp, 256 buckets
+  if (_rampLut) return _rampLut;
   _rampLut = new Float32Array(256);
-  for (let i = 0; i < 256; i++) _rampLut[i] = srgbToLinear(0.4 + 0.6 * (i / 255));
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255;
+    const s = t * t * (3 - 2 * t);      // smoothstep → gentle S-curve contrast
+    _rampLut[i] = srgbToLinear(0.28 + 0.72 * s);
+  }
   return _rampLut;
 }
 
@@ -126,7 +133,11 @@ async function initCopc(container) {
   let rootCube = null;
   let hasColor = false;
   const offset = [0, 0, 0];        // global recenter (cube centre) to keep float32 precise
-  let zMin = 0, zSpan = 1;         // vertical extent → height ramp for colourless clouds
+  let zMin = 0, zSpan = 1;         // vertical extent → height term of the grey ramp
+  // Thinner horizontal axis = facade-depth direction. The grey ramp mixes this
+  // in so relief (window reveals, cornices) reads as tonal steps — height alone
+  // is a flat vertical fade that hides all the form.
+  let depthMin = 0, depthSpan = 1, depthIsX = true;
 
   const known = new Map();         // key "d-x-y-z" -> { pointCount, pointDataOffset, pointDataLength }
   const pageRefs = new Map();      // key -> { pageOffset, pageLength } (lazy sub-hierarchy)
@@ -270,22 +281,28 @@ async function initCopc(container) {
         colorScaleResolved = true;
       }
 
-      // Colourless cloud (no RGB at all, or detected B&W) → low-to-high grey
-      // ramp by elevation, which restores the form a flat colour would lose.
+      // Colourless cloud (no RGB at all, or detected B&W) → grey ramp that
+      // blends HEIGHT with the facade-DEPTH axis, so the form a flat colour
+      // would lose comes back as tonal relief instead of a flat vertical fade.
       // Both paths read a precomputed LUT — no per-point Math.pow.
       const ramp = !hasColor || grayscale;
       const rl  = ramp ? rampLut() : null;
       const pos = new Float32Array(n * 3);
       const col = new Float32Array(n * 3);
       for (let i = 0; i < n; i++) {
-        const Z = gz(i);
-        pos[i * 3]     = gx(i) - offset[0];
-        pos[i * 3 + 1] = gy(i) - offset[1];
+        const X = gx(i), Y = gy(i), Z = gz(i);
+        pos[i * 3]     = X - offset[0];
+        pos[i * 3 + 1] = Y - offset[1];
         pos[i * 3 + 2] = Z - offset[2];
         if (ramp) {
-          let t = (Z - zMin) / zSpan;
-          t = t < 0 ? 0 : t > 1 ? 1 : t;
-          const g = rl[(t * 255) | 0];           // floor 0.4 baked into the ramp LUT
+          // Weighted toward depth (0.6) — that axis carries the architectural
+          // detail; height (0.4) keeps an overall vertical read. The LUT bakes
+          // the contrast curve + tonal floor.
+          let tz = (Z - zMin) / zSpan;
+          tz = tz < 0 ? 0 : tz > 1 ? 1 : tz;
+          let td = ((depthIsX ? X : Y) - depthMin) / depthSpan;
+          td = td < 0 ? 0 : td > 1 ? 1 : td;
+          const g = rl[((0.4 * tz + 0.6 * td) * 255) | 0];
           col[i * 3] = g; col[i * 3 + 1] = g; col[i * 3 + 2] = g;
         } else {
           col[i * 3]     = colorLut[gr(i)];
@@ -346,6 +363,14 @@ async function initCopc(container) {
     // balloon and wreck mobile fill-rate.
     zMin = copc.header.min[2];
     zSpan = (copc.header.max[2] - copc.header.min[2]) || 1;
+    // Pick the thinner horizontal axis as the relief/depth direction for the
+    // grey ramp (see the loadNode ramp branch).
+    {
+      const exX = hmax[0] - hmin[0], exY = hmax[1] - hmin[1];
+      depthIsX  = exX <= exY;
+      depthMin  = depthIsX ? hmin[0] : hmin[1];
+      depthSpan = (depthIsX ? exX : exY) || 1;
+    }
     material = new THREE.PointsMaterial({
       size: (copc.info.spacing * 0.2) || 0.02,
       sizeAttenuation: true,
