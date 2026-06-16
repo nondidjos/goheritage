@@ -43,23 +43,27 @@ function buildSrgbLut(maxVal, scale) {
   for (let i = 0; i <= maxVal; i++) lut[i] = srgbToLinear(i * scale);
   return lut;
 }
-let _rampLut = null;
-// Ramp for colourless / B&W clouds — 256 RGB buckets (3 floats each). It's a
-// subtle DUOTONE, not flat grey: cool slate in the shadows → warm cream in the
-// highlights. That faint cool-dark/warm-light tint is what stops a monochrome
-// scan reading as a flat grey haze and gives it some dimension. A smoothstep
-// curve over a wide tonal range keeps the contrast from going linear/muddy.
-// sRGB endpoints, converted to linear for upload (renderer output-encodes).
-function rampLut() {
-  if (_rampLut) return _rampLut;
-  // Warm earth ramp (clay → sand → cream). The variation is HUE + saturation,
-  // not just luminosity, so the low end stays LIGHT (a warm clay, never a dark
-  // grey) and structure reads as colour shifts. All warm — no cool/blue tones.
-  const stops = [
-    [0.00, 0.64, 0.52, 0.46],   // clay  — light, warm, slightly red
-    [0.50, 0.84, 0.74, 0.58],   // sand  — golden
-    [1.00, 1.00, 0.97, 0.90],   // cream — warm near-white
-  ];
+// ── Colour ramps for colourless / B&W clouds ────────────────────────────────
+// Each palette is a list of stops [position 0..1, r, g, b] in sRGB. The viewer
+// shows a swatch button per palette (bottom-left) so the colour can be switched
+// live. Kept tasteful + light-floored so nothing reads near-black; "Spectre" is
+// the one bold scientific option for max depth separation.
+const PALETTES = [
+  { id: 'neutre',  label: 'Neutre',  stops: [[0, 0.58, 0.58, 0.58], [1, 1.00, 1.00, 1.00]] },
+  { id: 'pierre',  label: 'Pierre',  stops: [[0, 0.60, 0.60, 0.58], [0.5, 0.80, 0.79, 0.75], [1, 1.00, 1.00, 0.97]] },
+  { id: 'sable',   label: 'Sable',   stops: [[0, 0.64, 0.54, 0.46], [0.5, 0.85, 0.75, 0.58], [1, 1.00, 0.97, 0.90]] },
+  { id: 'ardoise', label: 'Ardoise', stops: [[0, 0.52, 0.57, 0.63], [0.5, 0.75, 0.80, 0.86], [1, 0.97, 0.99, 1.00]] },
+  { id: 'spectre', label: 'Spectre', stops: [[0, 0.27, 0.10, 0.40], [0.35, 0.18, 0.40, 0.62], [0.6, 0.16, 0.62, 0.55], [0.8, 0.52, 0.80, 0.33], [1, 0.99, 0.91, 0.22]] },
+];
+const DEFAULT_PALETTE = 'pierre';
+
+function getPalette(id) {
+  return PALETTES.find((p) => p.id === id) || PALETTES[0];
+}
+
+// Build a 256-bucket RGB LUT (3 floats/bucket) from a palette's stops. A
+// smoothstep curve adds contrast; values upload in LINEAR space.
+function buildRampLut(stops) {
   const sample = (t, ch) => {
     for (let k = 1; k < stops.length; k++) {
       if (t <= stops[k][0]) {
@@ -70,15 +74,45 @@ function rampLut() {
     }
     return stops[stops.length - 1][ch];
   };
-  _rampLut = new Float32Array(256 * 3);
+  const lut = new Float32Array(256 * 3);
   for (let i = 0; i < 256; i++) {
     const t = i / 255;
     const s = t * t * (3 - 2 * t);      // smoothstep → gentle S-curve contrast
-    _rampLut[i * 3]     = srgbToLinear(sample(s, 1));
-    _rampLut[i * 3 + 1] = srgbToLinear(sample(s, 2));
-    _rampLut[i * 3 + 2] = srgbToLinear(sample(s, 3));
+    lut[i * 3]     = srgbToLinear(sample(s, 1));
+    lut[i * 3 + 1] = srgbToLinear(sample(s, 2));
+    lut[i * 3 + 2] = srgbToLinear(sample(s, 3));
   }
-  return _rampLut;
+  return lut;
+}
+
+// Swatch-button palette switcher (bottom-left). Hidden until reveal() — only
+// colourless/B&W clouds get a ramp to recolour. onSelect(id) fires on click.
+function makePaletteControls(container, isMobile, onSelect) {
+  const wrap = document.createElement('div');
+  wrap.className = 'pc-palette-controls' + (isMobile ? ' pc-palette-controls--touch' : '');
+  wrap.style.display = 'none';
+  const css = (s) => `rgb(${Math.round(s[1] * 255)},${Math.round(s[2] * 255)},${Math.round(s[3] * 255)})`;
+  const swatch = (p) => {
+    const a = p.stops[0], m = p.stops[(p.stops.length - 1) >> 1], b = p.stops[p.stops.length - 1];
+    return `linear-gradient(135deg, ${css(a)}, ${css(m)}, ${css(b)})`;
+  };
+  let html = '<span class="pc-size-label">Teinte</span>';
+  for (const p of PALETTES) {
+    html += `<button type="button" class="pc-pal-btn" data-id="${p.id}" title="${p.label}" aria-label="${p.label}">`
+          + `<span class="pc-pal-sw" style="background:${swatch(p)}"></span></button>`;
+  }
+  wrap.innerHTML = html;
+  container.appendChild(wrap);
+  wrap.addEventListener('click', (e) => {
+    const b = e.target.closest('.pc-pal-btn');
+    if (b) onSelect(b.dataset.id);
+  });
+  return {
+    setActive(id) {
+      wrap.querySelectorAll('.pc-pal-btn').forEach((b) => b.classList.toggle('is-active', b.dataset.id === id));
+    },
+    reveal() { wrap.style.display = ''; },
+  };
 }
 
 // LOD tuning. A node is worth loading once its cube projects to at least
@@ -142,12 +176,52 @@ async function initCopc(container) {
   let colorScaleResolved = false;
   let colorLut = null;            // srgbToLinear[channel value], built once
   let grayscale = false;          // B&W scan → render an elevation grey ramp
+  let rampMode = false;           // true once we know the cloud is colourless/B&W
+  let paletteId = DEFAULT_PALETTE;
+  let activeLut = buildRampLut(getPalette(paletteId).stops);   // swapped live by the palette switcher
 
   // On-demand render loop; 'end' of a gesture also kicks an LOD refresh.
   const { requestRender } = createRenderLoop(stage, { onEnd: () => scheduleLod() });
   makeSizeControls(stage, () => material, requestRender);
   makeControlsHint(stage);
   attachResize(stage, requestRender, () => scheduleLod());
+
+  // Palette switcher — created now (hidden), revealed once we know the cloud is
+  // colourless/B&W. Recolours every loaded node in place from its stored
+  // positions, so switching is instant with no re-fetch.
+  const paletteUI = makePaletteControls(container, isMobile, setPalette);
+  paletteUI.setActive(paletteId);
+
+  function writeRampColor(c, i3, X, Y, Z) {
+    let tz = (Z - zMin) / zSpan;            tz = tz < 0 ? 0 : tz > 1 ? 1 : tz;
+    let td = ((depthIsX ? X : Y) - depthMin) / depthSpan; td = td < 0 ? 0 : td > 1 ? 1 : td;
+    const j = (((0.4 * tz + 0.6 * td) * 255) | 0) * 3;
+    c[i3] = activeLut[j]; c[i3 + 1] = activeLut[j + 1]; c[i3 + 2] = activeLut[j + 2];
+  }
+
+  function recolorLoaded() {
+    if (!rampMode) return;
+    for (const pts of loaded.values()) {
+      const g = pts.geometry;
+      const colAttr = g.getAttribute('color');
+      const posAttr = g.getAttribute('position');
+      if (!colAttr || !posAttr) continue;
+      const c = colAttr.array, p = posAttr.array, n = colAttr.count;
+      for (let i = 0; i < n; i++) {
+        writeRampColor(c, i * 3, p[i * 3] + offset[0], p[i * 3 + 1] + offset[1], p[i * 3 + 2] + offset[2]);
+      }
+      colAttr.needsUpdate = true;
+    }
+  }
+
+  function setPalette(id) {
+    const p = getPalette(id);
+    paletteId = p.id;
+    activeLut = buildRampLut(p.stops);
+    paletteUI.setActive(p.id);
+    recolorLoaded();
+    requestRender();
+  }
 
   // ── COPC state ────────────────────────────────────────────────────────────
   const get = makeGetter(src);
@@ -304,12 +378,11 @@ async function initCopc(container) {
         colorScaleResolved = true;
       }
 
-      // Colourless cloud (no RGB at all, or detected B&W) → grey ramp that
-      // blends HEIGHT with the facade-DEPTH axis, so the form a flat colour
-      // would lose comes back as tonal relief instead of a flat vertical fade.
-      // Both paths read a precomputed LUT — no per-point Math.pow.
+      // Colourless cloud (no RGB at all, or detected B&W) → grey/tinted ramp
+      // (writeRampColor blends HEIGHT with the facade-DEPTH axis and reads the
+      // live palette LUT, so the form a flat colour would lose comes back as
+      // tonal relief). RGB clouds read their own srgbToLinear LUT.
       const ramp = !hasColor || grayscale;
-      const rl  = ramp ? rampLut() : null;
       const pos = new Float32Array(n * 3);
       const col = new Float32Array(n * 3);
       for (let i = 0; i < n; i++) {
@@ -318,15 +391,7 @@ async function initCopc(container) {
         pos[i * 3 + 1] = Y - offset[1];
         pos[i * 3 + 2] = Z - offset[2];
         if (ramp) {
-          // Weighted toward depth (0.6) — that axis carries the architectural
-          // detail; height (0.4) keeps an overall vertical read. The LUT bakes
-          // the contrast curve + tonal floor.
-          let tz = (Z - zMin) / zSpan;
-          tz = tz < 0 ? 0 : tz > 1 ? 1 : tz;
-          let td = ((depthIsX ? X : Y) - depthMin) / depthSpan;
-          td = td < 0 ? 0 : td > 1 ? 1 : td;
-          const j = (((0.4 * tz + 0.6 * td) * 255) | 0) * 3;   // RGB triple in the duotone LUT
-          col[i * 3] = rl[j]; col[i * 3 + 1] = rl[j + 1]; col[i * 3 + 2] = rl[j + 2];
+          writeRampColor(col, i * 3, X, Y, Z);
         } else {
           col[i * 3]     = colorLut[gr(i)];
           col[i * 3 + 1] = colorLut[gg(i)];
@@ -450,6 +515,9 @@ async function initCopc(container) {
     // guarantees the stage is never empty. Then refine by view.
     const rootKey = known.keys().next().value;
     if (rootKey) await loadNode(rootKey, known.get(rootKey));
+    // Colour mode is now resolved — show the palette switcher for ramp clouds.
+    rampMode = !hasColor || grayscale;
+    if (rampMode) paletteUI.reveal();
     updateLod();
   } catch (e) {
     progress.fail(e);
