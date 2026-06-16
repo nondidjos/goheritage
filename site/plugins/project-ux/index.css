@@ -2016,9 +2016,11 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
 
 
 /* ── Tag editor (chip dialog) ─────────────────────────────────────────────
-   Replaces the old comma-separated textarea: current tags render as little
-   pills (★ marks the primary, × removes), an inline input adds new ones, and
-   the curated vocabulary shows as one-click preset chips below. */
+   Current tags render as little pills (× removes), an inline input adds new
+   ones, and the curated vocabulary shows as one-click preset chips below.
+   Theme-adaptive: uses Kirby's --color-text / --color-background / --input-*
+   tokens (which flip in dark mode) — NOT hard-coded whites. Chip fills are a
+   translucent grey overlay so they read on both light and dark panels. */
 .gh-tagchips {
   display: flex;
   flex-wrap: wrap;
@@ -2026,51 +2028,48 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   align-items: center;
   padding: 6px;
   min-height: 44px;
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.15));
+  border: 1px solid var(--color-border, rgba(128, 128, 128, 0.35));
   border-radius: var(--rounded, 6px);
-  background: var(--color-bg, #fff);
+  background: var(--input-color-back, var(--color-background, transparent));
 }
 .gh-tagchip {
   display: inline-flex;
   align-items: center;
-  padding: 2px 4px 2px 5px;
+  padding: 2px 4px 2px 8px;
   border-radius: 999px;
-  background: var(--color-light, #eef1f6);
-  color: var(--color-text, #1a1a1a);
+  background: rgba(128, 128, 128, 0.2);
+  color: var(--color-text);
   font-size: 0.78rem;
   line-height: 1.5;
 }
-.gh-tagchip.is-primary {
-  background: #ffe7ad;
-}
-.gh-tagchip__label { padding: 0 3px; }
-.gh-tagchip__star,
+.gh-tagchip__label { padding-inline-end: 2px; }
 .gh-tagchip__x {
   border: none;
   background: transparent;
   cursor: pointer;
-  padding: 0 3px;
-  font-size: 0.8rem;
+  padding: 0 4px;
+  font-size: 0.9rem;
   line-height: 1;
-  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.5));
+  color: var(--color-text);
+  opacity: 0.5;
 }
-.gh-tagchip__star { color: rgba(0, 0, 0, 0.22); }
-.gh-tagchip.is-primary .gh-tagchip__star { color: #d99800; }
-.gh-tagchip__x:hover { color: #c0392b; }
+.gh-tagchip__x:hover { opacity: 1; color: #e5484d; }
 .gh-tagchips__input {
   flex: 1;
   min-width: 90px;
   border: none;
   background: transparent;
   outline: none;
-  color: var(--color-text, #1a1a1a);
+  color: var(--input-color-text, var(--color-text));
   font-size: 0.82rem;
   padding: 4px;
 }
+.gh-tagchips__input::placeholder { color: var(--input-color-placeholder, var(--color-text)); opacity: 0.5; }
 .gh-tags-hint {
   margin-top: 0.45rem;
   font-size: 0.74rem;
-  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.5));
+  color: var(--color-text);
+  opacity: 0.6;
 }
 .gh-tags-presets-label { margin-top: 1.1rem; }
 .gh-tagpresets {
@@ -2080,21 +2079,20 @@ body.gh-project-edit .k-project-overview-section > .gh-section__title {
   margin-top: 0.4rem;
 }
 .gh-tagpreset {
-  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.15));
+  border: 1px solid var(--color-border, rgba(128, 128, 128, 0.35));
   background: transparent;
-  color: var(--color-text-dimmed, rgba(0, 0, 0, 0.55));
+  color: var(--color-text);
+  opacity: 0.7;
   border-radius: 999px;
   padding: 3px 11px;
   font-size: 0.78rem;
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
-.gh-tagpreset:hover {
-  border-color: var(--color-text-dimmed, rgba(0, 0, 0, 0.4));
-  color: var(--color-text, #1a1a1a);
-}
+.gh-tagpreset:hover { opacity: 1; }
 .gh-tagpreset.is-on {
-  background: var(--color-text, #1a1a1a);
-  color: #fff;
-  border-color: var(--color-text, #1a1a1a);
+  background: var(--color-text);
+  color: var(--color-background);
+  border-color: var(--color-text);
+  opacity: 1;
 }

@@ -78,7 +78,6 @@ var ProjectOverviewSection = {
           tagsDialogOpen: false,
           tagsInput: '',
           tagsDraft: [],
-          primaryDraft: '',
           // Curated THEMATIC vocabulary — styles/periods + a few functions.
           // Deliberately excludes places, centuries and "patrimoine" (those are
           // map locations / noise, not themes). Shown as one-click preset chips.
@@ -541,14 +540,7 @@ var ProjectOverviewSection = {
             <div class="gh-tags-dialog">
               <label class="k-label">Tags</label>
               <div class="gh-tagchips">
-                <span
-                  v-for="t in tagsDraft"
-                  :key="t"
-                  class="gh-tagchip"
-                  :class="{ 'is-primary': t === primaryDraft }"
-                >
-                  <button type="button" class="gh-tagchip__star" @click="setPrimary(t)"
-                    :title="t === primaryDraft ? 'Tag mis en avant' : 'Mettre en avant'">★</button>
+                <span v-for="t in tagsDraft" :key="t" class="gh-tagchip">
                   <span class="gh-tagchip__label">{{ t }}</span>
                   <button type="button" class="gh-tagchip__x" @click="removeTag(t)" aria-label="Retirer le tag">×</button>
                 </span>
@@ -560,7 +552,7 @@ var ProjectOverviewSection = {
                   placeholder="Ajouter…"
                 />
               </div>
-              <p class="gh-tags-hint">Entrée ou virgule pour ajouter · ★ met un tag en avant (badge sur les cartes).</p>
+              <p class="gh-tags-hint">Entrée ou virgule pour ajouter un tag.</p>
 
               <label class="k-label gh-tags-presets-label">Catégories</label>
               <div class="gh-tagpresets">
@@ -887,7 +879,6 @@ var ProjectOverviewSection = {
         },
         removeTag(t) {
           this.tagsDraft = this.tagsDraft.filter((x) => x !== t);
-          if (this.primaryDraft === t) this.primaryDraft = '';
         },
         toggleTag(t) {
           if (this.tagsDraft.includes(t)) this.removeTag(t);
@@ -905,12 +896,8 @@ var ProjectOverviewSection = {
             this.removeTag(this.tagsDraft[this.tagsDraft.length - 1]);
           }
         },
-        setPrimary(t) {
-          this.primaryDraft = this.primaryDraft === t ? '' : t;
-        },
         openTagsDialog() {
           this.tagsDraft = Array.isArray(this.tags) ? this.tags.slice() : [];
-          this.primaryDraft = this.primaryTag || '';
           this.tagsInput = '';
           this.tagsDialogOpen = true;
           this.$nextTick(() => {
@@ -921,11 +908,9 @@ var ProjectOverviewSection = {
           const pageId = this.pageId.replace(/\//g, '+');
           this.commitInput();                       // fold a half-typed tag in the input
           const tagsArr = this.tagsDraft.slice();
-          const primary = tagsArr.includes(this.primaryDraft) ? this.primaryDraft : '';
           try {
             await this.$panel.api.patch('pages/' + pageId, {
-              tags: tagsArr.join(','),
-              primary_tag: primary
+              tags: tagsArr.join(',')
             });
             this.$panel.notification.success('Tags enregistrés');
             this.tagsDialogOpen = false;
