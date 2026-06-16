@@ -44,16 +44,23 @@ function buildSrgbLut(maxVal, scale) {
   return lut;
 }
 let _rampLut = null;
-// Grey ramp for colourless / B&W clouds, 256 buckets. A smoothstep contrast
-// curve (not a straight line) keeps the gradient from reading flat, and the
-// wider 0.28 → 1.0 range gives more tonal separation than a plain linear fade.
+// Ramp for colourless / B&W clouds — 256 RGB buckets (3 floats each). It's a
+// subtle DUOTONE, not flat grey: cool slate in the shadows → warm cream in the
+// highlights. That faint cool-dark/warm-light tint is what stops a monochrome
+// scan reading as a flat grey haze and gives it some dimension. A smoothstep
+// curve over a wide tonal range keeps the contrast from going linear/muddy.
+// sRGB endpoints, converted to linear for upload (renderer output-encodes).
 function rampLut() {
   if (_rampLut) return _rampLut;
-  _rampLut = new Float32Array(256);
+  const lo = [0.25, 0.29, 0.36];        // shadows — cool blue-grey
+  const hi = [1.00, 0.96, 0.88];        // highlights — warm cream
+  _rampLut = new Float32Array(256 * 3);
   for (let i = 0; i < 256; i++) {
     const t = i / 255;
     const s = t * t * (3 - 2 * t);      // smoothstep → gentle S-curve contrast
-    _rampLut[i] = srgbToLinear(0.28 + 0.72 * s);
+    _rampLut[i * 3]     = srgbToLinear(lo[0] + (hi[0] - lo[0]) * s);
+    _rampLut[i * 3 + 1] = srgbToLinear(lo[1] + (hi[1] - lo[1]) * s);
+    _rampLut[i * 3 + 2] = srgbToLinear(lo[2] + (hi[2] - lo[2]) * s);
   }
   return _rampLut;
 }
@@ -302,8 +309,8 @@ async function initCopc(container) {
           tz = tz < 0 ? 0 : tz > 1 ? 1 : tz;
           let td = ((depthIsX ? X : Y) - depthMin) / depthSpan;
           td = td < 0 ? 0 : td > 1 ? 1 : td;
-          const g = rl[((0.4 * tz + 0.6 * td) * 255) | 0];
-          col[i * 3] = g; col[i * 3 + 1] = g; col[i * 3 + 2] = g;
+          const j = (((0.4 * tz + 0.6 * td) * 255) | 0) * 3;   // RGB triple in the duotone LUT
+          col[i * 3] = rl[j]; col[i * 3 + 1] = rl[j + 1]; col[i * 3 + 2] = rl[j + 2];
         } else {
           col[i * 3]     = colorLut[gr(i)];
           col[i * 3 + 1] = colorLut[gg(i)];
