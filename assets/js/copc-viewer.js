@@ -52,8 +52,8 @@ let _rampLut = null;
 // sRGB endpoints, converted to linear for upload (renderer output-encodes).
 function rampLut() {
   if (_rampLut) return _rampLut;
-  const lo = [0.25, 0.29, 0.36];        // shadows — cool blue-grey
-  const hi = [1.00, 0.96, 0.88];        // highlights — warm cream
+  const lo = [0.48, 0.52, 0.58];        // shadows — light cool grey (lifted so nothing reads near-black)
+  const hi = [1.00, 0.98, 0.92];        // highlights — warm near-white
   _rampLut = new Float32Array(256 * 3);
   for (let i = 0; i < 256; i++) {
     const t = i / 255;
