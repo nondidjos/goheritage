@@ -52,17 +52,31 @@ let _rampLut = null;
 // sRGB endpoints, converted to linear for upload (renderer output-encodes).
 function rampLut() {
   if (_rampLut) return _rampLut;
-  // Single warm "stone" hue across the whole ramp — no cool/blue end (blue on a
-  // point cloud reads as unnatural). Just a faint warm tinge, dark→light.
-  const lo = [0.52, 0.51, 0.48];        // shadows — warm mid grey (lifted, nothing near-black)
-  const hi = [1.00, 0.97, 0.91];        // highlights — warm near-white
+  // Warm earth ramp (clay → sand → cream). The variation is HUE + saturation,
+  // not just luminosity, so the low end stays LIGHT (a warm clay, never a dark
+  // grey) and structure reads as colour shifts. All warm — no cool/blue tones.
+  const stops = [
+    [0.00, 0.64, 0.52, 0.46],   // clay  — light, warm, slightly red
+    [0.50, 0.84, 0.74, 0.58],   // sand  — golden
+    [1.00, 1.00, 0.97, 0.90],   // cream — warm near-white
+  ];
+  const sample = (t, ch) => {
+    for (let k = 1; k < stops.length; k++) {
+      if (t <= stops[k][0]) {
+        const a = stops[k - 1], b = stops[k];
+        const f = (t - a[0]) / (b[0] - a[0]);
+        return a[ch] + (b[ch] - a[ch]) * f;
+      }
+    }
+    return stops[stops.length - 1][ch];
+  };
   _rampLut = new Float32Array(256 * 3);
   for (let i = 0; i < 256; i++) {
     const t = i / 255;
     const s = t * t * (3 - 2 * t);      // smoothstep → gentle S-curve contrast
-    _rampLut[i * 3]     = srgbToLinear(lo[0] + (hi[0] - lo[0]) * s);
-    _rampLut[i * 3 + 1] = srgbToLinear(lo[1] + (hi[1] - lo[1]) * s);
-    _rampLut[i * 3 + 2] = srgbToLinear(lo[2] + (hi[2] - lo[2]) * s);
+    _rampLut[i * 3]     = srgbToLinear(sample(s, 1));
+    _rampLut[i * 3 + 1] = srgbToLinear(sample(s, 2));
+    _rampLut[i * 3 + 2] = srgbToLinear(sample(s, 3));
   }
   return _rampLut;
 }
