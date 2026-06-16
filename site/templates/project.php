@@ -70,8 +70,7 @@ if (!empty(get('pointcloud'))) {
 
     $pcExternal = $page->pointcloud_url()->isNotEmpty() ? $page->pointcloud_url()->value() : null;
     // Cloud-Optimized Point Cloud: streamed node-by-node by copc-viewer.js.
-    // Detected by the .copc.laz filename suffix (extension() is just "laz").
-    $pcCopc     = $page->files()->filter(fn ($f) => preg_match('/\.copc\.laz$/i', $f->filename()))->sortBy('modified', 'desc')->first();
+    $pcCopc     = $page->copcFile();
     $pcInline   = $page->files()->filterBy('extension', 'in', ['ply', 'pcd'])->sortBy('modified', 'desc')->first();
     $pcOther    = $page->files()->filterBy('extension', 'in', ['las', 'laz', 'e57', 'xyz', 'pts'])->sortBy('modified', 'desc')->first();
     ?>
@@ -225,7 +224,7 @@ $hasPlansPane   = $canSee('plans')   && $plansList && $plansList->count() > 0;
 // can reach it without leaving the page.
 $pcExternal     = $page->pointcloud_url()->isNotEmpty() ? $page->pointcloud_url()->value() : null;
 $pcInline       = $page->files()->filterBy('extension', 'in', ['ply', 'pcd'])->sortBy('modified', 'desc')->first();
-$pcCopc         = $page->files()->filter(fn ($f) => preg_match('/\.copc\.laz$/i', $f->filename()))->sortBy('modified', 'desc')->first();
+$pcCopc         = $page->copcFile();
 $hasPointcloudPane = $canSee('pointcloud') && ($pcExternal !== null || $pcInline !== null || $pcCopc !== null);
 // The model pane is always present — even when there's nothing to show it
 // falls back to the cover image / "Vue 3D prochainement" placeholder, which

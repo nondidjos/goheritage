@@ -12,6 +12,7 @@ tabs:
         label: Afficher la section Hero
         type: toggle
         default: true
+        width: 1/4
       heroHeading:
         label: Titre principal
         type: text
@@ -21,7 +22,6 @@ tabs:
         max: 1
         width: 1/2
         query: page.files.filterBy('type', 'in', ['image', 'video'])
-        help: Vidéo = muette et en boucle
       heroImageMobile:
         label: Image hero (portrait, optionnel)
         type: files
@@ -36,6 +36,7 @@ tabs:
         label: Afficher la section Jumeau numérique
         type: toggle
         default: true
+        width: 1/4
       compareHeading:
         label: Titre de la section
         type: text
@@ -70,6 +71,7 @@ tabs:
         label: Afficher la section Procédé
         type: toggle
         default: true
+        width: 1/4
       procedeHeading:
         label: Titre de la section
         type: text
@@ -123,6 +125,7 @@ tabs:
         label: Afficher la section Manifeste
         type: toggle
         default: true
+        width: 1/4
       manifestoTag:
         label: Étiquette
         type: text
@@ -178,6 +181,7 @@ tabs:
         label: Afficher la section Livrables
         type: toggle
         default: true
+        width: 1/4
       deliverablesTag:
         label: Étiquette
         type: text
@@ -230,6 +234,7 @@ tabs:
         label: Afficher la section Projets
         type: toggle
         default: true
+        width: 1/4
       projectsHeading:
         label: Titre de la section projets
         type: text
@@ -241,6 +246,7 @@ tabs:
         label: Afficher la section Mission
         type: toggle
         default: true
+        width: 1/4
       impactTag:
         label: Étiquette
         type: text

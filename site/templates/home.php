@@ -3,7 +3,7 @@
 snippet('header');
 ?>
 
-<?php if ($page->showHero()->toBool(true)): ?>
+<?php if ($page->showSection('hero')): ?>
 <section class="items-end min-h-[85vh] pt-4 pb-16" id="hero-section">
 
   <div class="col-2 order-2 lg:order-1 flex flex-col justify-end pb-2">
@@ -41,9 +41,9 @@ snippet('header');
         <?php else: ?>
           <picture>
             <?php if ($heroMobile && $heroMobile->id() !== $heroMedia->id()): ?>
-              <source media="(max-width: 640px)" srcset="<?= $heroMobile->url() ?>">
+              <source media="(max-width: 640px)" srcset="<?= $heroMobile->resize(900)->url() ?>">
             <?php endif ?>
-            <img src="<?= $heroMedia->url() ?>" alt="<?= $heroMedia->alt()->esc() ?>" class="w-full h-full object-cover" loading="eager">
+            <img src="<?= $heroMedia->resize(1800)->url() ?>" alt="<?= $heroMedia->alt()->esc() ?>" class="w-full h-full object-cover" loading="eager" decoding="async" fetchpriority="high">
           </picture>
         <?php endif ?>
       <?php endif ?>
@@ -55,7 +55,7 @@ snippet('header');
 
 
 
-<?php if ($page->showCompare()->toBool(true)): ?>
+<?php if ($page->showSection('compare')): ?>
 <section class="py-12 md:py-20">
 
   <div class="col-4">
@@ -66,7 +66,7 @@ snippet('header');
             <?php if ($beforeMobile = $page->compareImageBeforeMobile()->toFile()): ?>
               <source media="(max-width: 640px)" srcset="<?= $beforeMobile->url() ?>">
             <?php endif ?>
-            <img src="<?= $beforeImg->url() ?>" alt="<?= $beforeImg->alt()->esc() ?>" loading="lazy">
+            <img src="<?= $beforeImg->url() ?>" alt="<?= $beforeImg->alt()->esc() ?>" loading="lazy" decoding="async">
           </picture>
         <?php endif ?>
       </div>
@@ -76,7 +76,7 @@ snippet('header');
             <?php if ($afterMobile = $page->compareImageAfterMobile()->toFile()): ?>
               <source media="(max-width: 640px)" srcset="<?= $afterMobile->url() ?>">
             <?php endif ?>
-            <img src="<?= $afterImg->url() ?>" alt="<?= $afterImg->alt()->esc() ?>" loading="lazy">
+            <img src="<?= $afterImg->url() ?>" alt="<?= $afterImg->alt()->esc() ?>" loading="lazy" decoding="async">
           </picture>
         <?php endif ?>
       </div>
@@ -108,7 +108,7 @@ snippet('header');
 </section>
 <?php endif ?>
 
-<?php if ($page->showProcede()->toBool(true)): ?>
+<?php if ($page->showSection('procede')): ?>
 <section class="pt-12 pb-12 md:pb-20">
   <h2 class="col-7 font-sans text-[clamp(1.25rem,2vw,1.75rem)] text-ink leading-tight mb-6">
     <?= $page->procedeHeading()->or('Le procédé GOVR') ?>
@@ -120,7 +120,7 @@ snippet('header');
         <?php if ($f1->type() === 'video'): ?>
           <video src="<?= $f1->url() ?>" autoplay loop muted playsinline class="w-full h-full object-cover"></video>
         <?php else: ?>
-          <img src="<?= $f1->url() ?>" alt="Acquisition" class="w-full h-full object-cover">
+          <img src="<?= $f1->url() ?>" alt="Acquisition" class="w-full h-full object-cover" loading="lazy" decoding="async">
         <?php endif ?>
       </div>
     <?php endif ?>
@@ -130,7 +130,7 @@ snippet('header');
         <?php if ($f2->type() === 'video'): ?>
           <video src="<?= $f2->url() ?>" autoplay loop muted playsinline class="w-full h-full object-cover"></video>
         <?php else: ?>
-          <img src="<?= $f2->url() ?>" alt="Traitement" class="w-full h-full object-cover">
+          <img src="<?= $f2->url() ?>" alt="Traitement" class="w-full h-full object-cover" loading="lazy" decoding="async">
         <?php endif ?>
       </div>
     <?php endif ?>
@@ -140,7 +140,7 @@ snippet('header');
         <?php if ($f3->type() === 'video'): ?>
           <video src="<?= $f3->url() ?>" autoplay loop muted playsinline class="w-full h-full object-cover"></video>
         <?php else: ?>
-          <img src="<?= $f3->url() ?>" alt="Production" class="w-full h-full object-cover">
+          <img src="<?= $f3->url() ?>" alt="Production" class="w-full h-full object-cover" loading="lazy" decoding="async">
         <?php endif ?>
       </div>
     <?php endif ?>
@@ -189,7 +189,7 @@ snippet('header');
 </section>
 <?php endif ?>
 
-<?php if ($page->showManifesto()->toBool(true)): ?>
+<?php if ($page->showSection('manifesto')): ?>
 <section class="py-12 md:py-20">
 
   <div class="col-7 bg-ink rounded-md overflow-hidden">
@@ -245,7 +245,7 @@ snippet('header');
     <div class="w-full md:w-3/5">
       <a href="<?= $featured_project->url() ?>" class="block rounded-md overflow-hidden aspect-video group">
         <?php if ($cover = $featured_project->cover()->toFile()): ?>
-          <img src="<?= $cover->crop(1200, 675)->url() ?>" alt="<?= $cover->alt()->esc() ?>" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
+          <img src="<?= $cover->crop(1200, 675)->url() ?>" alt="<?= $cover->alt()->esc() ?>" loading="lazy" decoding="async" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
         <?php else: ?>
           <div class="w-full h-full bg-ink/10 flex items-center justify-center">
              <span class="text-faint">Pas d'image</span>
@@ -277,7 +277,7 @@ snippet('header');
 </section>
 <?php endif ?>
 
-<?php if ($page->showProjects()->toBool(true)): ?>
+<?php if ($page->showSection('projects')): ?>
 <section class="py-12 md:py-20">
   <h2 class="col-7 font-sans text-[clamp(1.25rem,2vw,1.75rem)] text-ink leading-tight mb-6">
     <?= $page->projectsHeading()->or('Nos derniers projets') ?>
@@ -292,7 +292,7 @@ snippet('header');
         class="col-span-1 md:col-span-2 block no-underline hover:no-underline group transition-transform duration-200">
         <div class="overflow-hidden rounded-md aspect-16/7 mb-3 bg-surface">
           <?php if ($cover = $project->cover()->toFile()): ?>
-            <img src="<?= $cover->crop(800, 350)->url() ?>" alt="<?= $cover->alt()->esc() ?>" loading="lazy"
+            <img src="<?= $cover->crop(800, 350)->url() ?>" alt="<?= $cover->alt()->esc() ?>" loading="lazy" decoding="async"
               class="w-full h-full object-cover">
           <?php endif ?>
         </div>
@@ -337,7 +337,7 @@ snippet('header');
 </section>
 <?php endif ?>
 
-<?php if ($page->showDeliverables()->toBool(true)): ?>
+<?php if ($page->showSection('deliverables')): ?>
 <section class="py-12 md:py-20">
 
   <!-- Left: intro + CTA (3 cols) -->
@@ -369,7 +369,7 @@ snippet('header');
   <!-- Right: image (3 cols, portrait) -->
   <div class="col-3 overflow-hidden rounded-md bg-surface" style="min-height: 320px;">
     <?php if ($delivImg = $page->deliverablesImage()->toFile()): ?>
-      <img src="<?= $delivImg->url() ?>" alt="<?= $delivImg->alt()->esc() ?>" class="w-full h-full object-cover">
+      <img src="<?= $delivImg->url() ?>" alt="<?= $delivImg->alt()->esc() ?>" loading="lazy" decoding="async" class="w-full h-full object-cover">
     <?php endif ?>
   </div>
 
@@ -398,12 +398,12 @@ snippet('header');
 </section>
 <?php endif ?>
 
-<?php if ($page->showImpact()->toBool(true)): ?>
+<?php if ($page->showSection('impact')): ?>
 <section class="py-12 mb-8 md:mb-16">
   <div class="col-7 relative rounded-md overflow-hidden min-h-[40vh] md:min-h-[50vh] flex items-center justify-center p-6 md:p-12 bg-ink">
     <?php if ($impactImg = $page->impactImage()->toFile()): ?>
       <div class="absolute inset-0 opacity-20 mix-blend-luminosity pointer-events-none">
-        <img src="<?= $impactImg->url() ?>" alt="Statistiques" class="w-full h-full object-cover">
+        <img src="<?= $impactImg->resize(1600)->url() ?>" alt="Statistiques" loading="lazy" decoding="async" class="w-full h-full object-cover">
       </div>
     <?php endif ?>
 

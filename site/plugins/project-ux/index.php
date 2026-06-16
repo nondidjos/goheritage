@@ -686,19 +686,13 @@ Kirby::plugin('goheritage/project-ux', [
 
                     $social = [];
                     try {
-                        foreach ($site->social()->toStructure() as $s) {
-                            $url = trim((string) $s->url());
-                            // Require a real http(s) link + a name. Blocks
-                            // half-filled rows and javascript:/data: URLs (the
-                            // panel renderer would happily make them clickable).
-                            if ($url !== ''
-                                && preg_match('~^https?://~i', $url)
-                                && trim((string) $s->platform()) !== '') {
-                                $social[] = [
-                                    'platform' => (string) $s->platform(),
-                                    'url'      => $url,
-                                ];
-                            }
+                        // Shared filter (non-empty platform + real http(s) url)
+                        // so the panel footer matches the public one exactly.
+                        foreach ($site->socialLinks() as $s) {
+                            $social[] = [
+                                'platform' => (string) $s->platform(),
+                                'url'      => trim((string) $s->url()),
+                            ];
                         }
                     } catch (\Throwable $e) {}
 
@@ -1051,10 +1045,34 @@ Kirby::plugin('goheritage/project-ux', [
             if (in_array($ext, $archives, true)) return 'archive';
             return 'other';
         },
+
+        // True for a Cloud-Optimized Point Cloud. Detected by the `.copc.laz`
+        // filename suffix because extension() is just "laz" — the canonical
+        // place for that rule so the template, snippet and viewer-selector
+        // can't drift on it.
+        'isCopc' => function () {
+            return (bool) preg_match('/\.copc\.laz$/i', $this->filename());
+        },
     ],
 
     // ── Page methods for templates and controllers ─────────────────────────
     'pageMethods' => [
+
+        // The page's COPC point cloud (newest), or null. Single source of the
+        // detection rule for the ?pointcloud=1 stage, the visitor switcher
+        // pane, and the header's viewer-script selector.
+        'copcFile' => function () {
+            return $this->files()->filter(fn ($f) => $f->isCopc())
+                                  ->sortBy('modified', 'desc')
+                                  ->first();
+        },
+
+        // Whether a home-page section is shown. Sections default to visible, so
+        // an unset toggle reads true; only an explicit off hides. Centralises
+        // the default-true coercion the template otherwise repeated per section.
+        'showSection' => function (string $key) {
+            return $this->content()->get('show' . ucfirst($key))->toBool(true);
+        },
 
         // Curated photos for the public gallery. Uses the explicit `gallery`
         // field when the editor has set it; otherwise falls back to the page's
@@ -1200,6 +1218,22 @@ Kirby::plugin('goheritage/project-ux', [
                 }
             }
             return false;
+        },
+    ],
+
+    // ── Site methods ───────────────────────────────────────────────────────
+    'siteMethods' => [
+        // Footer social links that are safe to render: a non-empty platform
+        // name AND a real http(s) URL. One definition shared by the public
+        // footer and the panel's gh/footer-data sync so they can't diverge — a
+        // javascript:/data: URL or a half-filled row never reaches either.
+        'socialLinks' => function () {
+            return $this->social()->toStructure()->filter(function ($s) {
+                $url = trim((string) $s->url());
+                return $url !== ''
+                    && preg_match('~^https?://~i', $url)
+                    && trim((string) $s->platform()) !== '';
+            });
         },
     ],
 ]);

@@ -33,6 +33,23 @@ function srgbToLinear(c) {
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
 }
 
+// srgbToLinear runs once per channel per point — Math.pow millions of times on
+// a big cloud. The inputs are quantised (integer channel × a fixed scale, or a
+// 0..1 ramp), so precompute lookup tables and index them in the hot loop
+// instead. Built once; the channel LUT depends on the file's bit-depth scale.
+function buildSrgbLut(maxVal, scale) {
+  const lut = new Float32Array(maxVal + 1);
+  for (let i = 0; i <= maxVal; i++) lut[i] = srgbToLinear(i * scale);
+  return lut;
+}
+let _rampLut = null;
+function rampLut() {
+  if (_rampLut) return _rampLut;        // grey elevation ramp, 256 buckets
+  _rampLut = new Float32Array(256);
+  for (let i = 0; i < 256; i++) _rampLut[i] = srgbToLinear(0.4 + 0.6 * (i / 255));
+  return _rampLut;
+}
+
 // LOD tuning. A node is worth loading once its cube projects to at least
 // MIN_NODE_PX pixels tall; we keep loading higher-priority (bigger on screen)
 // nodes until the budget is spent. Budget is deliberately conservative — it's
@@ -169,6 +186,7 @@ async function initCopc(container) {
   let material = null;
   let colorScale = 1 / 255;       // resolved from the first decoded node
   let colorScaleResolved = false;
+  let colorLut = null;            // srgbToLinear[channel value], built once
   let grayscale = false;          // B&W scan → render an elevation grey ramp
 
   // ── Point-size controls ───────────────────────────────────────────────────
@@ -360,12 +378,15 @@ async function initCopc(container) {
         // Channels ~equal everywhere → no real colour (B&W scan): render a
         // height ramp instead of the muddy grey the data carries.
         if (spread * colorScale < 0.02) grayscale = true;
+        if (!grayscale) colorLut = buildSrgbLut(max > 255 ? 65535 : 255, colorScale);
         colorScaleResolved = true;
       }
 
       // Colourless cloud (no RGB at all, or detected B&W) → low-to-high grey
       // ramp by elevation, which restores the form a flat colour would lose.
+      // Both paths read a precomputed LUT — no per-point Math.pow.
       const ramp = !hasColor || grayscale;
+      const rl  = ramp ? rampLut() : null;
       const pos = new Float32Array(n * 3);
       const col = new Float32Array(n * 3);
       for (let i = 0; i < n; i++) {
@@ -376,12 +397,12 @@ async function initCopc(container) {
         if (ramp) {
           let t = (Z - zMin) / zSpan;
           t = t < 0 ? 0 : t > 1 ? 1 : t;
-          const g = srgbToLinear(0.4 + 0.6 * t);   // floor 0.4 so low points stay visible on the dark stage
+          const g = rl[(t * 255) | 0];           // floor 0.4 baked into the ramp LUT
           col[i * 3] = g; col[i * 3 + 1] = g; col[i * 3 + 2] = g;
         } else {
-          col[i * 3]     = srgbToLinear(gr(i) * colorScale);
-          col[i * 3 + 1] = srgbToLinear(gg(i) * colorScale);
-          col[i * 3 + 2] = srgbToLinear(gb(i) * colorScale);
+          col[i * 3]     = colorLut[gr(i)];
+          col[i * 3 + 1] = colorLut[gg(i)];
+          col[i * 3 + 2] = colorLut[gb(i)];
         }
       }
 

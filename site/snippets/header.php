@@ -68,7 +68,7 @@ if ($isMapPage) {
   // A .copc.laz upload switches the point-cloud tab to the streaming COPC
   // viewer; everything else (PLY/PCD) uses the plain whole-file viewer.
   $pcIsCopc     = $isPointcloud
-               && $page->files()->filter(fn ($f) => preg_match('/\.copc\.laz$/i', $f->filename()))->count() > 0
+               && $page->copcFile()
                && $page->pointcloud_url()->isEmpty();
   $needsThreeJs = $isProjectPage && ($isPointcloud || $page->viewer_url()->isEmpty());
   if ($isProjectPage): ?>
