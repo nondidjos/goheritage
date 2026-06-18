@@ -37,7 +37,72 @@ Kirby::plugin('goheritage/core', [
             return ghStripHtmlComments($html);
         },
     ],
+
+    // ── Thumbnails via Sharp/libvips, not GD ────────────────────────────────
+    // GD decodes the WHOLE source into memory to resize it (a 14 MB JPEG ≈
+    // 100 MB of pixels, a 100 MB PNG far more) — which OOMs/stalls thumb
+    // generation on the 450 MB box, so big gallery images "struggle to show
+    // up". Sharp streams the source and peaks at tens of MB regardless of size.
+    // This override routes every ->thumb()/->crop()/->resize() through Sharp;
+    // on any failure (or an effect Sharp isn't wired for here, e.g. blur) it
+    // falls back to Kirby's stock GD darkroom so an image can never break.
+    'components' => [
+        'thumb' => function ($kirby, string $src, string $dst, array $options): string {
+            try {
+                if (goheritageSharpThumb($src, $dst, $options)) {
+                    return $dst;
+                }
+            } catch (\Throwable $e) {
+                // fall through to GD
+            }
+            $darkroom = \Kirby\Image\Darkroom::factory(
+                $kirby->option('thumbs.driver', 'gd'),
+                $kirby->option('thumbs', [])
+            );
+            $options = $darkroom->preprocess($src, $options);
+            \Kirby\Filesystem\F::copy($src, $dst, true);
+            $darkroom->process($dst, $options);
+            return $dst;
+        },
+    ],
 ]);
+
+if (!function_exists('goheritageSharpThumb')) {
+    /**
+     * Generate one thumbnail with Sharp (see thumb.js). Returns true on a
+     * verified write, false to let the GD darkroom fall back. Only the resize
+     * options the site actually uses are handled here (width/height/crop/
+     * quality/format); anything else (blur, grayscale, sharpen) returns false
+     * so Kirby's stock pipeline takes over.
+     */
+    function goheritageSharpThumb(string $src, string $dst, array $options): bool
+    {
+        if (!empty($options['blur']) || !empty($options['grayscale']) || !empty($options['sharpen'])) {
+            return false;
+        }
+        $script = __DIR__ . '/thumb.js';
+        if (!is_file($script) || !is_file($src)) {
+            return false;
+        }
+        $w       = isset($options['width'])  ? (int) $options['width']  : 0;
+        $h       = isset($options['height']) ? (int) $options['height'] : 0;
+        $crop    = !empty($options['crop']);
+        $quality = (int) ($options['quality'] ?? kirby()->option('thumbs.quality', 80));
+        // The dst extension is what Kirby will serve, so encode to match it.
+        $format  = strtolower(pathinfo($dst, PATHINFO_EXTENSION)) ?: 'jpg';
+
+        $dir = dirname($dst);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+
+        $res = goheritageNodeJob($script, [$src, $dst, $w, $h, $crop ? 1 : 0, $quality, $format], [
+            'timeout'    => 60,
+            'logChannel' => 'thumbs',
+        ]);
+        return !empty($res['ok']) && is_file($dst) && filesize($dst) > 0;
+    }
+}
 
 if (!function_exists('ghStripHtmlComments')) {
     /**
