@@ -796,11 +796,11 @@
     flex-direction: column;
 }
 
-/* ── Data-type switcher (dropdown) ──────────────────────────────────────
+/* ── Data-type switcher (segmented buttons) ─────────────────────────────
    Absolutely positioned so it floats on top of the viewer pane without
    consuming any height in the flex column — avoids a black strip at the
-   top of the viewer. pointer-events: none on the bar itself; the switch
-   widget re-enables pointer-events on itself. */
+   top of the viewer. pointer-events: none on the bar itself; the button
+   group re-enables pointer-events on itself. */
 .viewer-mode-bar {
     position: absolute;
     top: 0;
@@ -814,134 +814,48 @@
     pointer-events: none;
 }
 
-.viewer-switch {
-    position: relative;
-    z-index: 20;
-    pointer-events: auto;
-}
-
-.viewer-switch__trigger {
+/* Segmented group: one frosted pill holding the mode buttons. */
+.viewer-modes {
     display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 11px 7px 8px;
+    gap: 2px;
+    padding: 3px;
     background: rgba(20, 20, 22, 0.6);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 10px;
+    border-radius: 11px;
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
-    color: #fff;
+    pointer-events: auto;
+}
+
+.viewer-modes__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 11px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
     font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
     font-size: 12px;
     font-weight: 500;
     letter-spacing: 0.04em;
-    cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease;
     white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.14s ease, color 0.14s ease;
 }
-.viewer-switch__trigger:hover {
-    background: rgba(36, 36, 40, 0.72);
-    border-color: rgba(255, 255, 255, 0.28);
-}
-.viewer-switch__trigger:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.55);
+.viewer-modes__btn:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+.viewer-modes__btn:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.6);
     outline-offset: 1px;
 }
-
-.viewer-switch__ico {
-    display: inline-flex;
-    flex-shrink: 0;
-    color: rgba(255, 255, 255, 0.9);
-}
-.viewer-switch__ico svg { display: block; }
-
-.viewer-switch__label { color: #fff; }
-
-/* Count badge — hints that other data types are available. */
-.viewer-switch__count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
+.viewer-modes__btn.is-active {
+    color: #fff;
     background: rgba(255, 255, 255, 0.16);
-    border-radius: 999px;
-    font-size: 10px;
-    font-weight: 600;
-    line-height: 1;
-    color: #fff;
 }
-
-.viewer-switch__chevron {
-    flex-shrink: 0;
-    color: rgba(255, 255, 255, 0.7);
-    transition: transform 0.18s ease;
-}
-.viewer-switch.is-open .viewer-switch__chevron { transform: rotate(180deg); }
-
-/* Menu */
-.viewer-switch__menu {
-    position: absolute;
-    top: calc(100% + 6px);
-    right: 0;
-    min-width: 200px;
-    margin: 0;
-    padding: 5px;
-    list-style: none;
-    background: rgba(24, 24, 27, 0.92);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 12px;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
-    opacity: 0;
-    transform: translateY(-4px);
-    pointer-events: none;
-    transition: opacity 0.14s ease, transform 0.14s ease;
-}
-.viewer-switch.is-open .viewer-switch__menu {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-}
-
-.viewer-switch__opt {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 10px;
-    border-radius: 8px;
-    color: rgba(255, 255, 255, 0.82);
-    font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
-    font-size: 12px;
-    letter-spacing: 0.03em;
-    cursor: pointer;
-    transition: background 0.12s ease, color 0.12s ease;
-}
-.viewer-switch__opt:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
-.viewer-switch__opt:focus-visible {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    outline: 2px solid rgba(255, 255, 255, 0.7);
-    outline-offset: -2px;
-}
-.viewer-switch__opt.is-active { color: #fff; }
-.viewer-switch__opt-ico {
-    display: inline-flex;
-    flex-shrink: 0;
-    color: rgba(255, 255, 255, 0.75);
-}
-.viewer-switch__opt-ico svg { display: block; }
-.viewer-switch__opt > span:not(.viewer-switch__opt-ico) { flex: 1; }
-
-.viewer-switch__check {
-    flex-shrink: 0;
-    opacity: 0;
-    color: #fff;
-}
-.viewer-switch__opt.is-active .viewer-switch__check { opacity: 1; }
+.viewer-modes__ico { display: inline-flex; flex-shrink: 0; }
+.viewer-modes__ico svg { display: block; }
 
 /* Point-cloud pane iframe fills the stage. */
 .viewer-pane__frame {
@@ -953,8 +867,10 @@
     display: block;
 }
 
+/* Tight viewports: icon-only buttons. */
 @media (max-width: 32rem) {
-    .viewer-switch__label { display: none; }
+    .viewer-modes__label { display: none; }
+    .viewer-modes__btn { padding: 8px; }
 }
 
 /* ── Panes ────────────────────────────────────────────────────────── */

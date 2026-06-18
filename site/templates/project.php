@@ -412,7 +412,7 @@ if ($modeParam && in_array($modeParam, $availableModes, true)) {
              style="top: 80px; height: calc(100vh - 100px); min-height: 500px;">
 
         <?php
-        // Icons + labels shared by the dropdown trigger and its options.
+        // Icons + labels for the mode buttons.
         $modeIcons = [
             'model'      => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
             'gallery'    => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
@@ -428,27 +428,20 @@ if ($modeParam && in_array($modeParam, $availableModes, true)) {
         ?>
         <?php if ($showModeChips): ?>
         <div class="viewer-mode-bar">
-        <div class="viewer-switch" id="viewer-switch">
-            <button type="button" class="viewer-switch__trigger" aria-haspopup="listbox" aria-expanded="false">
-                <span class="viewer-switch__count"><?= count($availableModes) ?></span>
-                <span class="viewer-switch__ico" data-switch-ico><?= $modeIcons[$defaultMode] ?></span>
-                <span class="viewer-switch__label" data-switch-label><?= esc($modeLabels[$defaultMode]) ?></span>
-                <svg class="viewer-switch__chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        <div class="viewer-modes" id="viewer-switch" role="tablist" aria-label="Mode d'affichage">
+            <?php foreach ($availableModes as $mode):
+                $isDefault = ($mode === $defaultMode);
+            ?>
+            <button type="button"
+                class="viewer-modes__btn<?= $isDefault ? ' is-active' : '' ?>"
+                role="tab"
+                data-mode-target="<?= esc($mode) ?>"
+                aria-selected="<?= $isDefault ? 'true' : 'false' ?>"
+                title="<?= esc($modeLabels[$mode]) ?>">
+                <span class="viewer-modes__ico"><?= $modeIcons[$mode] ?></span>
+                <span class="viewer-modes__label"><?= esc($modeLabels[$mode]) ?></span>
             </button>
-            <ul class="viewer-switch__menu" role="listbox" aria-label="Mode d'affichage">
-                <?php foreach ($availableModes as $mode):
-                    $isDefault = ($mode === $defaultMode);
-                ?>
-                <li class="viewer-switch__opt<?= $isDefault ? ' is-active' : '' ?>"
-                    role="option"
-                    data-mode-target="<?= esc($mode) ?>"
-                    aria-selected="<?= $isDefault ? 'true' : 'false' ?>">
-                    <span class="viewer-switch__opt-ico"><?= $modeIcons[$mode] ?></span>
-                    <span><?= esc($modeLabels[$mode]) ?></span>
-                    <svg class="viewer-switch__check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                </li>
-                <?php endforeach ?>
-            </ul>
+            <?php endforeach ?>
         </div>
         </div>
         <?php endif ?>

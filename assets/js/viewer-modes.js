@@ -1,11 +1,11 @@
 /**
  * viewer-modes.js
  *
- * Data-type switcher for the project viewer. A single dropdown (NOT a
- * segmented pill row) lets the visitor swap between the available data types
- * — Modèle 3D / Galerie / Plans / Nuage de points. Kept visually distinct
- * from the in-canvas Extérieur/Intérieur toggle so the two never read as
- * competing controls.
+ * Data-type switcher for the project viewer: a row of segmented buttons at the
+ * top of the viewer lets the visitor swap between the available data types —
+ * Modèle 3D / Galerie / Plans / Nuage de points. Kept visually distinct from
+ * the in-canvas Extérieur/Intérieur toggle so the two never read as competing
+ * controls.
  *
  * Switching a pane dispatches a `viewer:mode-change` event so viewer.js /
  * plan-viewer.js can lazy-load resources on first activation. The point-cloud
@@ -24,39 +24,8 @@
     var panes = container.querySelectorAll('[data-mode-pane]');
     if (!sw) return;
 
-    var trigger   = sw.querySelector('.viewer-switch__trigger');
-    var menu      = sw.querySelector('.viewer-switch__menu');
-    var opts      = sw.querySelectorAll('.viewer-switch__opt');
-    var labelEl   = sw.querySelector('[data-switch-label]');
-    var icoEl     = sw.querySelector('[data-switch-ico]');
-
-    var optList = Array.prototype.slice.call(opts);
-    // Roving tabindex: options are not in the tab order; arrow keys move a
-    // single focusable option (ARIA listbox pattern).
-    optList.forEach(function (o) { o.setAttribute('tabindex', '-1'); });
-
-    function activeIndex() {
-      var i = optList.findIndex(function (o) {
-        return o.getAttribute('aria-selected') === 'true';
-      });
-      return i < 0 ? 0 : i;
-    }
-    function focusOption(i) {
-      if (!optList.length) return;
-      var idx = (i + optList.length) % optList.length;
-      optList[idx].focus();
-    }
-
-    function closeMenu(returnFocus) {
-      sw.classList.remove('is-open');
-      trigger.setAttribute('aria-expanded', 'false');
-      if (returnFocus) trigger.focus();
-    }
-    function openMenu(focusIdx) {
-      sw.classList.add('is-open');
-      trigger.setAttribute('aria-expanded', 'true');
-      focusOption(typeof focusIdx === 'number' ? focusIdx : activeIndex());
-    }
+    var btns = Array.prototype.slice.call(sw.querySelectorAll('.viewer-modes__btn'));
+    if (!btns.length) return;
 
     // Create the point-cloud iframe the first time that pane is shown.
     function ensurePointcloudIframe() {
@@ -74,17 +43,10 @@
     }
 
     function setMode(target) {
-      // Reflect selection in the dropdown trigger.
-      opts.forEach(function (o) {
-        var match = o.getAttribute('data-mode-target') === target;
-        o.classList.toggle('is-active', match);
-        o.setAttribute('aria-selected', match ? 'true' : 'false');
-        if (match) {
-          var ico = o.querySelector('.viewer-switch__opt-ico');
-          var txt = o.querySelector('span:not(.viewer-switch__opt-ico)');
-          if (ico && icoEl)  icoEl.innerHTML = ico.innerHTML;
-          if (txt && labelEl) labelEl.textContent = txt.textContent;
-        }
+      btns.forEach(function (b) {
+        var match = b.getAttribute('data-mode-target') === target;
+        b.classList.toggle('is-active', match);
+        b.setAttribute('aria-selected', match ? 'true' : 'false');
       });
 
       if (target === 'pointcloud') ensurePointcloudIframe();
@@ -111,49 +73,22 @@
     container.setAttribute('data-active-mode', initial);
     if (initial === 'pointcloud') ensurePointcloudIframe();
 
-    trigger.addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (sw.classList.contains('is-open')) closeMenu(); else openMenu();
-    });
-
-    // Keyboard on the trigger: Down/Up or Enter/Space opens and focuses.
-    trigger.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        openMenu();
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        openMenu(optList.length - 1);
-      }
-    });
-
-    function choose(o) {
-      setMode(o.getAttribute('data-mode-target'));
-      closeMenu(true);
-    }
-
-    optList.forEach(function (o, i) {
-      o.addEventListener('click', function () { choose(o); });
-      o.addEventListener('keydown', function (e) {
-        switch (e.key) {
-          case 'ArrowDown': e.preventDefault(); focusOption(i + 1); break;
-          case 'ArrowUp':   e.preventDefault(); focusOption(i - 1); break;
-          case 'Home':      e.preventDefault(); focusOption(0); break;
-          case 'End':       e.preventDefault(); focusOption(optList.length - 1); break;
-          case 'Enter':
-          case ' ':         e.preventDefault(); choose(o); break;
-          case 'Escape':    e.preventDefault(); closeMenu(true); break;
-          case 'Tab':       closeMenu(); break;
-        }
+    btns.forEach(function (b, i) {
+      b.addEventListener('click', function () {
+        setMode(b.getAttribute('data-mode-target'));
       });
-    });
-
-    // Dismiss on outside click / Escape (when focus isn't already in the menu).
-    document.addEventListener('click', function (e) {
-      if (!sw.contains(e.target)) closeMenu();
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && sw.classList.contains('is-open')) closeMenu(true);
+      // Left/Right arrows move between buttons (ARIA tablist pattern).
+      b.addEventListener('keydown', function (e) {
+        var j = null;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') j = (i + 1) % btns.length;
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') j = (i - 1 + btns.length) % btns.length;
+        else if (e.key === 'Home') j = 0;
+        else if (e.key === 'End') j = btns.length - 1;
+        else return;
+        e.preventDefault();
+        btns[j].focus();
+        setMode(btns[j].getAttribute('data-mode-target'));
+      });
     });
   }
 
