@@ -81,7 +81,6 @@ export function createStage(container) {
     powerPreference: isMobile ? 'low-power' : 'high-performance',
   });
   const FULL_DPR = isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2);
-  const LOW_DPR  = Math.min(FULL_DPR, 1);
   renderer.setPixelRatio(FULL_DPR);
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -100,7 +99,7 @@ export function createStage(container) {
   // Higher = settles faster; a low value leaves a long, obvious glide.
   controls.dampingFactor = 0.15;
 
-  return { container, isMobile, renderer, FULL_DPR, LOW_DPR, scene, camera, controls };
+  return { container, isMobile, renderer, FULL_DPR, scene, camera, controls };
 }
 
 // ── On-demand render loop ────────────────────────────────────────────────────
@@ -108,14 +107,14 @@ export function createStage(container) {
 // loop (continuous full-res GPU work + battery drain). We render only when
 // something moves: interaction fires OrbitControls' 'change', and while damping
 // settles controls.update() keeps returning true so we self-reschedule until
-// the camera rests, then go idle. Low DPR applies ONLY while the pointer is
-// down — coast + resting frame stay full DPR, so there's no sharpen-pop at the
-// moment the glide stops. `onEnd` lets a viewer hook the gesture-end (e.g. a
+// the camera rests, then go idle. Pixel ratio is held CONSTANT (FULL_DPR) —
+// dropping it during motion made the cloud visibly change brightness/sharpness
+// between moving and resting (the fixed point-size clamp covers relatively more
+// screen at a lower DPR). `onEnd` lets a viewer hook the gesture-end (e.g. a
 // COPC LOD refresh). Returns { requestRender }.
 export function createRenderLoop(stage, { onEnd } = {}) {
-  const { renderer, scene, camera, controls, container, FULL_DPR, LOW_DPR } = stage;
+  const { renderer, scene, camera, controls } = stage;
   let renderRequested = false;
-  let interacting = false;
 
   function requestRender() {
     if (renderRequested) return;
@@ -125,18 +124,12 @@ export function createRenderLoop(stage, { onEnd } = {}) {
   function frame() {
     renderRequested = false;
     const moving = controls.update();
-    const want = interacting ? LOW_DPR : FULL_DPR;
-    if (renderer.getPixelRatio() !== want) {       // setPixelRatio reallocs the buffer — only on transition
-      renderer.setPixelRatio(want);
-      renderer.setSize(container.clientWidth, container.clientHeight);
-    }
     renderer.render(scene, camera);
-    if (interacting || moving) requestRender();
+    if (moving) requestRender();                   // keep rendering until damping rests
   }
 
   controls.addEventListener('change', requestRender);
-  controls.addEventListener('start', () => { interacting = true; requestRender(); });
-  controls.addEventListener('end',   () => { interacting = false; if (onEnd) onEnd(); requestRender(); });
+  controls.addEventListener('end', () => { if (onEnd) onEnd(); requestRender(); });
 
   stage._requestRender = requestRender;            // stashed so disposeStage can unbind it
   return { requestRender };
