@@ -185,6 +185,76 @@ if (!function_exists('ghAsset')) {
     }
 }
 
+if (!function_exists('goheritageStreamFile')) {
+    /**
+     * Stream a file to the client with HTTP Range support, then exit. Used by
+     * the visibility-gated asset route so big models/point clouds (and COPC
+     * range requests) are served from the non-web content dir without loading
+     * the whole file into memory. Authorisation is the caller's job — by the
+     * time we're here the request is already allowed.
+     */
+    function goheritageStreamFile(string $path, string $mime): void
+    {
+        if (!is_file($path)) {
+            http_response_code(404);
+            echo 'Not found';
+            exit;
+        }
+        $size  = filesize($path);
+        $start = 0;
+        $end   = $size - 1;
+        $partial = false;
+
+        $range = $_SERVER['HTTP_RANGE'] ?? '';
+        if ($range !== '' && preg_match('/bytes=(\d*)-(\d*)/', $range, $m)) {
+            if ($m[1] !== '') $start = (int) $m[1];
+            if ($m[2] !== '') $end   = (int) $m[2];
+            if ($end >= $size) $end = $size - 1;
+            if ($start > $end || $start >= $size) {
+                http_response_code(416);
+                header('Content-Range: bytes */' . $size);
+                exit;
+            }
+            $partial = true;
+        }
+
+        // Drop any Kirby output buffering so we stream straight to the socket.
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        http_response_code($partial ? 206 : 200);
+        header('Content-Type: ' . $mime);
+        header('Accept-Ranges: bytes');
+        header('Content-Length: ' . ($end - $start + 1));
+        if ($partial) {
+            header("Content-Range: bytes {$start}-{$end}/{$size}");
+        }
+        // Private: it's gated content, must not be cached by shared proxies.
+        header('Cache-Control: private, max-age=300');
+
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'HEAD') {
+            exit;
+        }
+
+        $fp = fopen($path, 'rb');
+        if ($fp === false) {
+            exit;
+        }
+        fseek($fp, $start);
+        $remaining = $end - $start + 1;
+        while ($remaining > 0 && !feof($fp)) {
+            $chunk = fread($fp, (int) min(262144, $remaining));
+            if ($chunk === false) break;
+            echo $chunk;
+            $remaining -= strlen($chunk);
+            flush();
+        }
+        fclose($fp);
+        exit;
+    }
+}
+
 if (!function_exists('goheritageSocialLinks')) {
     /**
      * Footer social links that are safe to render: a non-empty platform name

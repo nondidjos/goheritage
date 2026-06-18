@@ -85,9 +85,9 @@ if (!empty(get('pointcloud'))) {
       <?php if ($pcExternal): ?>
         <iframe src="<?= esc($pcExternal) ?>" allow="xr-spatial-tracking; fullscreen" allowfullscreen></iframe>
       <?php elseif ($pcCopc): ?>
-        <div id="gh-copc-viewer" data-src="<?= esc($pcCopc->url()) ?>" data-wasm="<?= esc(url('assets/wasm/laz-perf.wasm')) ?>"></div>
+        <div id="gh-copc-viewer" data-src="<?= esc($page->assetUrl($pcCopc)) ?>" data-wasm="<?= esc(url('assets/wasm/laz-perf.wasm')) ?>"></div>
       <?php elseif ($pcInline): ?>
-        <div id="gh-pointcloud-viewer" data-src="<?= esc($pcInline->url()) ?>" data-format="<?= esc($pcInline->extension()) ?>"></div>
+        <div id="gh-pointcloud-viewer" data-src="<?= esc($page->assetUrl($pcInline)) ?>" data-format="<?= esc($pcInline->extension()) ?>"></div>
       <?php elseif ($pcOther): ?>
         <div class="pc-msg">
           <svg class="pc-msg__ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><?= $pcDots ?><text x="20" y="8" font-size="9" font-family="monospace" font-weight="700" fill="#fff">?</text></svg>
@@ -155,8 +155,8 @@ foreach ($page->allAnnotations() as $ann) {
 }
 $annotationsJson = json_encode($annotationsData, JSON_UNESCAPED_UNICODE);
 
-$objUrl           = $objFile          ? $objFile->url()          : null;
-$interiorObjUrl   = $interiorObjFile  ? $interiorObjFile->url()  : null;
+$objUrl           = $page->assetUrl($objFile);
+$interiorObjUrl   = $page->assetUrl($interiorObjFile);
 $interiorTexUrl   = $interiorTexFile  ? $interiorTexFile->url()  : null;
 $interiorNormUrl  = $interiorNormFile ? $interiorNormFile->url() : null;
 $texUrl           = $texFile ? $texFile->url() : null;
@@ -166,14 +166,14 @@ $interiorTexPreviewUrl = $interiorTexPreviewFile ? $interiorTexPreviewFile->url(
 
 // GLB: prefer canonical name, fall back to field UUID, then any GLB not already used as interior
 $interiorGlbFile = $page->modelFile('glb_interior');
-$interiorGlbUrl  = $interiorGlbFile ? $interiorGlbFile->url() : null;
+$interiorGlbUrl  = $page->assetUrl($interiorGlbFile);
 
 $glbFile = $page->file('exterior.glb') ?? ($objFile ? null
     : $page->files()->filterBy('extension', 'glb')
         ->filter(fn($f) => !$interiorObjFile || $f->id() !== $interiorObjFile->id())
         ->filter(fn($f) => !$interiorGlbFile || $f->id() !== $interiorGlbFile->id())
         ->sortBy('modified', 'desc')->first());
-$glbUrl = $glbFile ? $glbFile->url() : null;
+$glbUrl = $page->assetUrl($glbFile);
 
 $hasIframe  = ($viewerUrl !== null);
 $hasModel   = ($objUrl !== null || $interiorObjUrl !== null || $glbUrl !== null || $interiorGlbUrl !== null);

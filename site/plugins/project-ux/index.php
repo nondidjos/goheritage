@@ -91,6 +91,54 @@ Kirby::plugin('goheritage/project-ux', [
     // ── Custom frontend sharing routes ───────────────────────────────────
     'routes' => [
 
+        // VISIBILITY-GATED ASSET DELIVERY.
+        // 3D models and point clouds are served ONLY through this route, never
+        // as static /media files (the .htaccess hard-blocks those extensions
+        // under /media). Apache can't see a page's visibility, so a published
+        // /media copy of a private/link project's model was downloadable by
+        // anyone who guessed the URL — this re-checks the SAME access the page
+        // itself enforces (panel session, or a valid share token) before
+        // streaming the original from the (non-web-served) content dir, with
+        // HTTP Range support so the COPC viewer keeps working.
+        [
+            'pattern' => 'gh/file/(:any)/(:any)',
+            'method'  => 'GET|HEAD',
+            'action'  => function (string $encodedId, string $rawName) {
+                $kirby = kirby();
+                $page  = $kirby->page(str_replace('+', '/', $encodedId));
+                if (!$page || $page->intendedTemplate()->name() !== 'project') {
+                    $kirby->response()->code(404);
+                    return 'Not found';
+                }
+
+                // Same authorisation as the page + the ZIP download: a panel
+                // user (scoped roles confined to their own project) OR a
+                // share token that can view THIS page.
+                $user = $kirby->user();
+                if ($user) {
+                    if (in_array($user->role()->name(), ['collaborator', 'viewer'], true)) {
+                        $scoped = $user->scoped_page()->value();
+                        if ($scoped !== $page->id() && !str_starts_with($page->id(), $scoped . '/')) {
+                            $kirby->response()->code(403);
+                            return 'Accès refusé.';
+                        }
+                    }
+                } elseif (!$page->canBeViewedWithToken(get('key'))) {
+                    $kirby->response()->code(403);
+                    return 'Accès refusé.';
+                }
+
+                $file = $page->file(rawurldecode($rawName));
+                if (!$file) {
+                    $kirby->response()->code(404);
+                    return 'Not found';
+                }
+                goheritageStreamFile($file->root(), $file->mime() ?: 'application/octet-stream');
+                // goheritageStreamFile() streams + exit()s; never reached.
+                return '';
+            },
+        ],
+
         // SHARE LOGIN — handles both editor and viewer tokens.
         //
         // Editor  → named account signup (the existing collaborator flow):
@@ -1065,6 +1113,30 @@ Kirby::plugin('goheritage/project-ux', [
             return $this->files()->filter(fn ($f) => $f->isCopc())
                                   ->sortBy('modified', 'desc')
                                   ->first();
+        },
+
+        // URL for a project file. Model + point-cloud files are routed through
+        // the visibility-gated gh/file route (static /media is hard-blocked for
+        // those extensions — see .htaccess); everything else (images, JSON…)
+        // keeps its fast static /media URL. The protected-extension list MUST
+        // stay in sync with the .htaccess RewriteRule. The current share key is
+        // propagated so a link/private visitor's authorised request carries its
+        // token. Returns null for a missing file so callers keep their `? :`.
+        'assetUrl' => function ($file) {
+            if (!$file) {
+                return null;
+            }
+            static $protected = [
+                'glb', 'gltf', 'obj', 'mtl', 'fbx', 'stl', 'dae', '3ds', 'drc',
+                'ply', 'pcd', 'las', 'laz', 'e57', 'xyz', 'pts',
+            ];
+            if (!in_array(strtolower($file->extension()), $protected, true)) {
+                return $file->url();
+            }
+            $url = '/gh/file/' . str_replace('/', '+', $this->id())
+                 . '/' . rawurlencode($file->filename());
+            $key = get('key');
+            return $key ? $url . '?key=' . urlencode($key) : $url;
         },
 
         // Whether a home-page section is shown. Sections default to visible, so

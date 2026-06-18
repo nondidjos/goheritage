@@ -169,10 +169,13 @@ Kirby::plugin('goheritage/model-converter', [
                     $rows = [];
                     // Sort newest first — most useful for an inventory view
                     // where you want to spot what was just uploaded.
-                    foreach ($this->model()->files()->sortBy('modified', 'desc') as $f) {
+                    $model = $this->model();
+                    foreach ($model->files()->sortBy('modified', 'desc') as $f) {
                         $rows[] = [
                             'filename'    => $f->filename(),
-                            'url'         => $f->url(),
+                            // Gated route for protected model/cloud types (static
+                            // /media is blocked for them), static URL otherwise.
+                            'url'         => $model->assetUrl($f),
                             'size'        => $f->niceSize(),
                             'sizeRaw'     => $f->size(),   // bytes — used for correct numeric sort
                             'extension'   => strtoupper($f->extension()),

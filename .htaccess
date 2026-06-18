@@ -45,23 +45,18 @@ RewriteRule ^site/(.*) index.php [L]
 # block direct access to Kirby and the Panel sources
 RewriteRule ^kirby/(.*) index.php [L]
 
-# ── Anti-rip: gate 3D models + point clouds served from /media ───────────
-# These files are loaded by our own viewer, where the browser tags the
-# request Sec-Fetch-Site: same-origin (and sends our Referer). A direct
-# URL paste, a hotlink from another site, or a scraper does NOT — so 403
-# those. This won't stop a determined ripper that forges headers, but it
-# stops casual "paste the URL / right-click save" downloading.
-#
-# Allow when EITHER:
-#   • the request is a same-origin / same-site fetch (our viewer), OR
-#   • the Referer is one of our hosts (fallback for clients that omit
-#     Sec-Fetch-* — keeps older browsers + the panel working).
-# Block otherwise.
-RewriteCond %{HTTP:Sec-Fetch-Site} !^(same-origin|same-site)$ [NC]
-RewriteCond %{HTTP_REFERER} !^https?://([^/]+\.)?goheritage\. [NC]
-RewriteRule \.(ply|pcd|glb|gltf|obj|mtl|e57|las|laz|xyz|pts)$ - [F,L]
-# Serve a plain-text 403 body so Apache does NOT delegate to index.php
-# (which would trigger Kirby+Whoops on an already-committed 403 status).
+# ── Protected 3D assets: NO direct /media access ─────────────────────────
+# Models + point clouds are delivered only through the visibility-gated
+# gh/file route (site/plugins/project-ux), which re-checks the page's
+# visibility / share token before streaming. Apache can't see a page's
+# visibility, so the published /media copy of a private/link project's model
+# was downloadable by anyone who guessed the URL. Hard-deny any direct hit on
+# those /media copies; the gh/file route reads the originals from the
+# (non-web-served) content dir, so it is unaffected. Header-based "same-origin"
+# checks are intentionally NOT used — they're trivially forged.
+RewriteRule ^media/.*\.(glb|gltf|obj|mtl|fbx|stl|dae|3ds|drc|ply|pcd|las|laz|e57|xyz|pts)$ - [F,L]
+# Plain-text 403 body so Apache does NOT delegate to index.php (which would
+# trigger Kirby+Whoops on an already-committed 403 status).
 ErrorDocument 403 "403 Forbidden"
 
 # make site links work
