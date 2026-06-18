@@ -238,9 +238,13 @@ $hasModelPane   = true;
 $hasRealModel = $hasModel || $hasIframe;
 
 // Switcher order is fixed (model · gallery · plans · point cloud) so the
-// chip row reads consistently across projects.
+// chip row reads consistently across projects. The model button only appears
+// when there's an ACTUAL 3D model/viewer — otherwise the model pane is just the
+// "Vue 3D prochainement" placeholder, and showing a "Modèle 3D" button on a
+// point-cloud- or gallery-only project is misleading. The pane still exists as
+// the last-resort fallback (see $defaultMode below); it just gets no chip.
 $availableModes = [];
-if ($hasModelPane)      $availableModes[] = 'model';
+if ($hasRealModel)      $availableModes[] = 'model';
 if ($hasGalleryPane)    $availableModes[] = 'gallery';
 if ($hasPlansPane)      $availableModes[] = 'plans';
 if ($hasPointcloudPane) $availableModes[] = 'pointcloud';
