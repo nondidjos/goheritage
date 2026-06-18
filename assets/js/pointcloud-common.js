@@ -64,8 +64,8 @@ export function isMobileViewport() {
 
 // ── Stage: renderer + scene + camera + controls ─────────────────────────────
 // Returns a `stage` object the other helpers below operate on. FULL_DPR is the
-// crisp resting resolution; LOW_DPR is used while the pointer is down (dense
-// clouds are fragment-bound, so dropping DPR during motion keeps drags smooth).
+// pixel ratio, held constant for the lifetime of the viewer (see createRenderLoop
+// for why we don't drop it during motion).
 export function createStage(container) {
   // Overlays are absolutely positioned; if the host is static they'd centre
   // against some ancestor (the "off-centre loading bar" bug). Force context.
