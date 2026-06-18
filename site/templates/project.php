@@ -719,7 +719,10 @@ if ($modeParam && in_array($modeParam, $availableModes, true)) {
 
 </div>
 
-<?php if ($showModeChips): ?>
+<?php // viewer-modes.js wires the mode buttons AND lazily injects the point-cloud
+      // iframe — so it's needed whenever there's a switcher OR a point-cloud pane
+      // (a point-cloud-only project has no switcher but still needs its iframe). ?>
+<?php if ($showModeChips || $hasPointcloudPane): ?>
 <script src="<?= ghAsset('assets/js/viewer-modes.js') ?>" defer></script>
 <?php endif ?>
 
