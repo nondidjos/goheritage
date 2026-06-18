@@ -7,10 +7,13 @@
  * the in-canvas Extérieur/Intérieur toggle so the two never read as competing
  * controls.
  *
- * Switching a pane dispatches a `viewer:mode-change` event so viewer.js /
- * plan-viewer.js can lazy-load resources on first activation. The point-cloud
- * pane is itself a lazy iframe into ?pointcloud=1, created on first open so we
- * don't boot a second WebGL context unless it's actually viewed.
+ * It is ALSO responsible for lazily creating the point-cloud pane's iframe
+ * (into ?pointcloud=1) on first activation, so a second WebGL context only
+ * boots when that pane is actually viewed. Crucially, that iframe creation must
+ * run even when there's no button row — a project whose ONLY data type is a
+ * point cloud renders a single pane with no switcher, and it still needs its
+ * iframe injected. Switching a pane dispatches `viewer:mode-change` so
+ * viewer.js / plan-viewer.js can lazy-load resources on first activation.
  *
  * Loaded as an external file (not inline) so it can never be rendered as
  * literal text by an upstream HTML-parsing hiccup in the template.
@@ -20,12 +23,8 @@
     var container = document.getElementById('viewer-container');
     if (!container) return;
 
-    var sw = document.getElementById('viewer-switch');
     var panes = container.querySelectorAll('[data-mode-pane]');
-    if (!sw) return;
-
-    var btns = Array.prototype.slice.call(sw.querySelectorAll('.viewer-modes__btn'));
-    if (!btns.length) return;
+    var btns = [];
 
     // Create the point-cloud iframe the first time that pane is shown.
     function ensurePointcloudIframe() {
@@ -65,13 +64,22 @@
       );
     }
 
-    // Initialise data-active-mode from whichever pane starts active.
+    // Initialise the active mode + create the point-cloud iframe if it's the
+    // default. This runs BEFORE (and independently of) the button row — a
+    // point-cloud-only project has a single pane and no switcher, but still
+    // needs its iframe injected, otherwise the pane is a blank black stage.
     var initial = 'model';
     panes.forEach(function (p) {
       if (p.classList.contains('is-active')) initial = p.getAttribute('data-mode-pane');
     });
     container.setAttribute('data-active-mode', initial);
     if (initial === 'pointcloud') ensurePointcloudIframe();
+
+    // Button wiring — only present when there's more than one data type.
+    var sw = document.getElementById('viewer-switch');
+    if (!sw) return;
+    btns = Array.prototype.slice.call(sw.querySelectorAll('.viewer-modes__btn'));
+    if (!btns.length) return;
 
     btns.forEach(function (b, i) {
       b.addEventListener('click', function () {
