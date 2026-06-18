@@ -418,7 +418,11 @@ async function initCopc(container) {
     // tall buildings and flat sites.
     const sx = hmax[0] - hmin[0], sy = hmax[1] - hmin[1], sz = hmax[2] - hmin[2];
     const radius = Math.hypot(sx, sy, sz) / 2 || 1;
-    const dist = (radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2))) * 1.05;
+    // Fit the bounding sphere to the vertical FOV, then come in to ~0.72 of
+    // that. Fitting the full diagonal sphere leaves wide/flat site scans (e.g.
+    // abbaye) looking tiny — most of the framed height is empty sky/ground —
+    // so we start closer; the visitor can always zoom back out.
+    const dist = (radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2))) * 0.72;
     const pitch = THREE.MathUtils.degToRad(16);   // gentle look-down
     // Geometry is Z-up: horizontal plane is X/Y, up is +Z.
     const eye = new THREE.Vector3(0.7, -0.7, 0).normalize()
