@@ -86,6 +86,33 @@ if (!function_exists('gh_guard_collaborator_scope')) {
     }
 }
 
+// READ-access gate for a project page's content, shared by the gated asset
+// route (gh/file) and the ZIP download (gh/download) so the authorization
+// lives in exactly one place and can't drift between them:
+//   • A panel user is allowed; a scoped collaborator/viewer only for THEIR
+//     own project subtree.
+//   • Otherwise a share token decides. `$requireDownload` is the one
+//     difference: downloading the file archive needs viewer/editor rights,
+//     whereas merely viewing an asset is allowed for any token that can see
+//     the page (incl. a visit-only link).
+if (!function_exists('gh_requester_may_access')) {
+    function gh_requester_may_access($page, bool $requireDownload = false): bool
+    {
+        $user = kirby()->user();
+        if ($user) {
+            if (in_array($user->role()->name(), ['collaborator', 'viewer'], true)) {
+                $scoped = $user->scoped_page()->value();
+                return $scoped === $page->id() || str_starts_with($page->id(), $scoped . '/');
+            }
+            return true; // admin / author / editor accounts
+        }
+        if ($requireDownload) {
+            return in_array($page->shareTokenAccess(get('key')), ['viewer', 'editor'], true);
+        }
+        return $page->canBeViewedWithToken(get('key'));
+    }
+}
+
 Kirby::plugin('goheritage/project-ux', [
 
     // ── Custom frontend sharing routes ───────────────────────────────────
@@ -111,19 +138,8 @@ Kirby::plugin('goheritage/project-ux', [
                     return 'Not found';
                 }
 
-                // Same authorisation as the page + the ZIP download: a panel
-                // user (scoped roles confined to their own project) OR a
-                // share token that can view THIS page.
-                $user = $kirby->user();
-                if ($user) {
-                    if (in_array($user->role()->name(), ['collaborator', 'viewer'], true)) {
-                        $scoped = $user->scoped_page()->value();
-                        if ($scoped !== $page->id() && !str_starts_with($page->id(), $scoped . '/')) {
-                            $kirby->response()->code(403);
-                            return 'Accès refusé.';
-                        }
-                    }
-                } elseif (!$page->canBeViewedWithToken(get('key'))) {
+                // Same authorisation as viewing the page itself.
+                if (!gh_requester_may_access($page)) {
                     $kirby->response()->code(403);
                     return 'Accès refusé.';
                 }
@@ -393,23 +409,11 @@ Kirby::plugin('goheritage/project-ux', [
                 }
 
                 // Auth: panel user (scoped roles limited to their project) OR a
-                // viewer/editor share token for THIS page.
-                $user = $kirby->user();
-                if (!$user) {
-                    $access = $page->shareTokenAccess(get('key'));
-                    if ($access !== 'viewer' && $access !== 'editor') {
-                        $kirby->response()->code(403);
-                        return 'Accès refusé.';
-                    }
-                } elseif (in_array($user->role()->name(), ['collaborator', 'viewer'], true)) {
-                    // Scoped account: confirm this is the project they were granted.
-                    // Without this, a viewer scoped to project A could download
-                    // project B's full file archive.
-                    $scoped = $user->scoped_page()->value();
-                    if ($scoped !== $page->id() && !str_starts_with($page->id(), $scoped . '/')) {
-                        $kirby->response()->code(403);
-                        return 'Accès refusé.';
-                    }
+                // viewer/editor share token for THIS page. requireDownload=true
+                // denies visit-only tokens (they have no file access).
+                if (!gh_requester_may_access($page, true)) {
+                    $kirby->response()->code(403);
+                    return 'Accès refusé.';
                 }
 
                 if (!class_exists('ZipArchive')) {
