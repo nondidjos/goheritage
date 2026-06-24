@@ -157,10 +157,10 @@ $annotationsJson = json_encode($annotationsData, JSON_UNESCAPED_UNICODE);
 
 $objUrl           = $page->assetUrl($objFile);
 $interiorObjUrl   = $page->assetUrl($interiorObjFile);
-$interiorTexUrl   = $interiorTexFile  ? $interiorTexFile->url()  : null;
-$interiorNormUrl  = $interiorNormFile ? $interiorNormFile->url() : null;
-$texUrl           = $texFile ? $texFile->url() : null;
-$normUrl          = $normFile ? $normFile->url() : null;
+$interiorTexUrl   = $page->assetUrl($interiorTexFile);
+$interiorNormUrl  = $page->assetUrl($interiorNormFile);
+$texUrl           = $page->assetUrl($texFile);
+$normUrl          = $page->assetUrl($normFile);
 $texPreviewUrl         = $texPreviewFile         ? $texPreviewFile->url()         : null;
 $interiorTexPreviewUrl = $interiorTexPreviewFile ? $interiorTexPreviewFile->url() : null;
 

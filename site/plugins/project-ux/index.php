@@ -555,6 +555,7 @@ Kirby::plugin('goheritage/project-ux', [
                         'expires'  => time() + 300,
                         'path'     => '/',
                         'samesite' => 'Lax',
+                        'secure'   => !ghIsLocalEnv(),
                         'httponly' => false,
                     ]);
                 }
@@ -1133,6 +1134,9 @@ Kirby::plugin('goheritage/project-ux', [
             static $protected = [
                 'glb', 'gltf', 'obj', 'mtl', 'fbx', 'stl', 'dae', '3ds', 'drc',
                 'ply', 'pcd', 'las', 'laz', 'e57', 'xyz', 'pts',
+                // Texture/normal-map images used by 3D models — gated so private
+                // project textures aren't served raw from /media.
+                'jpg', 'jpeg', 'png', 'webp',
             ];
             if (!in_array(strtolower($file->extension()), $protected, true)) {
                 return $file->url();

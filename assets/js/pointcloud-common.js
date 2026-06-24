@@ -129,9 +129,11 @@ export function createRenderLoop(stage, { onEnd } = {}) {
   }
 
   controls.addEventListener('change', requestRender);
-  controls.addEventListener('end', () => { if (onEnd) onEnd(); requestRender(); });
+  const onEndHandler = () => { if (onEnd) onEnd(); requestRender(); };
+  controls.addEventListener('end', onEndHandler);
 
   stage._requestRender = requestRender;            // stashed so disposeStage can unbind it
+  stage._onEnd = onEndHandler;
   return { requestRender };
 }
 
@@ -288,6 +290,7 @@ export function disposeStage(stage, { disposeScene } = {}) {
   if (stage._resize)        window.removeEventListener('resize', stage._resize);
   if (stage._onKeydown)     window.removeEventListener('keydown', stage._onKeydown);
   if (stage._requestRender) controls.removeEventListener('change', stage._requestRender);
+  if (stage._onEnd)         controls.removeEventListener('end', stage._onEnd);
   controls.dispose();
   if (disposeScene) {
     disposeScene();

@@ -95,8 +95,10 @@ function initViewer(container) {
   controls.screenSpacePanning = true;
   controls.maxDistance = 5000;
   // Pinch-to-zoom handled natively by OrbitControls on touch devices.
-  // Wheel zoom on desktop is overridden below to call preventDefault.
-  controls.enableZoom = true;
+  // Wheel zoom on desktop is handled by the custom _pendingZoom handler below,
+  // which batches rapid scrolls into a single rAF zoom — disable the built-in
+  // OrbitControls wheel zoom so both paths don't fire on the same scroll event.
+  controls.enableZoom = false;
 
   // ── Zoom ─────────────────────────────────────────────────────────────────
   // preventDefault() must be instant; heavy zoom math is deferred to the
@@ -114,13 +116,14 @@ function initViewer(container) {
   }, { passive: false });
 
 
-  // Single-finger orbit/pan: block page scroll so it doesn't fight OrbitControls.
-  // Two-finger pinch: let it propagate so OrbitControls handles zoom natively.
-  // Do NOT use capture:true — that would intercept before OrbitControls gets it.
+  // Block native scroll/page-zoom gestures inside the viewer for all touch
+  // counts. OrbitControls registers its own touchmove on renderer.domElement
+  // (same element, bubbling) and handles both orbit (1 finger) and pinch
+  // (2 finger) — preventing the default here does not stop OrbitControls.
+  // Without this, iOS Safari interprets a two-finger spread as a viewport
+  // zoom gesture simultaneously with the model zoom.
   container.addEventListener('touchmove', function (e) {
-    if (e.touches.length === 1) {
-      e.preventDefault();
-    }
+    e.preventDefault();
   }, { passive: false });
 
   // ── Progress overlay ─────────────────────────────────────────────────────
@@ -1281,6 +1284,14 @@ function initViewer(container) {
       activeHotspotId = null;
     }
   });
+
+  // Disconnect observers on page unload so they don't call applyVisibleViewport
+  // on a disposed renderer (e.g. after bfcache restore).
+  window.addEventListener('pagehide', function () {
+    _sidebarMo.disconnect();
+    if (_sbResize) _sbResize.disconnect();
+    observer.disconnect();
+  }, { once: true });
 }
 
 // ── Utility ──────────────────────────────────────────────────────────────────

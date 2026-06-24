@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
             dragging = false;
             projectDrawerHandle.classList.remove('is-dragging');
 
-            var dy = (e.clientY || startY) - startY;
+            var dy = (e.clientY != null ? e.clientY : startY) - startY;
             var willExpand;
             if (!moved) {
                 // Treat as a tap → toggle.

@@ -191,7 +191,9 @@ Kirby::plugin('goheritage/plan-viewer', [
                 return null;
             }
             $encodedId = str_replace('/', '+', $this->id());
-            return url('plan-tiles/' . $encodedId . '/' . $stem . '.dzi');
+            $url = url('plan-tiles/' . $encodedId . '/' . $stem . '.dzi');
+            $key = get('key');
+            return $key ? $url . '?key=' . urlencode($key) : $url;
         },
 
         /**
@@ -228,7 +230,9 @@ Kirby::plugin('goheritage/plan-viewer', [
             $level    = min($wanted, $maxLevel);
 
             $encodedId = str_replace('/', '+', $this->id());
-            return url('plan-tiles/' . $encodedId . '/' . $stem . '_files/' . $level . '/0_0.jpeg');
+            $url = url('plan-tiles/' . $encodedId . '/' . $stem . '_files/' . $level . '/0_0.jpeg');
+            $key = get('key');
+            return $key ? $url . '?key=' . urlencode($key) : $url;
         },
     ],
 

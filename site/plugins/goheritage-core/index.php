@@ -207,8 +207,14 @@ if (!function_exists('goheritageStreamFile')) {
 
         $range = $_SERVER['HTTP_RANGE'] ?? '';
         if ($range !== '' && preg_match('/bytes=(\d*)-(\d*)/', $range, $m)) {
-            if ($m[1] !== '') $start = (int) $m[1];
-            if ($m[2] !== '') $end   = (int) $m[2];
+            if ($m[1] !== '') {
+                $start = (int) $m[1];
+                if ($m[2] !== '') $end = (int) $m[2];
+            } else {
+                // Suffix range: bytes=-N means last N bytes.
+                $suffix = $m[2] !== '' ? (int) $m[2] : 0;
+                $start  = max(0, $size - $suffix);
+            }
             if ($end >= $size) $end = $size - 1;
             if ($start > $end || $start >= $size) {
                 http_response_code(416);

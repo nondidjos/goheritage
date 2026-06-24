@@ -120,7 +120,7 @@
             if (!mDragging) return;
             mDragging = false;
             panelHandle.classList.remove('is-dragging');
-            var dy = (e.clientY || mStartY) - mStartY;
+            var dy = (e.clientY != null ? e.clientY : mStartY) - mStartY;
             var willExpand;
             if (!mMoved) {
                 willExpand = !panel.classList.contains('is-expanded');

@@ -45,7 +45,10 @@
       s.async = true;
       s.crossOrigin = 'anonymous';
       s.onload  = function () { resolve(window.OpenSeadragon); };
-      s.onerror = function () { reject(new Error('Failed to load OpenSeadragon from CDN')); };
+      s.onerror = function () {
+        loaderPromise = null; // allow retry on next open
+        reject(new Error('Failed to load OpenSeadragon from CDN'));
+      };
       document.head.appendChild(s);
     });
     return loaderPromise;

@@ -444,7 +444,7 @@ async function initCopc(container) {
     // Decode the root node FIRST and await it: that resolves the colour mode
     // (bit depth + B&W) so every subsequent node colours consistently, and it
     // guarantees the stage is never empty. Then refine by view.
-    const rootKey = known.keys().next().value;
+    const rootKey = known.has('0-0-0-0') ? '0-0-0-0' : known.keys().next().value;
     if (rootKey) await loadNode(rootKey, known.get(rootKey));
     updateLod();
   } catch (e) {

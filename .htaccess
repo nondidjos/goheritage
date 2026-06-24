@@ -54,7 +54,7 @@ RewriteRule ^kirby/(.*) index.php [L]
 # those /media copies; the gh/file route reads the originals from the
 # (non-web-served) content dir, so it is unaffected. Header-based "same-origin"
 # checks are intentionally NOT used — they're trivially forged.
-RewriteRule ^media/.*\.(glb|gltf|obj|mtl|fbx|stl|dae|3ds|drc|ply|pcd|las|laz|e57|xyz|pts)$ - [F,L]
+RewriteRule ^media/.*\.(glb|gltf|obj|mtl|fbx|stl|dae|3ds|drc|ply|pcd|las|laz|e57|xyz|pts)$ - [F,L,NC]
 # Plain-text 403 body so Apache does NOT delegate to index.php (which would
 # trigger Kirby+Whoops on an already-committed 403 status).
 ErrorDocument 403 "403 Forbidden"
