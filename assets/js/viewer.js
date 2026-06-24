@@ -105,6 +105,7 @@ function initViewer(container) {
   // animation frame so rapid wheel bursts never delay the scroll block.
   var _overViewer = false;
   var _pendingZoom = 1; // accumulated scale factor, applied each frame
+  var _zoomDir = new THREE.Vector3(); // scratch — reused each frame, avoids per-zoom allocation
 
   container.addEventListener('mouseenter', function () { _overViewer = true; });
   container.addEventListener('mouseleave', function () { _overViewer = false; });
@@ -494,13 +495,11 @@ function initViewer(container) {
 
   // ── Listen for goheritage:activate events from hotspot blocks in body text ─
   function wireHotspotBlocks() {
-    container.addEventListener('goheritage:activate', function (e) {
-      if (e.detail && e.detail.id) {
-        activateHotspot(e.detail.id);
-      }
-    });
-    // Also listen on the document so hotspot blocks outside the viewer
-    // container (e.g. in the text column) can still reach us.
+    // Document listener catches events from anywhere on the page — both from
+    // hotspot blocks inside the viewer container (they bubble up) and from
+    // hotspot blocks elsewhere in the body text. A container listener would
+    // fire first and then the document listener would fire again, calling
+    // activateHotspot twice for in-container dispatches.
     document.addEventListener('goheritage:activate', function (e) {
       if (e.detail && e.detail.id) {
         activateHotspot(e.detail.id);
@@ -1161,8 +1160,8 @@ function initViewer(container) {
     // Apply any accumulated zoom from wheel events (deferred from the listener
     // so rapid scroll bursts don't block the preventDefault call).
     if (_pendingZoom !== 1) {
-      var zoomDir = camera.position.clone().sub(controls.target);
-      camera.position.copy(controls.target).addScaledVector(zoomDir, _pendingZoom);
+      _zoomDir.copy(camera.position).sub(controls.target);
+      camera.position.copy(controls.target).addScaledVector(_zoomDir, _pendingZoom);
       _pendingZoom = 1;
     }
 
@@ -1248,7 +1247,11 @@ function initViewer(container) {
   // once more to settle any sub-pixel rounding from getBoundingClientRect.
   var _sidebarMo = new MutationObserver(function () {
     applyVisibleViewport();
-    setTimeout(applyVisibleViewport, 450);
+    // Re-apply once after the sidebar CSS transition settles. transitionend fires
+    // exactly when done — no magic timeout that races a CSS duration change.
+    if (sidebarEl) {
+      sidebarEl.addEventListener('transitionend', applyVisibleViewport, { once: true });
+    }
   });
   _sidebarMo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 

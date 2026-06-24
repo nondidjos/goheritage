@@ -123,6 +123,8 @@ async function initCopc(container) {
   // Shared renderer + scene + camera + controls + adaptive-DPR setup.
   const stage = createStage(container);
   const { isMobile, renderer, FULL_DPR, scene, camera, controls } = stage;
+  // camera.fov is set by createStage and never mutated — cache the trig once.
+  const fovTan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
 
   // The Z-up→Y-up wrapper that every node is parented to.
   const wrap = new THREE.Group();
@@ -168,11 +170,17 @@ async function initCopc(container) {
 
   const frustum = new THREE.Frustum();
   const projScreen = new THREE.Matrix4();
-  const _v = new THREE.Vector3();
   const _sphere = new THREE.Sphere();
+  // Scratch object reused by nodeSphere() every LOD tick — avoids per-node heap allocation.
+  const _ns = { center: new THREE.Vector3(), radius: 0, worldSize: 0 };
 
   function ingest(h) {
-    for (const k in h.nodes) known.set(k, h.nodes[k]);
+    // Pre-parse the d-x-y-z key into ints at ingest time so updateLod()
+    // doesn't split+map on every node per tick.
+    for (const k in h.nodes) {
+      const [d, x, y, z] = k.split('-').map(Number);
+      known.set(k, { node: h.nodes[k], d, x, y, z });
+    }
     for (const k in h.pages) pageRefs.set(k, h.pages[k]);
   }
 
@@ -195,14 +203,15 @@ async function initCopc(container) {
   // and the Z-up→Y-up wrap, so we can frustum-test + measure screen size.
   function nodeSphere(d, x, y, z) {
     const c = nodeCube(rootCube, d, x, y, z);
-    _v.set(
+    _ns.worldSize = Math.max(c.size[0], c.size[1], c.size[2]);
+    _ns.center.set(
       c.min[0] + c.size[0] / 2 - offset[0],
       c.min[1] + c.size[1] / 2 - offset[1],
       c.min[2] + c.size[2] / 2 - offset[2]
     );
-    wrap.localToWorld(_v);
-    const radius = Math.max(c.size[0], c.size[1], c.size[2]) * 0.5 * Math.sqrt(3);
-    return { center: _v.clone(), radius, worldSize: Math.max(c.size[0], c.size[1], c.size[2]) };
+    wrap.localToWorld(_ns.center);
+    _ns.radius = _ns.worldSize * 0.5 * Math.sqrt(3);
+    return _ns;
   }
 
   function scheduleLod() {
@@ -215,11 +224,11 @@ async function initCopc(container) {
     camera.updateMatrixWorld();
     projScreen.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     frustum.setFromProjectionMatrix(projScreen);
-    const fovFactor = container.clientHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+    // clientHeight changes on resize; fovTan is constant (fov never mutates).
+    const fovFactor = container.clientHeight / (2 * fovTan);
 
     const wanted = [];
-    for (const [key, node] of known) {
-      const [d, x, y, z] = key.split('-').map(Number);
+    for (const [key, { node, d, x, y, z }] of known) {
       const s = nodeSphere(d, x, y, z);
       _sphere.set(s.center, s.radius);
       if (!frustum.intersectsSphere(_sphere)) continue;
@@ -245,10 +254,13 @@ async function initCopc(container) {
       if (ref && w.screen > MIN_NODE_PX * 1.5) loadPage(w.key, ref);
     }
 
-    // Drop nodes we no longer want.
-    for (const key of [...loaded.keys()]) {
-      if (!keep.has(key)) unloadNode(key);
+    // Drop nodes we no longer want. Collect keys first (avoid mutating loaded
+    // while iterating it — unloadNode calls loaded.delete).
+    const toUnload = [];
+    for (const key of loaded.keys()) {
+      if (!keep.has(key)) toUnload.push(key);
     }
+    for (const key of toUnload) unloadNode(key);
     // Enqueue the ones we want but don't have, nearest (biggest) first.
     queue.length = 0;
     for (const w of wanted) {
@@ -327,7 +339,7 @@ async function initCopc(container) {
 
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      if (col) geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
       geo.computeBoundingSphere();
 
       const points = new THREE.Points(geo, material);
@@ -445,7 +457,7 @@ async function initCopc(container) {
     // (bit depth + B&W) so every subsequent node colours consistently, and it
     // guarantees the stage is never empty. Then refine by view.
     const rootKey = known.has('0-0-0-0') ? '0-0-0-0' : known.keys().next().value;
-    if (rootKey) await loadNode(rootKey, known.get(rootKey));
+    if (rootKey) await loadNode(rootKey, known.get(rootKey).node);
     updateLod();
   } catch (e) {
     progress.fail(e);
