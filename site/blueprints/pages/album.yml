@@ -34,7 +34,7 @@ columns:
       headline:
         type: text
         placeholder: "{{ page.title }}"
-        help: Leave empty to use the title as headline
+        help: Laissez vide pour utiliser le titre comme intitulé.
       subheadline:
         type: text
       text:

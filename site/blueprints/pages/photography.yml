@@ -13,10 +13,10 @@ options:
 sections:
   drafts:
     extends: sections/albums
-    label: Drafts
+    label: Brouillons
     status: draft
 
   listed:
     extends: sections/albums
-    label: Published Albums
+    label: Albums publiés
     status: listed
