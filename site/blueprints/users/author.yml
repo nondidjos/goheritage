@@ -1,5 +1,5 @@
-title: Author
-description: Can create and submit blog for review, but cannot publish them.
+title: Auteur
+description: Peut créer des articles de blog et les soumettre à relecture, mais ne peut pas les publier.
 permissions:
   access:
     panel: true

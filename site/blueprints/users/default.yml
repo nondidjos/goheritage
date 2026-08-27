@@ -1,6 +1,6 @@
 # User blueprint — defines fields & sections for every user role unless
 # overridden in a role-specific blueprint (e.g. author.yml).
-title: User
+title: Utilisateur
 
 sections:
 
@@ -17,27 +17,27 @@ sections:
     type: fields
     fields:
       street:
-        label: Street
+        label: Rue
         type: text
         width: 1/2
       zip:
-        label: ZIP
+        label: Code postal
         type: text
         width: 1/4
       city:
-        label: City
+        label: Ville
         type: text
         width: 1/4
       country:
-        label: Country
+        label: Pays
         type: text
         width: 1/2
       website:
-        label: Website
+        label: Site web
         type: url
         width: 1/2
       fediverse:
-        label: Fediverse URL
+        label: URL Fédiverse
         type: url
         icon: mastodon
         placeholder: https://example.com/@username
