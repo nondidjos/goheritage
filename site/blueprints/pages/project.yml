@@ -372,7 +372,7 @@ tabs:
             type: info
             theme: info
             text: >
-              **Nuage de points** — pour les gros relevés, téléversez un
+              **Nuage de points** — pour les gros relevés, déposez un
               fichier **COPC** (`.copc.laz`) : il est diffusé progressivement
               dans cet onglet, sans serveur externe. Conversion hors ligne :
               `pdal translate entrée.las sortie.copc.laz`. Sinon, collez un
