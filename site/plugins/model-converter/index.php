@@ -114,6 +114,61 @@ Kirby::plugin('goheritage/model-converter', [
             }
             return null;
         },
+
+        /**
+         * Best GLB for the exterior model: the canonical `exterior.glb`
+         * filename if present, otherwise (only when there's no exterior
+         * OBJ either — the conversion pipeline hasn't produced one yet)
+         * any GLB on the page not already claimed by the interior slots.
+         * Kept separate from modelFile() — this is page-specific "guess
+         * the exterior GLB" selection, not a canonical-name lookup.
+         */
+        'exteriorGlbFile' => function () {
+            if ($f = $this->file('exterior.glb')) return $f;
+            if ($this->modelFile('obj')) return null;
+            $interiorObj = $this->modelFile('obj_interior');
+            $interiorGlb = $this->modelFile('glb_interior');
+            return $this->files()->filterBy('extension', 'glb')
+                ->filter(fn($f) => !$interiorObj || $f->id() !== $interiorObj->id())
+                ->filter(fn($f) => !$interiorGlb || $f->id() !== $interiorGlb->id())
+                ->sortBy('modified', 'desc')->first();
+        },
+
+        /**
+         * Annotations reshaped into the flat array the 3D viewer's JS
+         * expects (id/title/description/camera_mode/location), ready for
+         * json_encode().
+         */
+        'annotationsPayload' => function () {
+            $data = [];
+            foreach ($this->allAnnotations() as $ann) {
+                $data[] = [
+                    'id'          => $ann->hotspot_id()->value(),
+                    'title'       => $ann->title()->value(),
+                    'description' => $ann->description()->value(),
+                    'camera_mode' => $ann->camera_mode()->or('fly')->value(),
+                    'location'    => $ann->location()->or('exterior')->value(),
+                ];
+            }
+            return $data;
+        },
+
+        /**
+         * Gallery images: the explicit `gallery` field if the editor filled
+         * it in, otherwise every image file that isn't a model texture or
+         * normal map (diffuse/texture/normal_-named files are assets, not
+         * gallery photos).
+         */
+        'galleryImages' => function () {
+            $gallery = $this->gallery()->toFiles();
+            if ($gallery->count() > 0) return $gallery;
+            return $this->images()
+                ->filterBy('extension', 'in', ['jpg', 'jpeg', 'png', 'webp'])
+                ->filter(fn($f) => !str_contains(strtolower($f->filename()), 'diffuse')
+                                && !str_contains(strtolower($f->filename()), 'texture')
+                                && !str_contains(strtolower($f->filename()), 'normal_'))
+                ->sortBy('sort');
+        },
     ],
 
     // ── Pages collection method: sorted unique tags for select options ────
@@ -129,6 +184,24 @@ Kirby::plugin('goheritage/model-converter', [
             }
             sort($tags, SORT_STRING | SORT_FLAG_CASE);
             return array_values($tags);
+        },
+
+        /**
+         * Lowercase-keyed presence set of tags used across listed, publicly
+         * visible pages in this collection. Used to decide whether a tag on
+         * a project page should link to a filtered map view (only if at
+         * least one listed project actually carries it) or render as a
+         * plain, non-clickable label.
+         */
+        'livePublicTags' => function () {
+            $tags = [];
+            foreach ($this->listed()->filterBy('isPubliclyVisible', true) as $page) {
+                foreach ($page->tags()->split(',') as $tag) {
+                    $tag = trim($tag);
+                    if ($tag !== '') $tags[mb_strtolower($tag)] = true;
+                }
+            }
+            return $tags;
         },
     ],
 

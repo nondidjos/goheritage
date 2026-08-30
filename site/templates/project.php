@@ -4,9 +4,11 @@
 // Backward-compat: pages without a `visibility` field fall back to status
 // (listed → public, draft → private) via visibilityResolved().
 //
-// Logged-in panel users always see the page (so the panel preview still works).
-$panelUser = $kirby->user();
-
+// $panelUser / $canSee / every other derived value below come from
+// site/controllers/project.php. This gate is kept here, at the very top of
+// the template, on purpose: it's the single most security-sensitive check
+// in this file, so it stays somewhere a reviewer trips over it immediately
+// rather than inside a controller they might not think to open.
 if (!$panelUser) {
     $sharedKey = get('key');
     if (!$page->canBeViewedWithToken($sharedKey)) {
@@ -16,18 +18,6 @@ if (!$panelUser) {
         exit;
     }
 }
-
-// Section visibility helper — panel users see everything; everyone else respects
-// the per-section toggles set on the page.
-$canSee = function (string $section) use ($page, $panelUser) {
-    return $panelUser !== null || $page->sectionVisible($section);
-};
-
-// Define before snippet('header') so the title-bar markup below can use it.
-$isEmbedded = !empty(get('embed'));
-// viewer=only is an extra mode used by the CMS panel preview iframe —
-// hides the sidebar entirely so the viewer fills the iframe edge to edge.
-$isViewerOnly = $isEmbedded && get('viewer') === 'only';
 
 // ── Visitor-mode chrome ──────────────────────────────────────────────
 // Anyone WITHOUT a panel session (shared-link recipients, casual
@@ -40,240 +30,19 @@ $isViewerOnly = $isEmbedded && get('viewer') === 'only';
 // standalone back-to-map button below lives outside the header). We keep
 // the variable name for the back-button gate, but never switch to the
 // stripped "visitor" header here.
-$isVisitor = false;
-
-// ── Canonical point-cloud glyph ──────────────────────────────────────────
-// One shape, used everywhere a point cloud is represented on the visitor
-// side (the mode dropdown + the "no cloud"/"unsupported" screens), so it
-// always matches the panel's `gh-pointcloud` tab icon. Geometry is identical
-// to that icon (project-ux/index.js): a big centre dot ringed by 8 satellites
-// on a circle of radius 7 around (12,12), at 45° steps. viewBox is 24×24 and
-// shapes fill with currentColor, so callers just wrap this in their own <svg>.
-$pcDots =
-      '<circle cx="12" cy="12" r="2.6"/>'        // centre (biggest)
-    . '<circle cx="12" cy="5" r="1.3"/>'         // ring of 8, clockwise from top
-    . '<circle cx="16.95" cy="7.05" r="1.3"/>'
-    . '<circle cx="19" cy="12" r="1.3"/>'
-    . '<circle cx="16.95" cy="16.95" r="1.3"/>'
-    . '<circle cx="12" cy="19" r="1.3"/>'
-    . '<circle cx="7.05" cy="16.95" r="1.3"/>'
-    . '<circle cx="5" cy="12" r="1.3"/>'
-    . '<circle cx="7.05" cy="7.05" r="1.3"/>';
 
 // ── Point-cloud preview (?pointcloud=1) ──────────────────────────────────
 // A self-contained view used by the panel's "Nuage de points" tab: render
-// ONLY the point-cloud viewer (an uploaded PLY/PCD via pointcloud-viewer.js),
-// or point to an external viewer, or explain what's missing — then return so
-// the full 3D-model layout below never runs.
+// ONLY the point-cloud viewer, or point to an external viewer, or explain
+// what's missing — then return so the full 3D-model layout below never runs.
 if (!empty(get('pointcloud'))) {
     snippet('header', ['isVisitor' => $isVisitor]);
-
-    $pcExternal = $page->pointcloud_url()->isNotEmpty() ? $page->pointcloud_url()->value() : null;
-    // Cloud-Optimized Point Cloud: streamed node-by-node by copc-viewer.js.
-    $pcCopc     = $page->copcFile();
-    $pcInline   = $page->files()->filterBy('extension', 'in', ['ply', 'pcd'])->sortBy('modified', 'desc')->first();
-    $pcOther    = $page->files()->filterBy('extension', 'in', ['las', 'laz', 'e57', 'xyz', 'pts'])->sortBy('modified', 'desc')->first();
-    ?>
-    <style>
-      .pc-stage { position: fixed; inset: 0; background: #1a1a1a; }
-      .pc-stage iframe, #gh-pointcloud-viewer, #gh-copc-viewer { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
-      .pc-msg { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.9rem; padding: 2rem; text-align: center; color: rgba(255,255,255,0.6); font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.6; }
-      .pc-msg strong { color: #fff; }
-      .pc-msg__ico { width: 42px; height: 42px; opacity: 0.5; }
-    </style>
-    <div class="pc-stage">
-      <?php if ($pcExternal): ?>
-        <iframe src="<?= esc($pcExternal) ?>" allow="xr-spatial-tracking; fullscreen" allowfullscreen></iframe>
-      <?php elseif ($pcCopc): ?>
-        <div id="gh-copc-viewer" data-src="<?= esc($page->assetUrl($pcCopc)) ?>" data-wasm="<?= esc(url('assets/wasm/laz-perf.wasm')) ?>"></div>
-      <?php elseif ($pcInline): ?>
-        <div id="gh-pointcloud-viewer" data-src="<?= esc($page->assetUrl($pcInline)) ?>" data-format="<?= esc($pcInline->extension()) ?>"></div>
-      <?php elseif ($pcOther): ?>
-        <div class="pc-msg">
-          <svg class="pc-msg__ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><?= $pcDots ?><text x="20" y="8" font-size="9" font-family="monospace" font-weight="700" fill="#fff">?</text></svg>
-          <span>Format <strong><?= strtoupper(esc($pcOther->extension())) ?></strong> non pris en charge</span>
-        </div>
-      <?php else: ?>
-        <div class="pc-msg">
-          <svg class="pc-msg__ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><?= $pcDots ?><line x1="3.5" y1="20.5" x2="20.5" y2="3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <span>Aucun nuage de points</span>
-        </div>
-      <?php endif ?>
-    </div>
-    <?php
+    snippet('pointcloud-embed', compact('page', 'pcDots', 'pcExternal', 'pcCopc', 'pcInline', 'pcOther'));
     snippet('footer');
     return;
 }
 
 snippet('header', ['isVisitor' => $isVisitor]);
-
-// DRACO decoder ships with three.js. We use the local copy in
-// node_modules so we don't rely on external CDNs which can fail
-// on the first load due to network/DNS timeouts.
-$dracoPath = url('node_modules/three/examples/jsm/libs/draco/');
-
-// Canonical filenames are set by the upload-overwrite plugin at upload time.
-// The modelFile() page method (model-converter) owns the canonical-name →
-// extension-variants → field-UUID fallback chain for each slot, so the
-// template just asks by slot.
-$objFile          = $page->modelFile('obj');
-$interiorObjFile  = $page->modelFile('obj_interior');
-
-$texFile          = $page->modelFile('texture');
-$normFile         = $page->modelFile('normal');
-$interiorTexFile  = $page->modelFile('texture_interior');
-$interiorNormFile = $page->modelFile('normal_interior');
-
-// Progressive loading previews (auto-generated 1024 px JPEG companions)
-$texPreviewFile         = $texFile
-    ? $page->file(pathinfo($texFile->filename(), PATHINFO_FILENAME) . '-preview.jpg') : null;
-$interiorTexPreviewFile = $interiorTexFile
-    ? $page->file(pathinfo($interiorTexFile->filename(), PATHINFO_FILENAME) . '-preview.jpg') : null;
-
-$hotspotsExtFile = $page->modelFile('hotspots');
-$hotspotsIntFile = $page->modelFile('hotspots_interior');
-$hotspotsExtUrl  = $hotspotsExtFile ? $hotspotsExtFile->url() : null;
-$hotspotsIntUrl  = $hotspotsIntFile ? $hotspotsIntFile->url() : null;
-
-$viewerUrl = $page->viewer_url()->isNotEmpty() ? $page->viewer_url()->esc() : null;
-$viewerLabel = $page->viewer_label()->isNotEmpty() ? $page->viewer_label()->esc() : 'Explorer le Modèle 3D';
-
-// Build annotation data from the unified `annotations` structure
-// (each row carries a `location: exterior|interior` value). Legacy
-// pages with the old separate `annotations_interior` field are still
-// folded in via the `allAnnotations()` page method until they're
-// migrated by scripts/migrate-annotations.php.
-$annotationsData = [];
-foreach ($page->allAnnotations() as $ann) {
-    $annotationsData[] = [
-        'id'          => $ann->hotspot_id()->value(),
-        'title'       => $ann->title()->value(),
-        'description' => $ann->description()->value(),
-        'camera_mode' => $ann->camera_mode()->or('fly')->value(),
-        'location'    => $ann->location()->or('exterior')->value(),
-    ];
-}
-$annotationsJson = json_encode($annotationsData, JSON_UNESCAPED_UNICODE);
-
-$objUrl           = $page->assetUrl($objFile);
-$interiorObjUrl   = $page->assetUrl($interiorObjFile);
-$interiorTexUrl   = $page->assetUrl($interiorTexFile);
-$interiorNormUrl  = $page->assetUrl($interiorNormFile);
-$texUrl           = $page->assetUrl($texFile);
-$normUrl          = $page->assetUrl($normFile);
-$texPreviewUrl         = $texPreviewFile         ? $texPreviewFile->url()         : null;
-$interiorTexPreviewUrl = $interiorTexPreviewFile ? $interiorTexPreviewFile->url() : null;
-
-// GLB: prefer canonical name, fall back to field UUID, then any GLB not already used as interior
-$interiorGlbFile = $page->modelFile('glb_interior');
-$interiorGlbUrl  = $page->assetUrl($interiorGlbFile);
-
-$glbFile = $page->file('exterior.glb') ?? ($objFile ? null
-    : $page->files()->filterBy('extension', 'glb')
-        ->filter(fn($f) => !$interiorObjFile || $f->id() !== $interiorObjFile->id())
-        ->filter(fn($f) => !$interiorGlbFile || $f->id() !== $interiorGlbFile->id())
-        ->sortBy('modified', 'desc')->first());
-$glbUrl = $page->assetUrl($glbFile);
-
-$hasIframe  = ($viewerUrl !== null);
-$hasModel   = ($objUrl !== null || $interiorObjUrl !== null || $glbUrl !== null || $interiorGlbUrl !== null);
-
-// Visibility: when the owner has not exposed the 3D model section, suppress
-// the viewer/iframe entirely and fall through to the poster image. Admins
-// keep full access (handled via $canSee).
-if (!$canSee('model')) {
-    $hasIframe = false;
-    $hasModel  = false;
-}
-
-// Annotations follow the same gating: if hidden, blank the JSON so the
-// viewer doesn't render hotspot markers at all.
-if (!$canSee('annotations')) {
-    $annotationsJson = '[]';
-}
-$defaultSide = $page->model_toggle()->isTrue() ? 'interior' : 'exterior';
-
-$posterUrl = ($cover = $page->cover()->toFile())
-    ? $cover->crop(1600, 700)->url()
-    : null;
-
-$gallery = $page->gallery()->toFiles();
-if ($gallery->count() === 0) {
-    $gallery = $page->images()
-        ->filterBy('extension', 'in', ['jpg', 'jpeg', 'png', 'webp'])
-        ->filter(fn($f) => !str_contains(strtolower($f->filename()), 'diffuse')
-                        && !str_contains(strtolower($f->filename()), 'texture')
-                        && !str_contains(strtolower($f->filename()), 'normal_'))
-        ->sortBy('sort');
-}
-
-// ── View-mode chips ─────────────────────────────────────────────────────
-// The right-hand viewer area can swap between 3D model, fullscreen image
-// gallery, and fullscreen plans. Each mode is its own pane inside
-// #viewer-container; floating chips on top let the visitor switch.
-//
-// A mode only contributes a chip + pane when it has content AND the
-// owner has opted to expose it via visibility ($canSee). When only one
-// mode is available we suppress the chip row entirely — a single chip
-// with no alternatives is just noise.
-$plansList      = $page->plans();
-$hasGalleryPane = $canSee('gallery') && $gallery->count() > 0;
-$hasPlansPane   = $canSee('plans')   && $plansList && $plansList->count() > 0;
-// Point cloud — an external Potree/web viewer URL or an uploaded PLY/PCD.
-// Rendered as a 4th switcher pane (lazy iframe into ?pointcloud=1) so visitors
-// can reach it without leaving the page.
-$pcExternal     = $page->pointcloud_url()->isNotEmpty() ? $page->pointcloud_url()->value() : null;
-$pcInline       = $page->files()->filterBy('extension', 'in', ['ply', 'pcd'])->sortBy('modified', 'desc')->first();
-$pcCopc         = $page->copcFile();
-$hasPointcloudPane = $canSee('pointcloud') && ($pcExternal !== null || $pcInline !== null || $pcCopc !== null);
-// The model pane is always present — even when there's nothing to show it
-// falls back to the cover image / "Vue 3D prochainement" placeholder, which
-// is the page's intended hero. So we don't gate it on $hasModel.
-$hasModelPane   = true;
-
-// The model pane carries an ACTUAL interactive viewer only when there's a
-// 3D model or an external viewer URL. Otherwise it's just the cover-image
-// placeholder ("Vue 3D prochainement") — present as a fallback, but it must
-// NOT win the default when real content (a point cloud, gallery…) exists.
-$hasRealModel = $hasModel || $hasIframe;
-
-// Switcher order is fixed (model · gallery · plans · point cloud) so the
-// chip row reads consistently across projects. The model button only appears
-// when there's an ACTUAL 3D model/viewer — otherwise the model pane is just the
-// "Vue 3D prochainement" placeholder, and showing a "Modèle 3D" button on a
-// point-cloud- or gallery-only project is misleading. The pane still exists as
-// the last-resort fallback (see $defaultMode below); it just gets no chip.
-$availableModes = [];
-if ($hasRealModel)      $availableModes[] = 'model';
-if ($hasGalleryPane)    $availableModes[] = 'gallery';
-if ($hasPlansPane)      $availableModes[] = 'plans';
-if ($hasPointcloudPane) $availableModes[] = 'pointcloud';
-
-// The data-type switcher belongs to the VISITOR-facing site (and external
-// embeds) only — NOT the CMS panel preview (viewer=only), which already has
-// its own per-type editing tabs (Modèle 3D / Nuage de points). Showing it
-// there would be a redundant control inside the panel's own viewer.
-$showModeChips  = count($availableModes) > 1 && !$isViewerOnly;
-
-// Default mode = the first pane that actually has content, by priority:
-//   real 3D model / external viewer  →  point cloud  →  gallery  →  plans
-// The empty model placeholder is the last resort, so a point-cloud-only
-// project (e.g. Hôtel Tassel) opens on its cloud instead of "Aucun modèle".
-// An explicit ?mode= override always wins (used by deep links / the panel).
-$modeParam = get('mode');
-if ($modeParam && in_array($modeParam, $availableModes, true)) {
-    $defaultMode = $modeParam;
-} elseif ($hasRealModel) {
-    $defaultMode = 'model';
-} elseif ($hasPointcloudPane) {
-    $defaultMode = 'pointcloud';
-} elseif ($hasGalleryPane) {
-    $defaultMode = 'gallery';
-} elseif ($hasPlansPane) {
-    $defaultMode = 'plans';
-} else {
-    $defaultMode = 'model'; // placeholder fallback
-}
 ?>
 
 <div class="items-start pt-0 pb-10">
@@ -313,30 +82,6 @@ if ($modeParam && in_array($modeParam, $availableModes, true)) {
             <?php endif ?>
 
             <!-- Spec Sheet — monospace minimal -->
-            <?php
-            // Map protection status code → human-readable label so the
-            // public fiche technique reads cleanly ("Classé Monument
-            // Historique" instead of the raw "classé").
-            $protectionLabels = [
-                'classé'   => 'Classé Monument Historique',
-                'unesco'   => 'Patrimoine mondial UNESCO',
-                'regional' => 'Inventaire Régional',
-                'none'     => 'Non protégé',
-            ];
-            $protectionRaw   = $page->protection_status()->value();
-            $protectionLabel = $protectionLabels[$protectionRaw] ?? $protectionRaw;
-
-            $specFields = [
-                ['label' => 'Construction', 'value' => $page->construction_date()->value()],
-                ['label' => 'Architecte',   'value' => $page->architect()->value()],
-                ['label' => 'Style',        'value' => $page->style()->value()],
-                ['label' => 'Dimensions',   'value' => $page->dimensions()->value()],
-                // Skip "Non protégé" — only show protection when it's meaningful.
-                ['label' => 'Protection',   'value' => ($protectionRaw && $protectionRaw !== 'none') ? $protectionLabel : ''],
-            ];
-            $hasSpecs = false;
-            foreach ($specFields as $sf) { if (!empty($sf['value'])) { $hasSpecs = true; break; } }
-            ?>
             <?php if ($hasSpecs && $canSee('info')): ?>
                 <div class="spec-card">
                     <h3 class="font-mono text-xs uppercase tracking-widest text-ink mb-3">Fiche technique</h3>
@@ -362,24 +107,11 @@ if ($modeParam && in_array($modeParam, $availableModes, true)) {
             <?php if ($canSee('plans')) snippet('plan-viewer', ['modalOnly' => true]) ?>
 
             <!-- Tags. A tag is only linkified if at least one LISTED
-                 project on the map actually carries it — otherwise the
-                 link would land on the map filtered for a tag that
-                 yields zero results. Orphan tags render as plain labels
-                 so the info is still shown but isn't a dead-end. -->
-            <?php
-            // Build the set of tags that exist across listed map projects
-            // (same collection the map page filters on). Normalised to
-            // lowercase for a case-insensitive match.
-            $liveTags = [];
-            $mapPage = page('map');
-            if ($mapPage) {
-                foreach ($mapPage->children()->listed()->filterBy('isPubliclyVisible', true) as $proj) {
-                    foreach ($proj->tags()->split(',') as $t) {
-                        $liveTags[mb_strtolower(trim($t))] = true;
-                    }
-                }
-            }
-            ?>
+                 project on the map actually carries it (see $liveTags,
+                 site/controllers/project.php) — otherwise the link would
+                 land on the map filtered for a tag that yields zero
+                 results. Orphan tags render as plain labels so the info
+                 is still shown but isn't a dead-end. -->
             <div class="flex flex-wrap gap-2 mt-4">
                 <?php foreach ($page->tags()->split(',') as $tag): ?>
                     <?php $t = trim($tag); if ($t === '') continue; ?>
@@ -415,21 +147,6 @@ if ($modeParam && in_array($modeParam, $availableModes, true)) {
              data-default-mode="<?= esc($defaultMode) ?>"
              style="top: 80px; height: calc(100vh - 100px); min-height: 500px;">
 
-        <?php
-        // Icons + labels for the mode buttons.
-        $modeIcons = [
-            'model'      => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
-            'gallery'    => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
-            'plans'      => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',
-            'pointcloud' => '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">' . $pcDots . '</svg>',
-        ];
-        $modeLabels = [
-            'model'      => 'Modèle 3D',
-            'gallery'    => 'Galerie',
-            'plans'      => 'Plans',
-            'pointcloud' => 'Nuage de points',
-        ];
-        ?>
         <?php if ($showModeChips): ?>
         <div class="viewer-mode-bar">
         <div class="viewer-modes" id="viewer-switch" role="tablist" aria-label="Mode d'affichage">
@@ -464,32 +181,32 @@ if ($modeParam && in_array($modeParam, $availableModes, true)) {
             <?php if ($posterUrl): ?>
                 <img src="<?= $posterUrl ?>" alt="" class="absolute inset-0 w-full h-full object-cover opacity-60 blur-md scale-105">
             <?php endif ?>
-            
+
             <!-- Dark overlay to ensure text is readable -->
             <div class="absolute inset-0 bg-ink/40"></div>
 
             <!-- Content -->
             <div class="relative z-10 flex flex-col items-center text-center px-6">
                 <h1 class="font-thyssen text-4xl md:text-5xl text-white mb-3 drop-shadow-md"><?= $page->title()->esc() ?></h1>
-                
+
                 <div class="mb-8">
                     <?php snippet('location-tag', ['location' => $page->location()->value(), 'class' => '!text-white/80']) ?>
                 </div>
 
                 <button id="embed-play-btn" class="bg-white/10 backdrop-blur-md border border-white/20 rounded-full w-20 h-20 flex items-center justify-center transform transition-transform duration-300 hover:scale-110 hover:bg-white/20 cursor-pointer text-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" class="ml-2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    <?php snippet('icon-play') ?>
                 </button>
-                
+
                 <span class="font-sans text-xs text-white/80 mt-4 uppercase tracking-widest"><?= $viewerLabel ?></span>
             </div>
         </div>
-        
+
         <script>
         document.getElementById('embed-play-btn').addEventListener('click', function() {
             var splash = document.getElementById('embed-splash');
             splash.style.opacity = '0';
             splash.style.pointerEvents = 'none';
-            
+
             <?php if ($hasIframe): ?>
             const iframe = document.createElement('iframe');
             iframe.src = "<?= $viewerUrl ?>";
@@ -537,7 +254,7 @@ if ($modeParam && in_array($modeParam, $availableModes, true)) {
                 <?php endif ?>
                 <div class="absolute inset-0 bg-ink/30 flex items-center justify-center transition-colors group-hover:bg-ink/40">
                     <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-full w-20 h-20 flex items-center justify-center transform transition-transform duration-300 group-hover:scale-110">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white" class="ml-2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        <?php snippet('icon-play', ['color' => 'white']) ?>
                     </div>
                 </div>
                 <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-ink/80 backdrop-blur-md px-4 py-2 rounded-full">
