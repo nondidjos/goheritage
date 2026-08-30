@@ -238,9 +238,9 @@ tabs:
           model_obj:
             width: 1/2
             type: upload-overwrite
-            label: Modèle OBJ
-            accept: ".obj"
-            help: Fichier OBJ exporté depuis Blender.
+            label: Modèle OBJ ou GLB
+            accept: ".obj,.glb"
+            help: Fichier OBJ ou GLB exporté depuis Blender. Un GLB est utilisé tel quel, sans conversion.
 
           model_texture:
             width: 1/2
@@ -265,10 +265,10 @@ tabs:
           model_obj_interior:
             width: 1/2
             type: upload-overwrite
-            label: Modèle OBJ
-            accept: ".obj"
+            label: Modèle OBJ ou GLB
+            accept: ".obj,.glb"
             template: model
-            help: Fichier OBJ exporté depuis Blender.
+            help: Fichier OBJ ou GLB exporté depuis Blender. Un GLB est utilisé tel quel, sans conversion.
 
           model_texture_interior:
             width: 1/2
