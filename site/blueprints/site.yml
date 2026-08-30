@@ -30,7 +30,7 @@ tabs:
             image:
               ratio: 16/9
               cover: true
-            help: Ce projet sera affiché en évidence sur la page d'accueil.
+            help: Ce projet sera mis en avant sur la page d'accueil.
 
   footer:
     label: Pied de page
@@ -62,5 +62,5 @@ tabs:
                 label: "Plateforme (ex: LinkedIn, Mastodon)"
               url:
                 type: url
-                label: Lien URL (https://…)
+                label: URL (https://…)
                 placeholder: https://www.linkedin.com/company/…

@@ -170,7 +170,7 @@ tabs:
         size: small
         width: 1/2
       manifestoFooterText:
-        label: Texte bas de section
+        label: Texte de bas de section
         type: textarea
         size: small
 
@@ -190,7 +190,7 @@ tabs:
         label: Titre
         type: textarea
         size: small
-        placeholder: "Du terrain\nau plan côté."
+        placeholder: "Du terrain\nau plan coté."
       deliverablesText:
         label: Description
         type: textarea

@@ -11,7 +11,7 @@ tabs:
         type: select
         label: Point d'intérêt
         required: true
-        placeholder: "Choisir un hotspot…"
+        placeholder: "Choisir un point d'intérêt…"
         options: query
         query:
           fetch: page.annotations.toStructure

@@ -33,5 +33,5 @@ fields:
   notes:
     type: textarea
     label: Notes internes
-    help: Non affiché publiquement.
+    help: Ces notes ne sont pas affichées publiquement.
     size: small

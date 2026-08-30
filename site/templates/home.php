@@ -159,7 +159,7 @@ snippet('header');
         data-step="0">
         <span class="font-sans text-5xl leading-none text-ink mb-3 block">01</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step1Title()->or('Acquisition') ?></h3>
-        <p class="font-sans text-sm text-ink leading-normal line-clamp-3">
+        <p class="font-sans text-sm text-ink leading-normal md:line-clamp-3">
           <?= $page->step1Text()->nl2br() ?>
         </p>
       </div>
@@ -169,7 +169,7 @@ snippet('header');
         data-step="1">
         <span class="font-sans text-5xl leading-none text-faint mb-3 block">02</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step2Title()->or('Traitement') ?></h3>
-        <p class="font-sans text-sm text-ink leading-normal line-clamp-3">
+        <p class="font-sans text-sm text-ink leading-normal md:line-clamp-3">
           <?= $page->step2Text()->nl2br() ?>
         </p>
       </div>
@@ -179,7 +179,7 @@ snippet('header');
         data-step="2">
         <span class="font-sans text-5xl leading-none text-faint mb-3 block">03</span>
         <h3 class="font-sans text-lg text-ink mb-2"><?= $page->step3Title()->or('Production') ?></h3>
-        <p class="font-sans text-sm text-ink leading-normal line-clamp-3">
+        <p class="font-sans text-sm text-ink leading-normal md:line-clamp-3">
           <?= $page->step3Text()->nl2br() ?>
         </p>
       </div>

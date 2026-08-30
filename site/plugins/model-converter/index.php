@@ -80,8 +80,8 @@ Kirby::plugin('goheritage/model-converter', [
          */
         'modelFile' => function (string $slot) {
             static $slots = [
-                'obj'              => ['names' => ['exterior.obj'],                                                                                  'field' => 'model_obj'],
-                'obj_interior'     => ['names' => ['interior.obj'],                                                                                  'field' => 'model_obj_interior'],
+                'obj'              => ['names' => ['exterior.obj'],                                                                                  'field' => 'model_obj',          'ext' => 'obj'],
+                'obj_interior'     => ['names' => ['interior.obj'],                                                                                  'field' => 'model_obj_interior', 'ext' => 'obj'],
                 'texture'          => ['names' => ['exterior-texture.webp', 'exterior-texture.jpg', 'exterior-texture.png', 'exterior-texture.jpeg'], 'field' => 'model_texture'],
                 // Normal maps have no upload field or blueprint entry — they
                 // only exist as manually-named files. field => null (like
@@ -101,7 +101,16 @@ Kirby::plugin('goheritage/model-converter', [
             }
             if ($spec['field']) {
                 $field = $spec['field'];
-                return $this->$field()->toFile();
+                $f = $this->$field()->toFile();
+                // The upload-overwrite field saves whatever extension was
+                // actually uploaded (see goheritageCanonicalBase), so a GLB
+                // dropped straight into the "obj" slot ends up stored as
+                // exterior.glb with model_obj pointing at it. Only surface
+                // it here if it's really an .obj — otherwise the GLB
+                // fallback in project.php picks it up via the canonical
+                // filename instead.
+                if ($f && isset($spec['ext']) && strtolower($f->extension()) !== $spec['ext']) return null;
+                return $f;
             }
             return null;
         },

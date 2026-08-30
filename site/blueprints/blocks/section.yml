@@ -22,8 +22,9 @@ fields:
       text: "{{ item.title }}"
       value: "{{ item.hotspot_id }}"
     help: >
-      Si renseigné, cette section s'active lorsque le hotspot correspondant
-      est cliqué dans le viewer 3D. Sur mobile, le contenu apparaît en popup.
+      Une fois ce champ renseigné, la section s'affiche quand on clique sur
+      le hotspot correspondant dans la visionneuse 3D. Sur mobile, le
+      contenu s'affiche dans une fenêtre contextuelle.
     width: 1/3
 
   section_content:

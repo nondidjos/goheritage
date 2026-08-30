@@ -104,7 +104,7 @@ tabs:
             default: false
             help: >
               Activez pour masquer les sections modèle 3D, galerie et plans.
-              Ce site ne montrera que son image et sa description sur la carte.
+              Cette fiche ne montrera que son image et sa description sur la carte.
 
       # Hidden fields backing the visibility header dropdown.
       visibility_meta:
@@ -207,7 +207,7 @@ tabs:
             type: url
             label: Viewer externe
             placeholder: "https://…"
-            help: Potree, Sketchfab, etc. Remplace le viewer Three.js si renseigné.
+            help: Potree, Sketchfab, etc. Une fois renseigné, remplace le viewer Three.js.
 
           model_toggle:
             width: 1/2
@@ -248,7 +248,7 @@ tabs:
             label: Texture diffuse
             accept: ".jpg,.jpeg,.png"
             template: image
-            help: Texture couleur. Déposez un PNG puis comprimez en WebP.
+            help: Texture couleur (PNG), compressée automatiquement en WebP à l'import.
 
           model_hotspots_json:
             type: upload-overwrite
@@ -276,7 +276,7 @@ tabs:
             label: Texture diffuse
             accept: ".jpg,.jpeg,.png"
             template: image
-            help: Texture couleur. Déposez un PNG puis comprimez en WebP.
+            help: Texture couleur (PNG), compressée automatiquement en WebP à l'import.
 
           model_hotspots_json_interior:
             type: upload-overwrite

@@ -259,7 +259,7 @@ var ProjectOverviewSection = {
               <k-icon type="text" class="gh-pov__asset-ico" />
               <div class="gh-pov__asset-body">
                 <strong>Contenu détaillé</strong>
-                <span>{{ contentBlocksCount ? contentBlocksCount + ' bloc' + (contentBlocksCount > 1 ? 's' : '') + ' éditorial' + (contentBlocksCount > 1 ? 'aux' : '') : 'Vide' }}</span>
+                <span>{{ contentBlocksCount ? contentBlocksCount + (contentBlocksCount > 1 ? ' blocs éditoriaux' : ' bloc éditorial') : 'Vide' }}</span>
               </div>
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
