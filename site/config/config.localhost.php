@@ -8,5 +8,5 @@
  * extra dev-only options here.
  */
 return [
-    'maptiler.key' => 'REDACTED-ROTATE-THIS-KEY',
+    'maptiler.key' => '', // set locally, never commit a real key here
 ];

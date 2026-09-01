@@ -6,5 +6,5 @@
  * 'debug' itself, so this file is intentionally minimal.
  */
 return [
-    'maptiler.key' => 'REDACTED-ROTATE-THIS-KEY',
+    'maptiler.key' => '', // set locally, never commit a real key here
 ];
