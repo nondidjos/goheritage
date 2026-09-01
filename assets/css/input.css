@@ -58,6 +58,22 @@
 }
 
 @font-face {
+    font-family: 'Fraunces';
+    src: url('/assets/fonts/Fraunces-Regular.woff') format('woff');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Fraunces';
+    src: url('/assets/fonts/Fraunces-Italic.woff') format('woff');
+    font-weight: 300;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
     font-family: 'Lora';
     src: url('/assets/fonts/Lora-400.woff') format('woff');
     font-weight: 400;
@@ -125,7 +141,7 @@
 
     --font-thyssen: 'Thyssen', serif;
     --font-mono: 'IBM Plex Mono', monospace;
-    --font-serif: 'IBM Plex Serif', Georgia, serif;
+    --font-serif: 'Fraunces', Georgia, serif;
     --font-sans: 'DM Sans', system-ui, sans-serif;
 
     --radius-sm: 4px;

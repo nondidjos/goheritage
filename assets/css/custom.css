@@ -1455,6 +1455,7 @@ body.is-panel-collapsed #map-fold-toggle svg {
     }
     /* Rich text: looser leading on desktop where there's room */
     #project-content .font-serif {
+        font-size: 0.9375rem;
         line-height: 1.65;
     }
     /* Gallery thumbnails: 2 columns with a touch more gap */
