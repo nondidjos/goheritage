@@ -6,7 +6,7 @@ Description: Chef-d'œuvre Art nouveau de Victor Horta (1898–1900), avenue Lou
 
 ----
 
-Cover: []
+Cover: - 'file://yapgkl1tti7sjmhi'
 
 ----
 

@@ -417,7 +417,7 @@ snippet('header');
 
 <?php if ($page->showSection('impact')): ?>
 <section class="py-12 mb-8 md:mb-16">
-  <div class="col-7 relative rounded-md overflow-hidden min-h-[40vh] md:min-h-[50vh] flex items-center justify-center p-6 md:p-12 bg-ink">
+  <div class="col-7 relative rounded-md overflow-hidden min-h-[40vh] md:min-h-[50vh] flex items-center justify-center p-6 md:p-12 bg-surface">
     <?php if ($impactImg = $page->impactImage()->toFile()): ?>
       <div class="absolute inset-0 opacity-20 mix-blend-luminosity pointer-events-none">
         <img src="<?= $impactImg->resize(1600)->url() ?>" alt="Statistiques" loading="lazy" decoding="async" class="w-full h-full object-cover">
@@ -426,12 +426,12 @@ snippet('header');
 
     <div class="relative z-10 flex flex-col items-start text-left max-w-3xl col-start-2 col-end-7">
       <?php if ($page->impactTag()->isNotEmpty()): ?>
-        <p class="font-mono text-xs uppercase tracking-wider text-white/40 mb-6"><?= $page->impactTag()->esc() ?></p>
+        <p class="font-mono text-xs uppercase tracking-wider text-faint mb-6"><?= $page->impactTag()->esc() ?></p>
       <?php endif ?>
-      <h2 class="font-thyssen text-3xl sm:text-5xl md:text-7xl text-white leading-tight mb-4 mt-4">
+      <h2 class="font-thyssen text-3xl sm:text-5xl md:text-7xl text-ink leading-tight mb-4 mt-4">
         <?= $page->impactHeading()->or('Préserver pour l\'éternité.') ?>
       </h2>
-      <p class="font-sans text-sm md:text-lg text-white/80 mb-8 leading-relaxed">
+      <p class="font-sans text-sm md:text-lg text-mid mb-8 leading-relaxed">
         <?= $page->impactText()->nl2br() ?>
       </p>
       <div class="flex flex-col sm:flex-row gap-3 w-full">

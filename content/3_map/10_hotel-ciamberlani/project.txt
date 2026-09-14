@@ -6,7 +6,7 @@ Description: Maison-atelier Art nouveau conçue par Paul Hankar en 1897 pour le 
 
 ----
 
-Cover: []
+Cover: - 'file://g9huqgcc51xhy96r'
 
 ----
 

@@ -42,7 +42,7 @@ Description: Ancienne abbaye cistercienne fondée en 1201, nichée dans un vallo
 
 ----
 
-Cover: []
+Cover: - 'file://97fyu4pnbd7m15fz'
 
 ----
 
