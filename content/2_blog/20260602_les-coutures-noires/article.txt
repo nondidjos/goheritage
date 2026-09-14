@@ -1,0 +1,37 @@
+Title: Les coutures noires qui traînaient sur nos modèles
+
+----
+
+Text: [{"content": {"text": "<p>Le modèle était propre dans Blender. Exporté en GLB, compressé, chargé dans la visionneuse : des liserés sombres apparaissaient le long de certaines arêtes. Pas partout. Surtout sur les surfaces courbes et les détails fins.</p>"}, "id": "njn4eyzq48", "isHidden": false, "type": "text"}, {"content": {"text": "<p>Premier réflexe, accuser la compression géométrique. On a désactivé Draco. Les liserés étaient toujours là. Donc pas la géométrie.</p>"}, "id": "0qnj9jjt4m", "isHidden": false, "type": "text"}, {"content": {"level": "h2", "text": "D'où ça venait"}, "id": "ja35ls7na7", "isHidden": false, "type": "heading"}, {"content": {"text": "<p>Une texture photogrammétrique est un atlas : les triangles du modèle sont dépliés en îlots, avec du vide entre eux. Ce vide n'est pas vraiment vide, il est rempli de noir ou de transparent selon l'export.</p>"}, "id": "mxom5mxfl7", "isHidden": false, "type": "text"}, {"content": {"text": "<p>Tant qu'on lit la texture à sa résolution native, chaque pixel tombe dans son îlot et tout va bien. Dès qu'on la réduit — et on la réduit forcément pour le web — le filtre moyenne des pixels voisins. Au bord des îlots, il moyenne avec le vide. Le mipmapping fait la même chose, en pire, à mesure qu'on s'éloigne.</p>"}, "id": "3lxxpvrs8j", "isHidden": false, "type": "text"}, {"content": {"text": "<p>D'où le liseré : ce n'est pas une ombre, c'est du fond qui déborde dans la texture.</p>"}, "id": "rf2p72xxbe", "isHidden": false, "type": "text"}, {"content": {"level": "h2", "text": "Le correctif"}, "id": "bblcnoghar", "isHidden": false, "type": "heading"}, {"content": {"text": "<p>On dilate les îlots avant de compresser. Concrètement, on étale les pixels de bord vers l'extérieur sur quelques pixels de marge, pour que le filtre ait quelque chose de plausible à moyenner. Le rendu visible ne change pas, mais les bords cessent de tirer vers le noir.</p>"}, "id": "v3t35tecfv", "isHidden": false, "type": "text"}, {"content": {"text": "<p>Ça fait partie du pipeline depuis. Ce genre de défaut ne se voit pas sur un rendu de validation en pleine résolution ; il ne se voit que sur le livrable réel, à taille réduite, sur un écran quelconque. C'est en général là que se trouvent les problèmes intéressants.</p>"}, "id": "k6q6cezpwp", "isHidden": false, "type": "text"}]
+
+----
+
+Cover: - 'file://fx1ukv6zrw9166lk'
+
+----
+
+Date: 2026-06-02 11:15:00
+
+----
+
+Author: GoVR
+
+----
+
+Tags: photogrammétrie, textures, web
+
+----
+
+Primary_tag: textures
+
+----
+
+Subheading: Un défaut qui n'apparaissait qu'après compression, et qu'on a mis trois jours à expliquer.
+
+----
+
+Featured: false
+
+----
+
+Uuid: chv62g01zmifbp9k

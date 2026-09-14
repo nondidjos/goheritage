@@ -1,0 +1,37 @@
+Title: Scanner un site qui ne ferme jamais
+
+----
+
+Text: [{"content": {"text": "<p>Une abbaye du XIIIe siècle qui abrite une école d'art et des bureaux, ça veut dire des gens partout, toute la journée. On ne ferme pas le site pour un relevé.</p>"}, "id": "6vfupxqytg", "isHidden": false, "type": "text"}, {"content": {"text": "<p>Un passant qui traverse pendant une acquisition laisse une trace. Pas une silhouette complète : une tranche, correspondant au moment où le miroir balayait cet angle-là. On se retrouve avec des demi-personnes flottantes dans le nuage.</p>"}, "id": "4vh3ou81hv", "isHidden": false, "type": "text"}, {"content": {"level": "h2", "text": "Deux façons de s'en débarrasser"}, "id": "khlfgd9h4k", "isHidden": false, "type": "heading"}, {"content": {"text": "<p>La première : scanner deux fois depuis la même station et comparer. Ce qui n'apparaît que dans une des deux acquisitions est mobile, donc à supprimer. Fiable, mais ça double le temps sur place.</p>"}, "id": "6z72xrpud1", "isHidden": false, "type": "text"}, {"content": {"text": "<p>La seconde : nettoyer au bureau. Plus rapide sur le terrain, plus long après, et il faut faire attention — à force d'effacer, on finit par retirer du mobilier qui, lui, fait partie du bâtiment.</p>"}, "id": "pllzrffmr8", "isHidden": false, "type": "text"}, {"content": {"level": "h2", "text": "Le jardin, c'est une autre affaire"}, "id": "qoe4cbkdio", "isHidden": false, "type": "heading"}, {"content": {"text": "<p>Les terrasses en contrebas sont le morceau le plus photogénique et le plus ingrat. En été, la végétation masque les façades basses ; en hiver on voit les maçonneries mais la lumière est courte et plate. On a fini par faire l'extérieur en deux passages à deux saisons différentes, ce qui n'était pas au planning initial.</p>"}, "id": "j6rwig09ah", "isHidden": false, "type": "text"}, {"content": {"text": "<p>C'est le genre d'arbitrage qu'on n'anticipe pas en lisant un cahier des charges depuis un bureau. On le découvre devant le bâtiment, et on ajuste.</p>"}, "id": "5ngzepj9ws", "isHidden": false, "type": "text"}]
+
+----
+
+Cover: - 'file://85ol50ra8vvumk0w'
+
+----
+
+Date: 2026-07-07 10:00:00
+
+----
+
+Author: GoVR
+
+----
+
+Tags: patrimoine, terrain, abbaye de la cambre
+
+----
+
+Primary_tag: terrain
+
+----
+
+Subheading: À la Cambre, entre les cours de l'école et les bureaux, il n'y a pas beaucoup de moments calmes.
+
+----
+
+Featured: false
+
+----
+
+Uuid: cx46hzlc05d8ribb

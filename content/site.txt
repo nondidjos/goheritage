@@ -6,7 +6,7 @@ Featured-project: - 'page://chapel-saint-jerusalem-001'
 
 ----
 
-Featured-article: - 'page://r67stD5AUZwqCIlL'
+Featured-article: - 'page://wpkrosvlc5wcv3qj'
 
 ----
 

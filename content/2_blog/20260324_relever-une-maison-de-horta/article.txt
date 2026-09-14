@@ -1,0 +1,37 @@
+Title: Relever une maison de Horta sans rien déplacer
+
+----
+
+Text: [{"content": {"text": "<p>On nous rappelle la règle avant même d'ouvrir les caisses : rien ne bouge. Pas les meubles, pas les tapis, pas les luminaires. Dans une maison classée encore meublée, le relevé s'adapte au bâtiment, jamais l'inverse.</p>"}, "id": "9mcrdc4zly", "isHidden": false, "type": "text"}, {"content": {"text": "<p>Ça paraît anodin. En pratique, ça veut dire qu'on ne choisit pas librement l'emplacement du trépied. Chaque station est un compromis entre ce qu'on voit et ce qu'on a le droit d'occuper, et les zones d'ombre se paient plus tard, au bureau, quand il manque un morceau de plafond.</p>"}, "id": "yu2k9smtz6", "isHidden": false, "type": "text"}, {"content": {"level": "h2", "text": "Le problème des miroirs"}, "id": "1zyrh9zghz", "isHidden": false, "type": "heading"}, {"content": {"text": "<p>Horta en a mis partout, et un scanner laser ne sait pas ce qu'est un miroir. Le faisceau part, se réfléchit, et revient avec une distance qui correspond à une pièce qui n'existe pas. On se retrouve avec des volumes fantômes derrière les murs, parfaitement nets, qu'il faut repérer et supprimer un par un. Le laiton poli fait la même chose, en moins spectaculaire.</p>"}, "id": "j8dbpn5jst", "isHidden": false, "type": "text"}, {"content": {"text": "<p>La verrière pose l'inverse : le verre laisse passer une partie du signal et en renvoie une autre. On récupère le châssis et le ciel, mélangés dans le même nuage.</p>"}, "id": "otwj3u4lvk", "isHidden": false, "type": "text"}, {"content": {"level": "h2", "text": "L'escalier"}, "id": "blrh047qsk", "isHidden": false, "type": "heading"}, {"content": {"text": "<p>C'est la pièce maîtresse de la maison, et c'est aussi la plus pénible à relever. Un escalier qui s'enroule autour d'un vide, avec des balustrades ajourées : chaque marche masque la suivante. On multiplie les stations, une par demi-niveau au minimum, avec assez de recouvrement pour que le recalage tienne.</p>"}, "id": "i737qpax6r", "isHidden": false, "type": "text"}, {"content": {"text": "<p>Sur ce chantier on est monté à une quarantaine de stations rien que pour l'intérieur. C'est beaucoup pour un hôtel particulier, et c'est presque entièrement dû à la ferronnerie.</p>"}, "id": "2iq15unuyu", "isHidden": false, "type": "text"}, {"content": {"level": "h2", "text": "Ce qui sort de là"}, "id": "a1l6jv61lj", "isHidden": false, "type": "heading"}, {"content": {"text": "<p>Le client ne reçoit pas un nuage de points. Il reçoit des plans, des coupes, des élévations, et selon les cas une maquette Revit. Le nuage reste la source : on y revient quand quelqu'un demande une cote qui n'a pas été tracée. C'est d'ailleurs l'argument le plus solide du relevé 3D, et ce n'est pas la belle image — c'est de pouvoir remesurer trois ans plus tard sans remonter sur place.</p>"}, "id": "tk2h5hvhwm", "isHidden": false, "type": "text"}]
+
+----
+
+Cover: - 'file://rc1nrommhewoa4mu'
+
+----
+
+Date: 2026-03-24 09:30:00
+
+----
+
+Author: GoVR
+
+----
+
+Tags: art nouveau, lasergrammétrie, bruxelles
+
+----
+
+Primary_tag: art nouveau
+
+----
+
+Subheading: Trois jours avenue Louise, un escalier qui tourne, et beaucoup plus de miroirs que prévu.
+
+----
+
+Featured: true
+
+----
+
+Uuid: wpkrosvlc5wcv3qj

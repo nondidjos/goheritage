@@ -1,0 +1,37 @@
+Title: Photogrammétrie ou scan laser : la question qui revient à chaque devis
+
+----
+
+Text: [{"content": {"text": "<p>On nous demande souvent de choisir, comme s'il s'agissait de deux façons concurrentes de faire la même chose. Ce sont deux instruments qui mesurent des choses différentes.</p>"}, "id": "w7d4b9pfab", "isHidden": false, "type": "text"}, {"content": {"text": "<p>Le scan laser mesure une distance. Il donne une géométrie juste, à quelques millimètres, indépendamment de la lumière : on peut scanner une cave sans fenêtre. En revanche la couleur, quand il y en a, est un sous-produit, capturée par une caméra dont ce n'est pas le métier.</p>"}, "id": "thij8g7xz6", "isHidden": false, "type": "text"}, {"content": {"text": "<p>La photogrammétrie fait l'inverse. Elle reconstruit la forme à partir d'images, donc il lui faut de la lumière, de la texture et des surfaces peu réfléchissantes. Sur une façade couverte de sgraffites, elle est imbattable : on récupère le dessin avec une finesse qu'aucun scanner ne donnera. Sur un mur blanc uniforme, elle n'a rien à se mettre sous la dent et le résultat part en vrille.</p>"}, "id": "1g9ao2xp9l", "isHidden": false, "type": "text"}, {"content": {"level": "h2", "text": "En pratique, on combine"}, "id": "2tdpi59pc8", "isHidden": false, "type": "heading"}, {"content": {"text": "<p>Le laser fournit le squelette métrique : niveaux, épaisseurs, implantation. La photogrammétrie vient habiller les zones où le détail compte, ornements et statuaire. Les deux jeux sont recalés l'un sur l'autre, et c'est le laser qui sert de référence, parce que c'est lui qui porte l'échelle.</p>"}, "id": "zzld855q84", "isHidden": false, "type": "text"}, {"content": {"text": "<p>Au Petit Sablon, les statues des métiers valent un traitement photogrammétrique individuel ; la grille et les socles, non. Savoir faire ce tri, c'est la moitié du travail de cadrage d'un devis.</p>"}, "id": "a1ufkn1b6c", "isHidden": false, "type": "text"}, {"content": {"level": "h2", "text": "Ce qui décide vraiment"}, "id": "cal02nv4th", "isHidden": false, "type": "heading"}, {"content": {"text": "<p>Le choix se fait rarement sur la technique. Il se fait sur ce que le client veut en faire. Un bureau d'études qui modélise en BIM a besoin de cotes fiables et se moque de la texture ; un service patrimoine qui prépare une restauration veut voir l'état de surface, les fissures, les manques. Ce n'est pas le même relevé.</p>"}, "id": "jsbk728p9b", "isHidden": false, "type": "text"}]
+
+----
+
+Cover: - 'file://xqomprfb5rgyp27s'
+
+----
+
+Date: 2026-09-01 09:00:00
+
+----
+
+Author: GoVR
+
+----
+
+Tags: méthode, photogrammétrie, lasergrammétrie
+
+----
+
+Primary_tag: méthode
+
+----
+
+Subheading: La réponse est presque toujours « les deux », mais pas pour les mêmes raisons.
+
+----
+
+Featured: false
+
+----
+
+Uuid: fvjqreivqtu9fdil

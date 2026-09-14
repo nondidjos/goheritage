@@ -1,0 +1,37 @@
+Title: Un nuage de points de plusieurs gigaoctets dans un navigateur
+
+----
+
+Text: [{"content": {"text": "<p>La question revient dès qu'on montre une visite en ligne : « et le nuage de points, on peut le mettre sur le site ? » Oui. Mais pas en envoyant le fichier.</p>"}, "id": "5aqq9ypz1r", "isHidden": false, "type": "text"}, {"content": {"text": "<p>Un relevé complet sort en LAS ou en E57. Selon le bâtiment, ça représente dix à quarante gigaoctets. Personne ne télécharge ça pour regarder une façade, et de toute façon aucun navigateur ne tiendrait : la mémoire dont dispose une page web se compte en centaines de mégaoctets, pas en dizaines de gigas.</p>"}, "id": "2jjq21bsxc", "isHidden": false, "type": "text"}, {"content": {"level": "h2", "text": "Découper avant d'envoyer"}, "id": "gd14htvq0f", "isHidden": false, "type": "heading"}, {"content": {"text": "<p>La solution tient dans un mot : octree. On découpe l'espace en cubes, chaque cube en huit sous-cubes, et ainsi de suite. À la racine on garde un échantillon grossier de tout le bâtiment ; plus on descend, plus les cubes sont petits et denses. Le format COPC range tout ça dans un seul fichier, avec un index qui indique où commence chaque nœud.</p>"}, "id": "d86jzwp8jh", "isHidden": false, "type": "text"}, {"content": {"text": "<p>À partir de là, le navigateur ne demande plus « le fichier ». Il demande des octets précis, par plages, avec des requêtes HTTP Range ; le serveur répond en 206 avec le morceau voulu. On ne charge que ce qui est dans le champ de vision, et seulement à la profondeur utile compte tenu de la distance.</p>"}, "id": "kkgbtqrzrn", "isHidden": false, "type": "text"}, {"content": {"level": "h2", "text": "Ce que ça donne à l'écran"}, "id": "qd5bfjgtlq", "isHidden": false, "type": "heading"}, {"content": {"text": "<p>Le premier affichage arrive en une seconde ou deux, grossier, puis ça se densifie pendant qu'on regarde. Si on s'approche d'un chapiteau, les nœuds fins de cette zone sont chargés et le reste du bâtiment reste volontairement grossier. C'est un budget : on décide combien de points on s'autorise à l'écran, et l'octree fournit les meilleurs points pour ce budget.</p>"}, "id": "ma6my11fib", "isHidden": false, "type": "text"}, {"content": {"text": "<p>Sur mobile ce budget tombe de moitié, parfois plus. Et c'est très bien : sur un écran de six pouces, personne ne voit la différence entre vingt et cinquante millions de points.</p>"}, "id": "wp5ayg4jni", "isHidden": false, "type": "text"}, {"content": {"level": "h2", "text": "La limite"}, "id": "fymh4d8smn", "isHidden": false, "type": "heading"}, {"content": {"text": "<p>Ça ne remplace pas un poste de travail. Pour mesurer, extraire des coupes, modéliser, on reste dans un logiciel métier avec le fichier complet. La version web sert à montrer, à situer, à convaincre. Pas à produire.</p>"}, "id": "qg0wf9apb7", "isHidden": false, "type": "text"}]
+
+----
+
+Cover: - 'file://vardn8fuq88q611t'
+
+----
+
+Date: 2026-04-28 14:00:00
+
+----
+
+Author: GoVR
+
+----
+
+Tags: nuage de points, web, diffusion
+
+----
+
+Primary_tag: nuage de points
+
+----
+
+Subheading: Pourquoi on ne peut pas « juste mettre le fichier en ligne ».
+
+----
+
+Featured: false
+
+----
+
+Uuid: 8uco3grj4ucb7lph

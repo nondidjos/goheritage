@@ -26,6 +26,10 @@ columns:
         type: fields
         fields:
           cover: fields/cover
+          subheading:
+            type: text
+            label: Accroche
+            help: "Résumé affiché sur les cartes du blog. Si vide, le début de l'article est utilisé."
           date:
             type: date
             label: Date de publication
