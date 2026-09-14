@@ -6,14 +6,14 @@ snippet('header');
 <?php if ($page->showSection('hero')): ?>
 <section class="items-end min-h-[85vh] pt-4 pb-16" id="hero-section">
 
-  <div class="col-2 order-2 lg:order-1 flex flex-col justify-end pb-2">
+  <div class="col-2 order-2 lg:order-1 flex flex-col justify-end">
     <h1 class="font-sans text-[clamp(1.25rem,2vw,1.75rem)] leading-tight text-ink mb-6">
       <?= $page->heroHeading()->or('Notre patrimoine, modélisé et accessible en 3D') ?>
     </h1>
     <div class="flex flex-col sm:flex-row gap-3 w-full">
       <!-- "Carte" uses an explicit lighter orange colour -->
       <a href="<?= url('map') ?>"
-        class="btn btn--orange flex-1 justify-center py-3 px-6 text-[1.1rem] transition-colors duration-150">Voir
+        class="btn btn--orange btn--compact flex-1 justify-center transition-colors duration-150">Voir
         la carte
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
           stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -21,7 +21,7 @@ snippet('header');
           <polyline points="17 7 17 17 7 17"></polyline>
         </svg></a>
       <a href="<?= url('contact') ?>"
-        class="btn flex-1 justify-center transition-colors duration-150">Nous contacter</a>
+        class="btn btn--compact flex-1 justify-center transition-colors duration-150">Nous contacter</a>
     </div>
   </div>
 
@@ -92,6 +92,24 @@ snippet('header');
         <span class="compare-slider__line"></span>
       </div>
     </div>
+
+    <?php
+    // CTA under the slider. Both label and target are editable so the section
+    // can point somewhere else without a deploy.
+    $cmpLink = $page->compareCtaLink()->isNotEmpty()
+      ? $page->compareCtaLink()->value()
+      : url('map');
+    ?>
+    <a href="<?= esc($cmpLink, 'attr') ?>"
+      class="btn btn--dark btn--compact w-full justify-center mt-4 transition-colors duration-150">
+      <?= $page->compareCtaLabel()->or('Découvrir nos projets')->esc() ?>
+      <!-- Enter key arrow (corner-down-left) -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 10 4 15 9 20"></polyline>
+        <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
+      </svg>
+    </a>
   </div>
 
   <div class="col-1 hidden md:block"></div>
@@ -196,7 +214,6 @@ snippet('header');
 
     <!-- Manifesto header -->
     <div class="px-6 md:px-16 pt-10 md:pt-14 pb-10 md:pb-12 border-b border-white/10">
-      <p class="font-mono text-xs uppercase tracking-wider text-white/40 mb-6"><?= $page->manifestoTag()->esc() ?></p>
       <h2 class="font-thyssen text-[clamp(2.75rem,7vw,5.5rem)] text-white leading-[0.95]">
         <?= $page->manifestoHeading()->nl2br() ?>
       </h2>

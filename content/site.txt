@@ -21,8 +21,8 @@ Footer-email:
 Social:
 
 -
-  platform: ''
-  url: ''
+  platform: LinkedIn
+  url: https://www.linkedin.com/company/govr.be
 -
-  platform: ''
-  url: ''
+  platform: Instagram
+  url: https://www.instagram.com/govreality

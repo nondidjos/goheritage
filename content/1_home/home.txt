@@ -78,10 +78,6 @@ Step3image: - 'file://gzz0uuhuedgjhnk1'
 
 ----
 
-Manifestotag: Conservation par le numérique
-
-----
-
 Manifestoheading:
 
 Le temps efface.

@@ -140,6 +140,35 @@ header img {
 
 /* ── Button modifiers ──────────────────────────────────── */
 
+/* Compact variant — keeps a label on one line where two CTAs share a
+   narrow column (hero), which is what made those buttons double height. */
+.btn--compact {
+    padding: 0.55rem 1rem;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+/* Dark CTA — full-width bar under the compare slider */
+.btn--dark {
+    background-color: var(--color-ink);
+    border-color: var(--color-ink);
+    color: #ffffff;
+}
+
+.btn--dark:hover {
+    background-color: transparent;
+    border-color: var(--color-ink);
+    color: var(--color-ink);
+}
+
+.btn--dark svg {
+    stroke: #ffffff;
+}
+
+.btn--dark:hover svg {
+    stroke: var(--color-ink);
+}
+
 /* Orange CTA — brand primary */
 .btn--orange {
     background-color: var(--color-accent);

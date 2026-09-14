@@ -43,6 +43,16 @@ tabs:
       compareText:
         label: Texte d'accompagnement
         type: textarea
+      compareCtaLabel:
+        label: Bouton — libellé
+        type: text
+        placeholder: Découvrir nos projets
+        width: 1/2
+      compareCtaLink:
+        label: Bouton — lien
+        type: text
+        placeholder: /carte — laisser vide pour pointer vers la carte
+        width: 1/2
       compareImageBefore:
         label: Avant — Paysage (photo)
         type: files
@@ -126,10 +136,6 @@ tabs:
         type: toggle
         default: true
         width: 1/4
-      manifestoTag:
-        label: Étiquette
-        type: text
-        placeholder: Conservation par le numérique
       manifestoHeading:
         label: Titre
         type: textarea
