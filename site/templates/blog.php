@@ -7,7 +7,7 @@ if (!$featured || !$featured->isListed()) {
 }
 $flagship = $featured ?? $allArticles->first();
 $remaining = $allArticles->not($flagship);
-$recent   = $remaining->limit(4);
+$recent   = $remaining->limit(3);
 
 // Always render all non-flagship articles; tags filtered client-side, search server-side
 $mainList = $remaining;
@@ -137,14 +137,14 @@ foreach ($allArticles as $_a) {
         </div>
 
         <a href="<?= $page->url() ?>"
-          class="btn border-[4px] border-border hover:bg-surface hover:border-surface col-span-1 flex flex-row items-center justify-center gap-6 p-6 bg-transparent transition-colors duration-150 no-underline group mt-4 min-h-[100px]">
-          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+          class="btn border-[3px] border-border hover:bg-surface hover:border-surface col-span-1 flex flex-row items-center justify-center gap-3 p-4 bg-transparent transition-colors duration-150 no-underline group mt-4 min-h-[64px]">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
             class="text-ink">
             <polyline points="9 10 4 15 9 20"></polyline>
             <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
           </svg>
-          <span class="font-mono text-xs uppercase tracking-wider text-ink text-center">Tous les<br>articles</span>
+          <span class="font-mono text-xs uppercase tracking-wider text-ink text-center">Tous les articles</span>
         </a>
       </aside>
 
@@ -182,6 +182,7 @@ foreach ($allArticles as $_a) {
                 <?= esc($tag) ?>
               </button>
             <?php endforeach ?>
+            <button id="blog-clear-filters" class="tag tag--clear hidden!">× Effacer tout</button>
           </div>
         </div>
 
@@ -197,8 +198,6 @@ foreach ($allArticles as $_a) {
           </div>
         </div>
         <?php endif ?>
-
-        <button id="blog-clear-filters" class="tag tag--clear hidden!">× Effacer tout</button>
 
       </aside>
 

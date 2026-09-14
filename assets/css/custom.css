@@ -695,14 +695,17 @@ a.tag:hover {
 }
 
 /* ── Tag clear button (white bg + gray outline) ────────── */
-.tag--clear {
-    background-color: var(--color-bg);
-    border: 1px solid var(--color-border);
+.tag.tag--clear {
+    /* Sits among filled tag chips, so it needs its own surface — plain white
+       disappeared against the page. The outline keeps it readable as the
+       clear action rather than another selectable tag. */
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-faint);
     cursor: pointer;
     transition: border-color 0.15s, color 0.15s;
 }
 
-.tag--clear:hover {
+.tag.tag--clear:hover {
     border-color: var(--color-ink);
     color: var(--color-ink);
 }
