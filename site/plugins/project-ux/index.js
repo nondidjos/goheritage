@@ -5,9 +5,8 @@
  *
  *   • k-visibility-view-button (viewButton)
  *       Compact pill in the page header that shows + switches the page's
- *       visibility (private / link / public). Theme-adaptive, neutral
- *       background, white icon + label; the dropdown surfaces the share
- *       URL inline when in "link" mode.
+ *       visibility (private / public). Theme-adaptive, neutral background,
+ *       white icon + label.
  *
  *   • DOM injector
  *       A DOM-level enhancement that tags every .k-section on a project
@@ -288,14 +287,14 @@ var ProjectOverviewSection = {
           <!-- ── Diffusion — how the project reaches the outside world ── -->
           <div class="gh-pov__group-label">Diffusion</div>
           <div class="gh-pov__assets">
-            <!-- Visibility + share — surfaces the header pill dropdown so the
-                 user can manage access without having to find the header button.
-                 Edit-only: hidden for read-only viewers. -->
+            <!-- Visibility — surfaces the header pill dropdown so the user
+                 can change public access without hunting for the header
+                 button. Edit-only. -->
             <button v-if="canUpdate" class="gh-pov__asset" @click="openVisibility()">
-              <k-icon type="share" class="gh-pov__asset-ico" />
+              <k-icon type="globe" class="gh-pov__asset-ico" />
               <div class="gh-pov__asset-body">
-                <strong>Visibilité &amp; partage</strong>
-                <span>Gérer l'accès et les liens de partage</span>
+                <strong>Visibilité</strong>
+                <span>Gérer l'accès public au projet</span>
               </div>
               <k-icon type="angle-right" class="gh-pov__asset-arrow" />
             </button>
@@ -659,7 +658,7 @@ var ProjectOverviewSection = {
         // because the viewButton's document outside-click handler fires in
         // the same tick and immediately closes the dropdown again.
         openVisibility() {
-          document.dispatchEvent(new CustomEvent('gh:open-share-dialog'));
+          document.dispatchEvent(new CustomEvent('gh:open-visibility'));
         },
         // Trigger a structured ZIP download for this project. Routes through
         // the shared helper (spinner feedback during server-side compression,
@@ -1007,178 +1006,18 @@ panel.plugin('goheritage/project-ux', {
               />
             </button>
 
-            <!-- Dropdown footer: settings and share links link -->
-            <div class="gh-visibility__panel-footer">
-              <button
-                type="button"
-                class="gh-visibility__manage-btn"
-                @click="openShareDialog"
-              >
-                <k-icon type="url" /> Gérer les liens de partage
-              </button>
-            </div>
+
           </div>
 
-          <!-- ── Share / Access Manager — custom overlay, no deprecated k-dialog ── -->
-          <div
-            v-if="shareDialogOpen"
-            class="gh-share-overlay"
-            @mousedown.self="closeShareDialog"
-          >
-            <div class="gh-share-modal" role="dialog" aria-modal="true" @click.stop>
-              <!-- Header -->
-              <div class="gh-share-modal__header">
-                <h2 class="gh-share-modal__title">
-                  <k-icon type="url" /> Liens de partage
-                </h2>
-                <button type="button" class="gh-share-modal__close" @click="closeShareDialog" title="Fermer">
-                  <k-icon type="cancel-small" />
-                </button>
-              </div>
-
-              <!-- Links manager. Page-level visibility (Privé / Avec un lien /
-                   Public) is set from the header pill — NOT duplicated here, so
-                   there's one obvious place to change it. -->
-              <div class="gh-share-modal__body">
-
-                <!-- Private page: links can't resolve — point back to the pill. -->
-                <div v-if="dialogVisibility === 'private'" class="gh-share-dialog__locked">
-                  <k-icon type="lock" />
-                  <p>Cette page est privée. Passez-la sur <strong>« Avec un lien »</strong> via le bouton <strong>Visibilité</strong> pour créer des liens de partage.</p>
-                </div>
-
-                <div v-else class="gh-share-dialog__links">
-                  <div class="gh-share-dialog__section-header">
-                    <p class="gh-share-dialog__intro">Toute personne disposant d'un lien y accède selon le niveau choisi.</p>
-                    <k-button v-if="canUpdate" icon="add" size="sm" variant="filled" @click="createShareLink">
-                      Créer un lien
-                    </k-button>
-                  </div>
-
-                  <div v-if="localShareLinks.length === 0" class="gh-share-dialog__empty">
-                    <k-icon type="info" /> Aucun lien pour l'instant. Créez-en un et choisissez son niveau d'accès.
-                  </div>
-
-                  <div v-else class="gh-share-dialog__list">
-                    <div
-                      v-for="link in localShareLinks"
-                      :key="link.id"
-                      class="gh-share-dialog__link-item"
-                    >
-                      <!-- Main row: [type btn] [url box w/ copy inside] [trash] -->
-                      <div class="gh-share-dialog__link-row">
-
-                        <!-- Type switch button — icon + label + chevron -->
-                        <button
-                          type="button"
-                          class="gh-share-dialog__type-btn"
-                          :class="'gh-share-dialog__type-btn--' + (link.access || 'visit')"
-                          :title="currentLevel(link).label + ' — cliquez pour modifier'"
-                          @click.stop="toggleTypePopover(link, $event)"
-                        >
-                          <k-icon :type="currentLevel(link).icon" class="gh-share-dialog__type-btn-ico" />
-                          <span class="gh-share-dialog__type-btn-label">{{ currentLevel(link).label }}</span>
-                          <k-icon type="angle-down" class="gh-share-dialog__type-btn-chevron" :class="{ 'is-open': typePopoverId === link.id }" />
-                        </button>
-
-                        <!-- URL box — copy icon lives inside the box -->
-                        <div class="gh-share-dialog__link-url-box">
-                          <code class="gh-share-dialog__link-url">{{ getLinkUrl(link) }}</code>
-                          <button type="button" class="gh-share-dialog__url-copy-btn" @click.stop="copyLinkUrl(link)" title="Copier le lien">
-                            <k-icon type="copy" />
-                          </button>
-                        </div>
-
-                        <!-- Trash only -->
-                        <button v-if="canUpdate" type="button" class="gh-share-dialog__icon-btn gh-share-dialog__icon-btn--danger" @click="deleteShareLink(link.id)" title="Supprimer le lien">
-                          <k-icon type="trash" />
-                        </button>
-                      </div>
-
-                      <!-- Section pills — only for Visite type -->
-                      <div v-if="(link.access || 'visit') === 'visit'" class="gh-share-dialog__link-perms">
-                        <button
-                          v-for="sec in sectionOptions"
-                          :key="sec.value"
-                          type="button"
-                          class="gh-share-dialog__perm-pill"
-                          :class="{ 'is-active': link.visible_sections.includes(sec.value) }"
-                          :disabled="!canUpdate"
-                          @click="toggleLinkSection(link, sec.value)"
-                        >{{ sec.label }}</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Access-level popover — position:fixed so it escapes modal overflow clipping -->
-              <div
-                v-if="typePopoverId"
-                class="gh-share-dialog__type-popover"
-                :style="{ top: typePopoverPos.top + 'px', left: typePopoverPos.left + 'px' }"
-                @click.stop
-              >
-                <div class="gh-share-dialog__type-popover-title">Niveau d'accès</div>
-                <button
-                  v-for="lvl in accessLevels"
-                  :key="lvl.value"
-                  type="button"
-                  class="gh-share-dialog__type-opt"
-                  :class="{ 'is-active': activeLinkAccess === lvl.value }"
-                  :disabled="!canUpdate"
-                  @click="applyTypePopover(lvl.value)"
-                >
-                  <k-icon :type="lvl.icon" class="gh-share-dialog__type-opt-icon" />
-                  <span class="gh-share-dialog__type-opt-text">
-                    <strong>{{ lvl.label }}</strong>
-                    <span>{{ lvl.help }}</span>
-                  </span>
-                  <k-icon v-if="activeLinkAccess === lvl.value" type="check" class="gh-share-dialog__type-opt-check" />
-                </button>
-                <div v-if="activeLinkAccess === 'editor'" class="gh-share-dialog__type-warn">
-                  <k-icon type="alert" /> Donne un accès en modification au projet. Réservé aux personnes de confiance.
-                </div>
-              </div>
-
-              <!-- Footer -->
-              <div class="gh-share-modal__footer">
-                <k-button variant="filled" theme="positive" icon="check" @click="closeShareDialog">
-                  Terminé
-                </k-button>
-              </div>
-            </div>
-          </div>
         </div>
       `,
 
       data() {
         return {
           open: false,
-          shareDialogOpen: false,
-          dialogVisibility: 'private',
-          localShareLinks: [],
-          localVisibility: null,
-          // Type-popover state: which link's popover is open + its screen position
-          typePopoverId: null,
-          typePopoverPos: { top: 0, left: 0 },
-          sectionOptions: [
-            { value: 'model',       label: '3D' },
-            { value: 'pointcloud',  label: 'Nuage' },
-            { value: 'info',        label: 'Fiche' },
-            { value: 'gallery',     label: 'Galerie' },
-            { value: 'plans',       label: 'Plans' },
-            { value: 'annotations', label: 'Annotations' }
-          ],
-          accessLevels: [
-            { value: 'visit',  icon: 'box',  label: 'Visite 3D',     help: 'Page publique de présentation. Lecture seule, sans accès aux fichiers.' },
-            { value: 'viewer', icon: 'url',  label: 'Lecture seule', help: 'Accès lecture au panel, limité à ce projet. Fichiers consultables et téléchargeables. Connexion automatique à la première ouverture du lien.' },
-            { value: 'editor', icon: 'edit', label: 'Éditeur',       help: 'Accès en modification au panel, limité à ce projet. Réservé aux personnes de confiance.' },
-          ],
           options: [
-            { value: 'brouillon', label: 'Privé',         icon: 'lock',  help: 'Page non publiée — vous et les administrateurs uniquement.', status: 'draft',  visibility: 'private' },
-            { value: 'link',      label: 'Avec un lien',  icon: 'url',   help: 'Page publiée mais non listée. Accessible via un lien partagé.', status: 'listed', visibility: 'link'    },
-            { value: 'public',    label: 'Public',        icon: 'globe', help: 'Page publiée et listée sur la carte GoHéritage.',              status: 'listed', visibility: 'public'  },
+            { value: 'brouillon', label: 'Privé',  icon: 'lock',  help: 'Page non publiée — vous et les administrateurs uniquement.', status: 'draft',  visibility: 'private' },
+            { value: 'public',    label: 'Public', icon: 'globe', help: 'Page publiée et listée sur la carte GoHéritage.',              status: 'listed', visibility: 'public'  },
           ],
         };
       },
@@ -1187,142 +1026,48 @@ panel.plugin('goheritage/project-ux', {
         model()   { return this.$panel?.view?.props?.model ?? null; },
         // The current view's saved content lives in versions.latest (Kirby 5),
         // NOT on props.model — model only carries id/status/title/etc. Reading
-        // the wrong place is why visibility/share_links never loaded.
+        // the wrong place is why visibility never loaded.
         content() { return this.$panel?.view?.props?.versions?.latest ?? {}; },
         current() {
           if (this.localVisibility) return this.localVisibility;
           if (this.model?.status === 'draft') return 'brouillon';
-          const v = this.content.visibility;
-          if (v === 'public') return 'public';
-          if (v === 'link')   return 'link';
-          // Safe default: a listed page with no/unknown visibility is
-          // link-only, never silently public.
-          return 'link';
+          // Safe default: anything not explicitly public stays private,
+          // so a page is never silently exposed.
+          return this.content.visibility === 'public' ? 'public' : 'brouillon';
         },
         currentOption() {
           return this.options.find(o => o.value === this.current) || this.options[0];
-        },
-        shareUrl() {
-          const token = this.content.share_token;
-          const base  = this.model?.previewUrl || this.model?.link;
-          if (!token || !base) return null;
-          return base.split('?')[0].split('#')[0] + '?key=' + token;
-        },
-        shareLinks() {
-          let raw = this.content.share_links;
-          if (!raw) return [];
-          if (typeof raw === 'string') {
-            const items = [];
-            let currentItem = null;
-            const lines = raw.split(/\r?\n/);
-            for (let line of lines) {
-              let trimmed = line.trim();
-              if (!trimmed) continue;
-
-              // Check if it's a new list item
-              let isNewItem = false;
-              if (trimmed === '-') {
-                isNewItem = true;
-                trimmed = '';
-              } else if (trimmed.startsWith('- ')) {
-                isNewItem = true;
-                trimmed = trimmed.substring(2).trim();
-              }
-
-              if (isNewItem) {
-                if (currentItem) items.push(currentItem);
-                currentItem = {};
-              }
-
-              if (trimmed) {
-                const idx = trimmed.indexOf(':');
-                if (idx > 0) {
-                  let key = trimmed.substring(0, idx).trim();
-                  let val = trimmed.substring(idx + 1).trim();
-
-                  // Strip surrounding quotes
-                  if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"'))) {
-                    val = val.substring(1, val.length - 1);
-                  }
-                  if (!currentItem) currentItem = {};
-                  currentItem[key] = val;
-                }
-              }
-            }
-            if (currentItem) items.push(currentItem);
-            raw = items;
-          }
-          if (Array.isArray(raw)) return raw.map(l => ({
-            id: l.id || '',
-            token: l.token || '',
-            label: l.label || '',
-            access: l.access || 'visit',
-            visible_sections: Array.isArray(l.visible_sections)
-              ? l.visible_sections
-              : (typeof l.visible_sections === 'string' ? l.visible_sections.split(',').filter(Boolean) : [])
-          }));
-          return [];
-        },
-        pageTitle() {
-          return this.model?.title || 'le projet';
-        },
-        visibilityHelpText() {
-          if (this.dialogVisibility === 'private') return 'Page non publiée — uniquement accessible aux éditeurs et administrateurs.';
-          if (this.dialogVisibility === 'link') return 'Page accessible à toute personne disposant d\'un lien de partage actif. Non listée publiquement.';
-          return 'Page publique et répertoriée sur la carte GoHéritage.';
         },
         canUpdate() {
           // Page permissions are a TOP-LEVEL view prop, not under model.
           return this.$panel?.view?.props?.permissions?.update ?? false;
         },
 
-        // Current access level of the link whose type popover is open.
-        activeLinkAccess() {
-          if (!this.typePopoverId) return null;
-          const link = this.localShareLinks.find(l => l.id === this.typePopoverId);
-          return link ? (link.access || 'visit') : null;
-        },
       },
 
       mounted() {
-        // Listen for the overview tile's open-share-dialog event.
+        // Listen for the overview tile's open-visibility event.
         // CustomEvent is more reliable than DOM property assignment across
         // Vue re-renders and panel SPA navigation.
-        this._ghShareEvt = () => this.openShareDialog();
-        document.addEventListener('gh:open-share-dialog', this._ghShareEvt);
+        this._ghVisEvt = () => { this.open = true; };
+        document.addEventListener('gh:open-visibility', this._ghVisEvt);
 
         this._docHandler = (e) => {
           const inTrigger = this.$el && this.$el.contains(e.target);
           // Close the visibility dropdown when clicking outside
           if (this.open && !inTrigger) this.open = false;
-          // Close the type popover when clicking outside a .gh-share-dialog__type-btn
-          if (this.typePopoverId && !e.target.closest('.gh-share-dialog__type-btn') && !e.target.closest('.gh-share-dialog__type-popover')) {
-            this.typePopoverId = null;
-          }
         };
         document.addEventListener('click', this._docHandler);
         this._escHandler = (e) => {
-          if (e.key === 'Escape') {
-            this.open = false;
-            this.typePopoverId = null;
-          }
+          if (e.key === 'Escape') this.open = false;
         };
         document.addEventListener('keydown', this._escHandler);
-
-        // Auto-restore share dialog across redirects
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('share') === 'true') {
-          this.openShareDialog();
-          const cleanSearch = window.location.search.replace(/[?&]share=true/, '').replace(/^&/, '?');
-          const newUrl = window.location.pathname + (cleanSearch === '?' ? '' : cleanSearch);
-          window.history.replaceState({}, '', newUrl);
-        }
       },
 
       beforeDestroy() {
         if (this._docHandler)  document.removeEventListener('click',   this._docHandler);
         if (this._escHandler)  document.removeEventListener('keydown', this._escHandler);
-        if (this._ghShareEvt)  document.removeEventListener('gh:open-share-dialog', this._ghShareEvt);
+        if (this._ghVisEvt)    document.removeEventListener('gh:open-visibility', this._ghVisEvt);
       },
 
       methods: {
@@ -1355,11 +1100,9 @@ panel.plugin('goheritage/project-ux', {
             // reload the view so the form re-reads from disk (correct value +
             // clean dirty flag).
 
-            var openLinks = (value === 'link');
-
             // If folder was renamed (draft→listed adds numeric prefix), redirect.
             if (res && res.panelId && res.panelId !== pageId) {
-              window.location.href = '/panel/pages/' + res.panelId + '?tab=overview' + (openLinks ? '&share=true' : '');
+              window.location.href = '/panel/pages/' + res.panelId + '?tab=overview';
               return;
             }
 
@@ -1367,14 +1110,8 @@ panel.plugin('goheritage/project-ux', {
             this.$panel.notification.success('Visibilité : ' + opt.label);
 
             // Reload syncs form with new on-disk value and clears dirty flag.
-            // viewButton components survive view.reload() unmounted, so
-            // openShareDialog() below is safe.
             await this.$panel.view.reload();
             this.localVisibility = null;
-
-            if (openLinks) {
-              this.openShareDialog();
-            }
           } catch (e) {
             this.localVisibility = null;
             this.$panel.notification.error(
@@ -1383,214 +1120,17 @@ panel.plugin('goheritage/project-ux', {
           }
         },
 
-        openShareDialog() {
-          this.open = false;
-          this._dialogNeedsReload = false;
-          this.typePopoverId = null;
-          this.dialogVisibility = this.model.status === 'draft' ? 'private' : (this.content.visibility || 'link');
-          this.localShareLinks = JSON.parse(JSON.stringify(this.shareLinks));
-          this.shareDialogOpen = true;
-          this.localVisibility = this.dialogVisibility === 'private' ? 'brouillon' : this.dialogVisibility;
-        },
-
-        async closeShareDialog() {
-          this.typePopoverId = null;
-          this.shareDialogOpen = false;
-          if (this._dialogNeedsReload) {
-            this._dialogNeedsReload = false;
-            await this.$panel.view.reload();
-            this.localVisibility = null; // Clear override to sync with fresh props
-          }
-        },
-        async saveShareLinks() {
-          if (!this.model) return;
-          const pageId = this.model.id.replace(/\//g, '+');
-          const formatted = this.localShareLinks.map(l => ({
-            id: l.id,
-            token: l.token,
-            label: l.label,
-            access: l.access || 'visit',
-            visible_sections: l.visible_sections.join(',')
-          }));
-          try {
-            await this.$panel.api.patch('pages/' + pageId, { share_links: formatted });
-            // Don't reload here — we're inside the dialog and reload remounts
-            // the component (resetting shareDialogOpen). Mark for reload on close.
-            this._dialogNeedsReload = true;
-          } catch (e) {
-            this.$panel.notification.error('Erreur lors de la sauvegarde : ' + e.message);
-          }
-        },
-
-        createShareLink() {
-          // 32 bytes from the CSPRNG → 64 hex chars, 256 bits of entropy.
-          // Math.random() was used before — it's a predictable PRNG, not
-          // suitable for security tokens.
-          var tokenBytes = new Uint8Array(32);
-          var idBytes    = new Uint8Array(8);
-          crypto.getRandomValues(tokenBytes);
-          crypto.getRandomValues(idBytes);
-          var toHex = function(buf) {
-            return Array.from(buf).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
-          };
-          const newLink = {
-            id:               'lnk_' + toHex(idBytes),
-            token:            toHex(tokenBytes),
-            label:            '',
-            access:           'visit',
-            visible_sections: ['model', 'pointcloud', 'info', 'gallery', 'plans', 'annotations']
-          };
-          this.localShareLinks.push(newLink);
-          this.saveShareLinks();
-        },
-
-        deleteShareLink(id) {
-          this.localShareLinks = this.localShareLinks.filter(l => l.id !== id);
-          this.saveShareLinks();
-        },
-
-        toggleLinkSection(link, value) {
-          const idx = link.visible_sections.indexOf(value);
-          if (idx >= 0) {
-            link.visible_sections.splice(idx, 1);
-          } else {
-            link.visible_sections.push(value);
-          }
-          this.saveShareLinks();
-        },
-
-        async updateVisibilityFromDialog(value) {
-          const prev = this.dialogVisibility;
-          this.dialogVisibility = value; // Immediate UI feedback
-          const visMap = { private: 'private', link: 'link', public: 'public' };
-          const visibility = visMap[value] || 'public';
-          const pageId = this.model.id.replace(/\//g, '+');
-          try {
-            // Always use custom PHP endpoint for consistent behavior & impersonation
-            const res = await this.$panel.api.patch('gh/pages/' + pageId + '/visibility', {
-              visibility: visibility,
-            });
-            if (res && res.status === 'error') throw new Error(res.message);
-
-            // DO NOT mutate this.content.visibility — same reason as commit():
-            // would mark form dirty and cause save to revert the change.
-            // _dialogNeedsReload triggers a view.reload() when dialog closes.
-            this.localVisibility = visibility === 'private' ? 'brouillon' : visibility;
-
-            // If folder was renamed, redirect but automatically reopen the dialog!
-            if (res && res.panelId && res.panelId !== pageId) {
-              window.location.href = '/panel/pages/' + res.panelId + '?tab=overview&share=true';
-              return;
-            }
-
-            this._dialogNeedsReload = true;
-            this.$panel.notification.success('Accès général mis à jour.');
-          } catch (e) {
-            this.dialogVisibility = prev; // Revert on error
-            this.localVisibility = prev === 'private' ? 'brouillon' : prev;
-            this.$panel.notification.error('Impossible de modifier la visibilité : ' + e.message);
-          }
-        },
-
-        currentLevel(link) {
-          const a = (link && link.access) || 'visit';
-          return this.accessLevels.find(l => l.value === a) || this.accessLevels[0];
-        },
-
-        // ── Type popover ─────────────────────────────────────────────────
-        // activeLinkAccess is computed from the open link — used in the popover
-        // template to highlight the current selection without the full link obj.
-        toggleTypePopover(link, event) {
-          if (this.typePopoverId === link.id) {
-            this.typePopoverId = null;
-            return;
-          }
-          // Position the fixed popover just below the icon button
-          const btn = event.currentTarget;
-          const rect = btn.getBoundingClientRect();
-          // Clamp to viewport right edge so it doesn't overflow off-screen
-          const popoverWidth = 300;
-          const left = Math.min(rect.left, window.innerWidth - popoverWidth - 12);
-          this.typePopoverPos = { top: rect.bottom + 6, left: Math.max(8, left) };
-          this.typePopoverId = link.id;
-        },
-
-        applyTypePopover(access) {
-          const link = this.localShareLinks.find(l => l.id === this.typePopoverId);
-          if (link) this.setLinkAccess(link, access);
-          this.typePopoverId = null;
-        },
-
-        shortToken(token) {
-          return token ? String(token).slice(-6) : '';
-        },
-
-        setLinkAccess(link, access) {
-          if ((link.access || 'visit') === access) return;
-          this.$set ? this.$set(link, 'access', access) : (link.access = access);
-          this.saveShareLinks();
-        },
-
-        // ── URL builders, one per access level ──────────────────────────
-        getVisitUrl(token) {
-          const base = this.model?.previewUrl || this.model?.link || '';
-          if (!base) return '';
-          return base.split('?')[0].split('#')[0] + '?key=' + token;
-        },
-        getViewerUrl(token) {
-          const slug = this.model.id.split('/').pop();
-          return window.location.origin + '/gh-share-login/' + slug + '?key=' + token;
-        },
-        getEditorUrl(token) {
-          const slug = this.model.id.split('/').pop();
-          return window.location.origin + '/gh-share-login/' + slug + '?key=' + token;
-        },
-
-        // The single URL appropriate to a link's chosen access level.
-        getLinkUrl(link) {
-          const access = (link && link.access) || 'visit';
-          if (access === 'editor')  return this.getEditorUrl(link.token);
-          if (access === 'viewer')  return this.getViewerUrl(link.token);
-          if (access === 'dossier') return this.getViewerUrl(link.token); // legacy
-          return this.getVisitUrl(link.token);
-        },
-
-        copyLinkUrl(link) {
-          const url = this.getLinkUrl(link);
-          if (!url) return;
-          if (navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(url).then(
-              () => this.$panel.notification.success('Lien copié !'),
-              () => this.$copyFallback(url)
-            );
-          } else {
-            this.$copyFallback(url);
-          }
-        },
-
-        $copyFallback(url) {
-          const ta = document.createElement('textarea');
-          ta.value = url;
-          ta.style.position = 'fixed';
-          ta.style.top = '-1000px';
-          document.body.appendChild(ta);
-          ta.select();
-          try { document.execCommand('copy'); this.$panel.notification.success('Lien copié !'); }
-          catch (_) { this.$panel.notification.error('Copie impossible.'); }
-          document.body.removeChild(ta);
-        }
       },
     },
 
     // ── "Voir la page publique" header button ────────────────────────
     // Only rendered when the page is actually reachable publicly:
-    //   • public   → plain page URL (no key)
-    //   • link     → page URL + ?key=<long share token> (first viewer link)
+    //   • public   → plain page URL
     //   • private  → component renders nothing
     'visit-page': {
       template: /* html */`
         <a
-          v-if="visibility !== 'private'"
+          v-if="visibility === 'public'"
           class="gh-visit-page-btn"
           :href="publicUrl"
           target="_blank"
@@ -1617,17 +1157,7 @@ panel.plugin('goheritage/project-ux', {
             var m  = this.$panel?.view?.props?.model || {};
             var pv = m.previewUrl || m.url || '';
             var base = String(pv).split('?')[0];
-            if (!base) return '#';
-            if (this.visibility === 'public') return base;
-            // Link-only page: append our long cryptographic share token as ?key=
-            var raw = this.$panel?.view?.props?.versions?.latest?.share_links
-                   || this.$panel?.view?.props?.content?.share_links
-                   || '';
-            var token = '';
-            String(raw).replace(/token:\s*([^\s\n]+)/g, function (_, t) {
-              if (!token) token = t.trim();
-            });
-            return token ? base + '?key=' + encodeURIComponent(token) : base;
+            return base || '#';
           } catch (_) { return '#'; }
         },
       }
@@ -1677,11 +1207,11 @@ panel.plugin('goheritage/project-ux', {
     return false;
   }
 
-  // True when the current user may edit this page. Read-only viewers (share
-  // link "Lecture seule") get `permissions.update === false`, so we use this
-  // to suppress every edit affordance we inject (toggles, edit bars). This is
-  // UX only — the server enforces the real lockdown via the viewer role + the
-  // write-guard hook; this just stops dead "Modifier" buttons from showing.
+  // True when the current user may edit this page. Roles without update
+  // rights get `permissions.update === false`, so we use this to suppress
+  // every edit affordance we inject (toggles, edit bars). This is UX only —
+  // Kirby's own permission system enforces the real lockdown; this just stops
+  // dead "Modifier" buttons from showing.
   function ghCanUpdate() {
     try {
       var p = window.panel?.view?.props?.permissions;

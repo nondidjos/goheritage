@@ -65,10 +65,10 @@ if ($isMapPage) {
   <div class="grid-7 pt-10 opacity-40">
     <div class="col-7 flex items-center justify-start">
       <div class="flex gap-8">
-        <a href="<?= url('contact') ?>"
+        <a href="<?= url('mentions-legales') ?>"
           class="font-mono text-[10px] uppercase tracking-widest no-underline hover:text-white hover:no-underline">Mentions
           légales</a>
-        <a href="<?= url('contact') ?>"
+        <a href="<?= url('mentions-legales') ?>#donnees"
           class="font-mono text-[10px] uppercase tracking-widest no-underline hover:text-white hover:no-underline">Confidentialité</a>
       </div>
     </div>

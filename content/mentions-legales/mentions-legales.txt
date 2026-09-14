@@ -1,0 +1,61 @@
+Title: Mentions légales
+
+----
+
+Company_name: À COMPLÉTER — dénomination sociale exacte (ex. GoVR)
+
+----
+
+Legal_form: À COMPLÉTER — forme juridique (SRL, SA, ASBL…)
+
+----
+
+Address:
+
+À COMPLÉTER — rue et numéro
+À COMPLÉTER — code postal et commune
+Belgique
+
+----
+
+Bce: À COMPLÉTER — 0000.000.000
+
+----
+
+Vat: À COMPLÉTER — BE 0000.000.000
+
+----
+
+Court: À COMPLÉTER — tribunal de l'entreprise compétent
+
+----
+
+Email: À COMPLÉTER — adresse email de contact
+
+----
+
+Phone: À COMPLÉTER — numéro de téléphone
+
+----
+
+Publisher_name: À COMPLÉTER — prénom et nom de l'éditeur responsable
+
+----
+
+Publisher_address: À COMPLÉTER — rue et numéro, code postal commune
+
+----
+
+Host_name: Amazon Web Services EMEA SARL
+
+----
+
+Host_address: 38 avenue John F. Kennedy, L-1855 Luxembourg
+
+----
+
+Ip_text: L'ensemble des contenus présents sur ce site — textes, photographies, modèles tridimensionnels, nuages de points et éléments graphiques — est protégé par le droit d'auteur. Toute reproduction, représentation ou réutilisation, totale ou partielle, sans autorisation écrite préalable est interdite.
+
+----
+
+Privacy_text: À COMPLÉTER — préciser les données collectées, la finalité, la base légale, la durée de conservation, et rappeler les droits d'accès, de rectification, d'effacement et d'opposition ainsi que l'adresse à laquelle les exercer. Mentionner l'Autorité de protection des données comme instance de recours.

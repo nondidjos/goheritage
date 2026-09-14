@@ -1,0 +1,109 @@
+title: Mentions légales
+icon: text
+
+# Identification data required of any Belgian company website by the Code de
+# droit économique (Livre XII, e-commerce identification duty). Every value is
+# a field rather than hard-coded markup so it can be corrected in the panel
+# without a deploy.
+options:
+  changeStatus: false
+  changeTemplate: false
+
+sections:
+
+  identity:
+    type: fields
+    headline: Identité de l'entreprise
+    fields:
+      company_name:
+        type: text
+        label: Dénomination sociale
+        placeholder: "ex. GoVR"
+        width: 1/2
+      legal_form:
+        type: text
+        label: Forme juridique
+        placeholder: "ex. SRL / SA / ASBL"
+        width: 1/2
+      address:
+        type: textarea
+        label: Siège social
+        size: small
+        help: Adresse complète, telle qu'enregistrée à la BCE.
+      bce:
+        type: text
+        label: Numéro d'entreprise (BCE / KBO)
+        placeholder: "0000.000.000"
+        help: Obligatoire. Dix chiffres, tels qu'inscrits à la Banque-Carrefour des Entreprises.
+        width: 1/2
+      vat:
+        type: text
+        label: Numéro de TVA
+        placeholder: "BE 0000.000.000"
+        width: 1/2
+      court:
+        type: text
+        label: Tribunal de l'entreprise compétent
+        placeholder: "ex. Tribunal de l'entreprise du Brabant wallon"
+        help: À renseigner pour une société commerciale.
+
+  contact:
+    type: fields
+    headline: Contact
+    fields:
+      email:
+        type: email
+        label: Adresse email
+        help: Obligatoire — doit permettre un contact direct et effectif.
+        width: 1/2
+      phone:
+        type: tel
+        label: Téléphone
+        help: Obligatoire dès lors que des services sont vendus en ligne.
+        width: 1/2
+
+  publisher:
+    type: fields
+    headline: Éditeur responsable
+    fields:
+      publisher_name:
+        type: text
+        label: Nom et prénom
+        help: >
+          Personne physique responsable du contenu publié. La mention usuelle
+          en Belgique est « Éditeur responsable : Prénom Nom, rue, code postal
+          commune ».
+        width: 1/2
+      publisher_address:
+        type: text
+        label: Adresse de l'éditeur responsable
+        placeholder: "rue et numéro, code postal commune"
+        width: 1/2
+
+  hosting:
+    type: fields
+    headline: Hébergeur
+    fields:
+      host_name:
+        type: text
+        label: Nom de l'hébergeur
+        placeholder: "ex. Amazon Web Services EMEA SARL"
+        width: 1/2
+      host_address:
+        type: text
+        label: Adresse de l'hébergeur
+        width: 1/2
+
+  legal_text:
+    type: fields
+    headline: Textes
+    fields:
+      ip_text:
+        type: textarea
+        label: Propriété intellectuelle
+        size: medium
+      privacy_text:
+        type: textarea
+        label: Données personnelles (RGPD)
+        size: medium
+        help: Finalités, base légale, durée de conservation, droits des personnes.

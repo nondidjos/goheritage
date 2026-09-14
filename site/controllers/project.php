@@ -6,7 +6,7 @@
  * resolution, and the mode-switcher state machine. The template stays
  * render-only.
  *
- * The page-level access gate (token check + 404) is deliberately NOT
+ * The page-level access gate (visibility check + 404) is deliberately NOT
  * here — it's the single most security-sensitive check in this file, so
  * it stays at the very top of the template itself, somewhere a reviewer
  * trips over it immediately rather than inside a controller they might

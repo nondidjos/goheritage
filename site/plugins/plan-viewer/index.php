@@ -44,7 +44,7 @@ Kirby::plugin('goheritage/plan-viewer', [
     //
     // Hard limits:
     //   • <page-id> must resolve to a real page.
-    //   • Page must pass canBeViewedWithToken(?key=…) for non-admins.
+    //   • Page must be publicly visible for non-admins.
     //   • Path must end in .dzi OR be inside a *_files/ directory.
     //   • Extension must be in a small image whitelist.
     //   • Realpath must stay inside the page's own content directory
@@ -69,9 +69,8 @@ Kirby::plugin('goheritage/plan-viewer', [
                 $user    = $kirby->user();
                 $isAdmin = $user && $user->isAdmin();
                 if (!$isAdmin) {
-                    $token = get('key');
-                    if (method_exists($page, 'canBeViewedWithToken')) {
-                        if (!$page->canBeViewedWithToken($token)) {
+                    if (method_exists($page, 'isPubliclyVisible')) {
+                        if (!$page->isPubliclyVisible()) {
                             return new Response('', 'text/plain', 404);
                         }
                     } elseif (!$page->isListed()) {
@@ -191,9 +190,7 @@ Kirby::plugin('goheritage/plan-viewer', [
                 return null;
             }
             $encodedId = str_replace('/', '+', $this->id());
-            $url = url('plan-tiles/' . $encodedId . '/' . $stem . '.dzi');
-            $key = get('key');
-            return $key ? $url . '?key=' . urlencode($key) : $url;
+            return url('plan-tiles/' . $encodedId . '/' . $stem . '.dzi');
         },
 
         /**
@@ -230,9 +227,7 @@ Kirby::plugin('goheritage/plan-viewer', [
             $level    = min($wanted, $maxLevel);
 
             $encodedId = str_replace('/', '+', $this->id());
-            $url = url('plan-tiles/' . $encodedId . '/' . $stem . '_files/' . $level . '/0_0.jpeg');
-            $key = get('key');
-            return $key ? $url . '?key=' . urlencode($key) : $url;
+            return url('plan-tiles/' . $encodedId . '/' . $stem . '_files/' . $level . '/0_0.jpeg');
         },
     ],
 

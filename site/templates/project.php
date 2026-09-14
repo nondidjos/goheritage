@@ -1,27 +1,23 @@
 <?php
 // ── Access control ───────────────────────────────────────────────────────
-// New visibility model (private / link / public) gates non-panel access.
-// Backward-compat: pages without a `visibility` field fall back to status
-// (listed → public, draft → private) via visibilityResolved().
+// The visibility model (private / public) gates non-panel access: a project
+// is reachable by a visitor only once it is explicitly set to public.
 //
 // $panelUser / $canSee / every other derived value below come from
 // site/controllers/project.php. This gate is kept here, at the very top of
 // the template, on purpose: it's the single most security-sensitive check
 // in this file, so it stays somewhere a reviewer trips over it immediately
 // rather than inside a controller they might not think to open.
-if (!$panelUser) {
-    $sharedKey = get('key');
-    if (!$page->canBeViewedWithToken($sharedKey)) {
-        // Use Kirby's standard 404 so private pages don't leak their existence.
-        $kirby->response()->code(404);
-        echo $site->errorPage()->render();
-        exit;
-    }
+if (!$panelUser && !$page->isPubliclyVisible()) {
+    // Use Kirby's standard 404 so private pages don't leak their existence.
+    $kirby->response()->code(404);
+    echo $site->errorPage()->render();
+    exit;
 }
 
 // ── Visitor-mode chrome ──────────────────────────────────────────────
-// Anyone WITHOUT a panel session (shared-link recipients, casual
-// browsers landing on a public project) gets a stripped-down header:
+// Anyone WITHOUT a panel session (casual browsers landing on a
+// public project) gets a stripped-down header:
 // small wordmark + single "Carte des projets" link, no full site nav.
 // Admin and other logged-in users keep the full nav because they
 // actually navigate the site. Embedded mode still strips chrome
@@ -424,7 +420,7 @@ snippet('header', ['isVisitor' => $isVisitor]);
         <div class="viewer-pane viewer-pane--pointcloud<?= $defaultMode === 'pointcloud' ? ' is-active' : '' ?>"
              id="viewer-pane-pointcloud"
              data-mode-pane="pointcloud"
-             data-pc-src="<?= esc($page->url()) ?>?embed=1&pointcloud=1<?= get('key') ? '&key=' . urlencode(get('key')) : '' ?>"
+             data-pc-src="<?= esc($page->url()) ?>?embed=1&pointcloud=1"
              role="tabpanel"></div>
         <?php endif ?>
 

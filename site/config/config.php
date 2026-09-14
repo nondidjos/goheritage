@@ -102,30 +102,8 @@ return [
             $user    = $kirby->user();
             $isAdmin = $user && $user->isAdmin();
             $path    = $kirby->request()->path()->toString();
-            $role    = $user ? $user->role()->name() : null;
 
             $items = [];
-
-            // Scoped collaborator (editor share link): only ever sees the one
-            // project they were granted — no global project list, no admin
-            // Collaborator (editor share) and viewer (read-only share):
-            // only ever see the one project they were granted.
-            if ($role === 'collaborator' || $role === 'viewer') {
-                $scoped     = $user->scoped_page()->value();
-                $shareToken = $user->share_token()->value();
-                $proj       = $scoped ? $kirby->page($scoped) : null;
-                $expected   = ($role === 'collaborator') ? 'editor' : 'viewer';
-                if ($proj && $shareToken && $proj->shareTokenAccess($shareToken) === $expected) {
-                    $encoded = str_replace('/', '+', $proj->id());
-                    $items['project-' . $proj->slug()] = [
-                        'icon'    => 'box',
-                        'label'   => (string) $proj->title(),
-                        'link'    => 'pages/' . $encoded,
-                        'current' => str_contains($path, $encoded),
-                    ];
-                }
-                return $items;
-            }
 
             if ($isAdmin) {
                 $items['site'] = [

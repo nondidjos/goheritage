@@ -111,8 +111,6 @@ tabs:
         type: fields
         fields:
           visibility:    { type: hidden }
-          share_token:   { type: hidden }
-          share_links:   { type: hidden }
 
       # Long-form editorial content.
       content_section:

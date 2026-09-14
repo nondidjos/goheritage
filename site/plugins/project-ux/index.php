@@ -4,10 +4,7 @@
  * project-ux plugin
  *
  * Panel UX layer for project pages:
- *   - share-link field           : read-only URL with copy button (legacy
- *                                   inline render; the visibility view-button
- *                                   in the page header surfaces the same URL
- *                                   for the common case)
+ *   - visibility view-button     : public / private switch in the page header
  *
  * The earlier `view-mode-toggle` and `visibility-control` fields have been
  * retired:
@@ -22,94 +19,26 @@
  *     status and preview buttons, like Matterport's sharing control.
  *
  * Page methods exposed for the public template:
- *   isPubliclyVisible()        – page is `public` and `listed`
- *   isLinkOnly()               – page uses the `link` visibility tier
- *   canBeViewedWithToken($t)   – does the supplied ?key=... grant access?
+ *   isPubliclyVisible()        – page visibility is `public`
  *   sectionVisible($key)       – is the named section in `visible_sections`?
- *   visibilityResolved()       – effective visibility with backward-compat:
- *                                if `visibility` is empty, fall back to status
- *                                (listed → public, draft → private) so pages
- *                                created before this plugin was installed keep
- *                                their existing behaviour until edited.
+ *   visibilityResolved()       – effective visibility: `public` or `private`
+ *                                (the retired `link` tier maps to private).
  */
 
 use Kirby\Cms\App as Kirby;
 
-// Write-guard for scoped `collaborator` accounts (created by editor share
-// links). A collaborator may only mutate the single project they were
-// granted — and its descendant pages/files. Any attempt to write outside
-// that subtree throws. This is the server-side backstop behind the scoped
-// panel menu; it is what actually makes the editor share safe to hand out.
-if (!function_exists('gh_guard_collaborator_scope')) {
-    function gh_guard_collaborator_scope($model): void
-    {
-        $user = kirby()->user();
-        if (!$user) return;
-
-        $role = $user->role()->name();
-
-        // Viewers are fully read-only — block every write unconditionally.
-        if ($role === 'viewer') {
-            throw new \Kirby\Exception\PermissionException('Accès lecture seule.');
-        }
-
-        if ($role !== 'collaborator') return;
-
-        $scoped = $user->scoped_page()->value();
-        if (empty($scoped)) {
-            throw new \Kirby\Exception\PermissionException('Compte de partage non lié à un projet.');
-        }
-
-        // Validate that the collaborator's share token is still active and has editor access
-        $shareToken = $user->share_token()->value();
-        $scopedPage = kirby()->page($scoped);
-        if (!$scopedPage || empty($shareToken) || $scopedPage->shareTokenAccess($shareToken) !== 'editor') {
-            throw new \Kirby\Exception\PermissionException('Ce lien d\'accès a été révoqué.');
-        }
-
-        // Resolve the page the write targets (files carry a parent page).
-        $page = $model;
-        if ($model instanceof \Kirby\Cms\File) {
-            $page = $model->parent();
-        }
-        if (!($page instanceof \Kirby\Cms\Page)) {
-            throw new \Kirby\Exception\PermissionException('Action non autorisée pour ce compte de partage.');
-        }
-        $id = $page->id();
-        // str_starts_with makes the prefix check explicit: the collaborator's
-        // scoped page itself, or a descendant under "<scoped>/". The trailing
-        // slash is load-bearing — without it "map/foo" would also match the
-        // sibling "map/foo-2".
-        if ($id !== $scoped && !str_starts_with($id, $scoped . '/')) {
-            throw new \Kirby\Exception\PermissionException('Accès limité à votre projet partagé.');
-        }
-    }
-}
-
 // READ-access gate for a project page's content, shared by the gated asset
 // route (gh/file) and the ZIP download (gh/download) so the authorization
-// lives in exactly one place and can't drift between them:
-//   • A panel user is allowed; a scoped collaborator/viewer only for THEIR
-//     own project subtree.
-//   • Otherwise a share token decides. `$requireDownload` is the one
-//     difference: downloading the file archive needs viewer/editor rights,
-//     whereas merely viewing an asset is allowed for any token that can see
-//     the page (incl. a visit-only link).
+// lives in exactly one place and can't drift between them. Any panel user is
+// allowed; an anonymous visitor only ever reaches a publicly visible page,
+// and never the bulk archive.
 if (!function_exists('gh_requester_may_access')) {
     function gh_requester_may_access($page, bool $requireDownload = false): bool
     {
-        $user = kirby()->user();
-        if ($user) {
-            if (in_array($user->role()->name(), ['collaborator', 'viewer'], true)) {
-                $scoped = $user->scoped_page()->value();
-                return $scoped === $page->id() || str_starts_with($page->id(), $scoped . '/');
-            }
-            return true; // admin / author / editor accounts
+        if (kirby()->user()) {
+            return true;
         }
-        if ($requireDownload) {
-            return in_array($page->shareTokenAccess(get('key')), ['viewer', 'editor'], true);
-        }
-        return $page->canBeViewedWithToken(get('key'));
+        return $requireDownload ? false : $page->isPubliclyVisible();
     }
 }
 
@@ -155,246 +84,10 @@ Kirby::plugin('goheritage/project-ux', [
             },
         ],
 
-        // SHARE LOGIN — handles both editor and viewer tokens.
-        //
-        // Editor  → named account signup (the existing collaborator flow):
-        //           the recipient creates a password-protected account and
-        //           gets full edit access scoped to the one project.
-        //
-        // Viewer  → auto-created, auto-login, no signup form:
-        //           a minimal `viewer` account is created silently (random
-        //           internal email, random password the user never sees).
-        //           Each subsequent visit auto-logs them in via the token.
-        //           Revoking the share link immediately kills their access.
-        [
-            'pattern' => 'gh-share-login/(:any)',
-            'action'  => function (string $slug) {
-                $kirby = kirby();
-                $token = get('key');
-
-                if (!$token) {
-                    return $kirby->response()->redirect('/panel/login');
-                }
-
-                $map  = $kirby->page('map');
-                $page = $map ? $map->children()->find($slug) : null;
-                if (!$page) {
-                    $page = $kirby->page($slug);
-                }
-                if (!$page || $page->intendedTemplate()->name() !== 'project') {
-                    return $kirby->response()->redirect('/panel/login');
-                }
-
-                $access   = $page->shareTokenAccess($token);
-                $panelId  = str_replace('/', '+', $page->id());
-                $redirect = '/panel/pages/' . $panelId . '?tab=overview';
-
-                // Only editor and viewer tokens are allowed here.
-                if ($access !== 'editor' && $access !== 'viewer') {
-                    return $kirby->response()->redirect('/panel/login');
-                }
-
-                // ── Viewer — auto-create once, then auto-login every time ──
-                if ($access === 'viewer') {
-                    // Handle already-logged-in users before creating a viewer session.
-                    if ($existing = $kirby->user()) {
-                        // Already the right viewer — nothing to do.
-                        if ($existing->role()->name() === 'viewer'
-                            && $existing->scoped_page()->value() === $page->id()
-                            && $existing->share_token()->value() === $token) {
-                            return $kirby->response()->redirect($redirect);
-                        }
-                        // Admin/author already has full panel access — send them
-                        // straight to the project without touching their session.
-                        if ($existing->isAdmin() || $existing->role()->name() === 'author') {
-                            return $kirby->response()->redirect($redirect);
-                        }
-                        // Another scoped user (wrong viewer / collaborator) —
-                        // log them out so the correct viewer session can start.
-                        $existing->logout();
-                    }
-
-                    // The token has already been verified above — that IS the
-                    // authentication. We don't need a password. loginPasswordless()
-                    // with explicit cookie options creates a panel session directly,
-                    // exactly as Kirby's own Auth::login() does internally.
-                    $viewerEmail = 'viewer-' . substr(hash('sha256', $token), 0, 12) . '@gh.internal';
-
-                    $viewer = $kirby->users()->filterBy('role', 'viewer')
-                        ->filterBy('share_token', $token)->first();
-
-                    if (!$viewer) {
-                        $kirby->impersonate('kirby');
-                        $viewer = $kirby->users()->create([
-                            'name'     => 'Lecteur',
-                            'email'    => $viewerEmail,
-                            'password' => bin2hex(random_bytes(24)), // random, never used
-                            'role'     => 'viewer',
-                            'language' => 'fr',
-                        ]);
-                        $viewer->update([
-                            'scoped_page' => $page->id(),
-                            'share_token' => $token,
-                        ]);
-                        $kirby->impersonate();
-                    }
-
-                    // Create a cookie-based panel session directly on the user.
-                    // No password check — token validity above is sufficient.
-                    $viewer->loginPasswordless(['createMode' => 'cookie', 'long' => false]);
-
-                    return $kirby->response()->redirect($redirect);
-                }
-
-                // ── Editor — existing named-account signup flow ──────────
-                if ($user = $kirby->user()) {
-                    if ($user->isAdmin() || $user->role()->name() === 'author'
-                        || ($user->role()->name() === 'collaborator'
-                            && $user->scoped_page()->value() === $page->id()
-                            && $user->share_token()->value() === $token)) {
-                        return $kirby->response()->redirect($redirect);
-                    }
-                }
-
-                $existing = $kirby->users()->filterBy('role', 'collaborator')
-                    ->filterBy('share_token', $token)->first();
-
-                if ($existing) {
-                    return snippet('gh-editor-signup', [
-                        'page'      => $page,
-                        'token'     => $token,
-                        'slug'      => $slug,
-                        'errors'    => [],
-                        'form_data' => [],
-                        'status'    => 'used',
-                    ], true);
-                }
-
-                return snippet('gh-editor-signup', [
-                    'page'      => $page,
-                    'token'     => $token,
-                    'slug'      => $slug,
-                    'errors'    => [],
-                    'form_data' => [],
-                    'status'    => 'active',
-                ], true);
-            }
-        ],
-
-        [
-            'pattern' => 'gh-share-register',
-            'method'  => 'POST',
-            'action'  => function () {
-                $kirby = kirby();
-                $token = get('token');
-                $slug  = get('slug');
-
-                if (!$token || !$slug) {
-                    return $kirby->response()->redirect('/panel/login');
-                }
-
-                $map  = $kirby->page('map');
-                $page = $map ? $map->children()->find($slug) : null;
-                if (!$page) {
-                    $page = $kirby->page($slug);
-                }
-                if (!$page || $page->intendedTemplate()->name() !== 'project') {
-                    return $kirby->response()->redirect('/panel/login');
-                }
-
-                // Editor access REQUIRED — anything less is refused.
-                if ($page->shareTokenAccess($token) !== 'editor') {
-                    return $kirby->response()->redirect('/panel/login');
-                }
-
-                // Check if user already exists for this token
-                $user = $kirby->users()->filterBy('role', 'collaborator')->filterBy('share_token', $token)->first();
-                if ($user) {
-                    return snippet('gh-editor-signup', [
-                        'page'      => $page,
-                        'token'     => $token,
-                        'slug'      => $slug,
-                        'errors'    => [],
-                        'form_data' => [],
-                        'status'    => 'used',
-                    ], true);
-                }
-
-                $email           = trim((string) get('email'));
-                $name            = trim((string) get('name'));
-                $password        = (string) get('password');
-                $passwordConfirm = (string) get('password_confirm');
-
-                $errors = [];
-                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    $errors[] = 'Adresse email invalide.';
-                }
-                if ($name === '') {
-                    $errors[] = 'Le nom est requis.';
-                }
-                if (strlen($password) < 8) {
-                    $errors[] = 'Le mot de passe doit faire au moins 8 caractères.';
-                }
-                if ($password !== $passwordConfirm) {
-                    $errors[] = 'Les mots de passe ne correspondent pas.';
-                }
-                if (empty($errors) && $kirby->users()->find($email)) {
-                    $errors[] = 'Un compte existe déjà avec cette adresse. Connectez-vous au panneau pour y accéder.';
-                }
-
-                if (!empty($errors)) {
-                    return snippet('gh-editor-signup', [
-                        'page'      => $page,
-                        'token'     => $token,
-                        'slug'      => $slug,
-                        'errors'    => $errors,
-                        'form_data' => ['email' => $email, 'name' => $name],
-                        'status'    => 'active',
-                    ], true);
-                }
-
-                // Create user
-                try {
-                    $kirby->impersonate('kirby');
-                    $user = $kirby->users()->create([
-                        'name'     => $name,
-                        'email'    => $email,
-                        'password' => $password,
-                        'role'     => 'collaborator',
-                        'language' => 'fr',
-                    ]);
-                    $user->update([
-                        'scoped_page' => $page->id(),
-                        'share_token' => $token,
-                    ]);
-                    $kirby->impersonate();
-                } catch (\Throwable $e) {
-                    return snippet('gh-editor-signup', [
-                        'page'      => $page,
-                        'token'     => $token,
-                        'slug'      => $slug,
-                        'errors'    => ['Erreur lors de la création du compte : ' . $e->getMessage()],
-                        'form_data' => ['email' => $email, 'name' => $name],
-                        'status'    => 'active',
-                    ], true);
-                }
-
-                // Auto-login the new user
-                try {
-                    $user->loginPasswordless();
-                } catch (\Throwable $e) {
-                }
-
-                $panelId = str_replace('/', '+', $page->id());
-                return $kirby->response()->redirect('/panel/pages/' . $panelId . '?tab=overview');
-            }
-        ],
-
         // STRUCTURED ZIP DOWNLOAD. Packages all project files into a ZIP with
         // category subfolders and project-slug-prefixed filenames so the
         // recipient gets a self-describing archive instead of Kirby's flat
-        // file directory. Requires a logged-in panel user OR a viewer/editor
-        // share token — visit-only tokens are denied (they have no file access).
+        // file directory. Requires a logged-in panel user.
         [
             'pattern' => 'gh/download/(:any)',
             'method'  => 'GET',
@@ -603,7 +296,6 @@ Kirby::plugin('goheritage/project-ux', [
                     // AUTHORIZATION — must be checked BEFORE impersonating kirby.
                     // The impersonation below bypasses Kirby's permission system
                     // entirely, so without this gate any logged-in user (incl. a
-                    // read-only viewer or a collaborator scoped to another project)
                     // could change any page's visibility. Require that the real
                     // current user actually holds update rights on THIS page.
                     $actor = $kirby->user();
@@ -611,25 +303,16 @@ Kirby::plugin('goheritage/project-ux', [
                         $kirby->response()->code(403);
                         return ['status' => 'error', 'message' => 'Accès refusé.'];
                     }
-                    // Scoped collaborator: confirm this is their granted project.
-                    if ($actor->role()->name() === 'collaborator') {
-                        $scoped = $actor->scoped_page()->value();
-                        if ($scoped !== $page->id() && !str_starts_with($page->id(), $scoped . '/')) {
-                            $kirby->response()->code(403);
-                            return ['status' => 'error', 'message' => 'Accès refusé.'];
-                        }
-                    }
-
                     $kirby->impersonate('kirby');
 
                     $body       = $kirby->request()->body();
                     $visibility = $body->get('visibility');
 
-                    if (!in_array($visibility, ['private', 'link', 'public'], true)) {
+                    if (!in_array($visibility, ['private', 'public'], true)) {
                         return ['status' => 'error', 'message' => 'Invalid visibility value'];
                     }
 
-                    // Map our 3-tier to Kirby's 2-tier status
+                    // Map visibility onto Kirby's page status
                     $kirbyStatus = ($visibility === 'private') ? 'draft' : 'listed';
 
                     try {
@@ -715,8 +398,7 @@ Kirby::plugin('goheritage/project-ux', [
                 'action'  => function () {
                     $kirby = kirby();
                     // Impersonate kirby so the route can read site data
-                    // regardless of whether the current panel user is a
-                    // scoped collaborator/viewer with limited page access.
+                    // regardless of the current panel user's page permissions.
                     $kirby->impersonate('kirby');
                     $site = $kirby->site();
 
@@ -812,24 +494,6 @@ Kirby::plugin('goheritage/project-ux', [
                 'protectionStatusRaw' => function () {
                     return (string)$this->model()->protection_status();
                 },
-                'shareLinks' => function () {
-                    $links = [];
-                    $structure = $this->model()->share_links()->toStructure();
-                    foreach ($structure as $link) {
-                        $links[] = [
-                            // StructureObject::id() is a reserved method that
-                            // returns the row id as a STRING (not a Field), so
-                            // it must NOT be called with ->value().
-                            'id'               => (string) $link->id(),
-                            'token'            => $link->token()->value(),
-                            'label'            => $link->label()->value(),
-                            'access'           => $link->access()->or('visit')->value(),
-                            'visible_sections' => $link->visible_sections()->split(','),
-                        ];
-                    }
-                    return $links;
-                },
-
                 // ── Description / meta fields ───────────────────────────
                 'description'      => function () { return (string) $this->model()->description(); },
                 'location'         => function () { return (string) $this->model()->location(); },
@@ -919,43 +583,14 @@ Kirby::plugin('goheritage/project-ux', [
     // ── Hooks ──────────────────────────────────────────────────────────────
     'hooks' => [
 
-        'route:before' => function ($route, $path, $method) {
-            $kirby = kirby();
-            $user  = $kirby->user();
-            if (!$user) return;
-
-            $role = $user->role()->name();
-            // Only scoped roles need token validation on every request.
-            if ($role !== 'collaborator' && $role !== 'viewer') return;
-
-            $scoped     = $user->scoped_page()->value();
-            $shareToken = $user->share_token()->value();
-            $scopedPage = $scoped ? $kirby->page($scoped) : null;
-
-            // The expected access level differs by role.
-            $expectedAccess = ($role === 'collaborator') ? 'editor' : 'viewer';
-
-            if (!$scopedPage || empty($shareToken)
-                || $scopedPage->shareTokenAccess($shareToken) !== $expectedAccess) {
-                $user->logout();
-                if (str_starts_with($path, 'panel')) {
-                    go('/panel/login');
-                }
-            }
-        },
-
-        // Generate a per-page share token and default to "link" visibility
-        // on creation so it is not publicly exposed by default.
+        // Default new projects to private so a project is never publicly
+        // exposed before someone explicitly publishes it.
         'page.create:after' => function ($page) {
             if ($page->intendedTemplate()->name() === 'project') {
                 try {
-                    $token = bin2hex(random_bytes(16));
-                    $page->update([
-                        'share_token' => $token,
-                        'visibility'  => 'link',
-                    ]);
+                    $page->update(['visibility' => 'private']);
                 } catch (\Throwable $e) {
-                    // Silent — the fields will be backfilled on next save.
+                    // Silent — the field is backfilled on next save.
                 }
             }
         },
@@ -967,58 +602,12 @@ Kirby::plugin('goheritage/project-ux', [
                 try {
                     if ($newPage->isDraft()) {
                         $newPage->update(['visibility' => 'private']);
-                    } else {
-                        $v = $newPage->visibility()->value();
-                        if ($v === 'private' || empty($v)) {
-                            $newPage->update(['visibility' => 'link']);
-                        }
                     }
                 } catch (\Throwable $e) {
                 }
             }
         },
 
-        // Backfill missing tokens on update so projects that existed before
-        // this plugin shipped get a token the first time they're touched.
-        'page.update:before' => function ($page) {
-            gh_guard_collaborator_scope($page);
-            if (
-                $page->intendedTemplate()->name() === 'project'
-                && $page->share_token()->isEmpty()
-            ) {
-                try {
-                    $token = bin2hex(random_bytes(16));
-                    $page->content()->update(['share_token' => $token]);
-                } catch (\Throwable $e) {
-                    // Silent — same reasoning as above.
-                }
-            }
-        },
-
-        // ── Collaborator scope guards ───────────────────────────────────
-        // Block scoped collaborator accounts from mutating anything outside
-        // the single project they were shared.
-        'page.changeStatus:before' => function ($page, $status, $position = null) {
-            gh_guard_collaborator_scope($page);
-        },
-        'page.delete:before' => function ($page, $force = false) {
-            gh_guard_collaborator_scope($page);
-        },
-        'page.duplicate:before' => function ($page) {
-            gh_guard_collaborator_scope($page);
-        },
-        'file.create:before' => function ($file) {
-            gh_guard_collaborator_scope($file);
-        },
-        'file.update:before' => function ($newFile, $oldFile) {
-            gh_guard_collaborator_scope($newFile);
-        },
-        'file.replace:before' => function ($newFile, $oldFile) {
-            gh_guard_collaborator_scope($newFile);
-        },
-        'file.delete:before' => function ($file, $force = false) {
-            gh_guard_collaborator_scope($file);
-        },
     ],
 
     // ── File methods ───────────────────────────────────────────────────────
@@ -1141,10 +730,8 @@ Kirby::plugin('goheritage/project-ux', [
             if (!in_array(strtolower($file->extension()), $protected, true)) {
                 return $file->url();
             }
-            $url = '/gh/file/' . str_replace('/', '+', $this->id())
+            return '/gh/file/' . str_replace('/', '+', $this->id())
                  . '/' . rawurlencode($file->filename());
-            $key = get('key');
-            return $key ? $url . '?key=' . urlencode($key) : $url;
         },
 
         // Whether a home-page section is shown. Sections default to visible, so
@@ -1185,119 +772,28 @@ Kirby::plugin('goheritage/project-ux', [
 
         // Effective visibility with backward-compat fallback for pages that
         // pre-date this plugin: listed → public, otherwise → private.
+        // Effective visibility. The share-link tier was removed, so a project
+        // is either public or private; the legacy `link` value maps to private
+        // so existing content keeps exactly the non-public state it had.
         'visibilityResolved' => function () {
-            $v = $this->visibility()->value();
-            if ($v === 'public' || $v === 'link' || $v === 'private') {
-                return $v;
-            }
-            // Safe default: a listed page with no explicit visibility is
-            // treated as link-only (NOT public). Pages are only listed on the
-            // public map when visibility is explicitly 'public'.
-            return $this->isListed() ? 'link' : 'private';
-        },
-
-        // Resolve the share-link row that a given token belongs to (or null).
-        // Each row in the `share_links` structure carries its own token +
-        // access level, so the token itself — not the URL path — determines
-        // what a recipient may do.
-        'shareLinkByToken' => function (?string $token = null) {
-            if (empty($token)) {
-                return null;
-            }
-            foreach ($this->share_links()->toStructure() as $link) {
-                $lt = $link->token()->value();
-                if (!empty($lt) && hash_equals($lt, (string) $token)) {
-                    return $link;
-                }
-            }
-            return null;
-        },
-
-        // Access level granted BY A TOKEN, hierarchical:
-        //   'editor'  → panel edit login + dossier + visit
-        //   'dossier' → read-only dossier + visit
-        //   'visit'   → Matterport-style project page only
-        //   null      → token unknown / invalid
-        // This is the single source of truth that stops a low-privilege link
-        // from being escalated by swapping the URL path.
-        'shareTokenAccess' => function (?string $token = null) {
-            if (empty($token)) {
-                return null;
-            }
-            $link = $this->shareLinkByToken($token);
-            if ($link) {
-                $access = $link->access()->or('visit')->value();
-                // 'dossier' is the legacy name for viewer — map it transparently
-                // so old share links continue to work without a data migration.
-                if ($access === 'dossier') $access = 'viewer';
-                return in_array($access, ['visit', 'viewer', 'editor'], true) ? $access : 'visit';
-            }
-            // Legacy page-wide token predates per-link access → visit only.
-            if ($this->share_token()->isNotEmpty() && hash_equals($this->share_token()->value(), (string) $token)) {
-                return 'visit';
-            }
-            return null;
+            return $this->visibility()->value() === 'public' ? 'public' : 'private';
         },
 
         'isPubliclyVisible' => function () {
             return $this->visibilityResolved() === 'public';
         },
 
-        'isLinkOnly' => function () {
-            return $this->visibilityResolved() === 'link';
-        },
-
-        // May the project page (Matterport-style visit) be viewed with this
-        // token? Any token that resolves to a valid access level grants the
-        // visit; finer control over WHAT is shown lives in sectionVisible().
-        'canBeViewedWithToken' => function (?string $token = null) {
-            $v = $this->visibilityResolved();
-            if ($v === 'public') {
+        // Per-section visibility for the public project page, driven by the
+        // page-level `visible_sections` list. An empty list means "show all".
+        'sectionVisible' => function (string $section) {
+            if ($this->visibilityResolved() !== 'public') {
+                return false;
+            }
+            $field = $this->visible_sections();
+            if ($field->isEmpty()) {
                 return true;
             }
-            if ($v === 'link' && $token) {
-                return $this->shareTokenAccess($token) !== null;
-            }
-            return false;
-        },
-
-        // Per-section visibility for the public project page. Public pages use
-        // the page-level `visible_sections`; link visits use the matched
-        // share-link's own `visible_sections` (legacy page-wide token falls
-        // back to the page-level list).
-        'sectionVisible' => function (string $section) {
-            $v = $this->visibilityResolved();
-            if ($v === 'public') {
-                $field = $this->visible_sections();
-                if ($field->isEmpty()) {
-                    return true;
-                }
-                return in_array($section, $field->split(','), true);
-            }
-
-            if ($v === 'link') {
-                $token = get('key');
-                if (!$token) {
-                    return false;
-                }
-                $link = $this->shareLinkByToken($token);
-                if ($link) {
-                    $field = $link->visible_sections();
-                    if ($field->isEmpty()) {
-                        return false;
-                    }
-                    return in_array($section, $field->split(','), true);
-                }
-                // Legacy page-wide token → page-level visible_sections.
-                if ($this->share_token()->isNotEmpty() && hash_equals($this->share_token()->value(), (string) $token)) {
-                    $field = $this->visible_sections();
-                    if ($field->isEmpty()) {
-                        return true;
-                    }
-                    return in_array($section, $field->split(','), true);
-                }
-            }
-            return false;
+            return in_array($section, $field->split(','), true);
         },
     ],
 ]);
